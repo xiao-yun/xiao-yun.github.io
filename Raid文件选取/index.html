@@ -1,0 +1,894 @@
+<!doctype html>
+<html class="theme-next   use-motion ">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+  <link href="/vendors/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css"/>
+
+
+
+
+  <link href="//fonts.googleapis.com/css?family=Lato:300,400,700,400italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+
+
+
+<link href="/vendors/font-awesome/css/font-awesome.min.css?v=4.4.0" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=0.4.5.2" rel="stylesheet" type="text/css" />
+
+
+  <meta name="keywords" content="Hadoop-0.20,RaidNode," />
+
+
+
+
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=0.4.5.2" />
+
+
+
+
+
+
+<meta name="description" content="Hadoop版本:hadoop-20-master
+
+TriggerMonitor负责检测policy文件,并相应的执行相应文件的Raid操作.
+主要成员:12private Map&amp;lt;String, PolicyState&amp;gt; policyStateMap = new HashMap&amp;lt;String, PolicyState&amp;gt;();private volatile long l">
+<meta property="og:type" content="article">
+<meta property="og:title" content="RaidNode源码阅读---编码过程之上篇Raid文件选取(LocalRaidNode)">
+<meta property="og:url" content="http://xiao-yun.github.io/Raid文件选取/index.html">
+<meta property="og:site_name" content="xiaoyun">
+<meta property="og:description" content="Hadoop版本:hadoop-20-master
+
+TriggerMonitor负责检测policy文件,并相应的执行相应文件的Raid操作.
+主要成员:12private Map&amp;lt;String, PolicyState&amp;gt; policyStateMap = new HashMap&amp;lt;String, PolicyState&amp;gt;();private volatile long l">
+<meta property="og:updated_time" content="2015-12-11T02:32:09.503Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="RaidNode源码阅读---编码过程之上篇Raid文件选取(LocalRaidNode)">
+<meta name="twitter:description" content="Hadoop版本:hadoop-20-master
+
+TriggerMonitor负责检测policy文件,并相应的执行相应文件的Raid操作.
+主要成员:12private Map&amp;lt;String, PolicyState&amp;gt; policyStateMap = new HashMap&amp;lt;String, PolicyState&amp;gt;();private volatile long l">
+
+
+
+<script type="text/javascript" id="hexo.configuration">
+  var CONFIG = {
+    scheme: 'Mist',
+    sidebar: 'hide',
+    motion: true
+  };
+</script>
+
+  <title> RaidNode源码阅读---编码过程之上篇Raid文件选取(LocalRaidNode) | xiaoyun </title>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  <!--[if lte IE 8]>
+  <div style=' clear: both; height: 59px; padding:0 0 0 15px; position: relative;margin:0 auto;'>
+    <a href="http://windows.microsoft.com/en-US/internet-explorer/products/ie/home?ocid=ie6_countdown_bannercode">
+      <img src="http://7u2nvr.com1.z0.glb.clouddn.com/picouterie.jpg" border="0" height="42" width="820"
+           alt="You are using an outdated browser. For a faster, safer browsing experience, upgrade for free today or use other browser ,like chrome firefox safari."
+           style='margin-left:auto;margin-right:auto;display: block;'/>
+    </a>
+  </div>
+<![endif]-->
+  
+
+
+
+  <script type="text/javascript">
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "//hm.baidu.com/hm.js?caeb4129c91d1e6fb3d562d35fedef0d";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+  <div class="container one-column page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-meta ">
+  
+
+  <div class="custom-logo-site-title">
+    <a href="/"  class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <span class="site-title">xiaoyun</span>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+  <p class="site-subtitle"></p>
+</div>
+
+<div class="site-nav-toggle">
+  <button>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+  </button>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu menu-left">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-home fa-fw"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives" rel="section">
+            
+              <i class="menu-item-icon fa fa-archive fa-fw"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories" rel="section">
+            
+              <i class="menu-item-icon fa fa-th fa-fw"></i> <br />
+            
+            分类
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+              <i class="menu-item-icon fa fa-tags fa-fw"></i> <br />
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about" rel="section">
+            
+              <i class="menu-item-icon fa fa-user fa-fw"></i> <br />
+            
+            关于
+          </a>
+        </li>
+      
+
+      
+      
+    </ul>
+  
+
+  
+    <div class="site-search">
+      
+  
+  <form class="site-search-form">
+    <input type="text" id="st-search-input" class="st-search-input st-default-search-input" />
+  </form>
+
+
+<script type="text/javascript">
+  (function(w,d,t,u,n,s,e){w['SwiftypeObject']=n;w[n]=w[n]||function(){
+    (w[n].q=w[n].q||[]).push(arguments);};s=d.createElement(t);
+    e=d.getElementsByTagName(t)[0];s.async=1;s.src=u;e.parentNode.insertBefore(s,e);
+  })(window,document,'script','//s.swiftypecdn.com/install/v2/st.js','_st');
+
+  _st('install', 'Nq1MdxGEF4xQgzakv9MC','2.0.0');
+</script>
+
+
+
+    </div>
+  
+</nav>
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div id="content" class="content">
+          
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                RaidNode源码阅读---编码过程之上篇Raid文件选取(LocalRaidNode)
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            发表于
+            <time itemprop="dateCreated" datetime="2015-12-11T10:32:09+08:00" content="2015-12-11">
+              2015-12-11
+            </time>
+          </span>
+
+          
+            <span class="post-category" >
+              &nbsp; | &nbsp; 分类于
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Hadoop-0-20/" itemprop="url" rel="index">
+                    <span itemprop="name">Hadoop-0.20</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Hadoop-0-20/RaidNode/" itemprop="url" rel="index">
+                    <span itemprop="name">RaidNode</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Hadoop-0-20/RaidNode/源码阅读/" itemprop="url" rel="index">
+                    <span itemprop="name">源码阅读</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Hadoop-0-20/RaidNode/源码阅读/RaidNode源码阅读/" itemprop="url" rel="index">
+                    <span itemprop="name">RaidNode源码阅读</span>
+                  </a>
+                </span>
+
+                
+                
+
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                &nbsp; | &nbsp;
+                <a href="/Raid文件选取/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="Raid文件选取/" itemprop="commentsCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+
+        </div>
+      </header>
+    
+
+
+    <div class="post-body">
+
+      
+      
+
+      
+        <span itemprop="articleBody"><blockquote>
+<p>Hadoop版本:<a href="https://github.com/facebookarchive/hadoop-20" title="facebook hadoop" target="_blank" rel="external">hadoop-20-master</a></p>
+</blockquote>
+<h1 id="TriggerMonitor">TriggerMonitor</h1><p>负责检测policy文件,并相应的执行相应文件的Raid操作.</p>
+<h2 id="主要成员:">主要成员:</h2><figure class="highlight processing"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> Map&lt;<span class="keyword">String</span>, PolicyState&gt; policyStateMap = <span class="keyword">new</span> <span class="keyword">HashMap</span>&lt;<span class="keyword">String</span>, PolicyState&gt;();</span><br><span class="line"><span class="keyword">private</span> <span class="keyword">volatile</span> <span class="keyword">long</span> lastTriggerTime = <span class="number">0</span>;</span><br></pre></td></tr></table></figure>
+<p><code>policyStateMap</code>管理所有加载的policy,键为policy名,值为PolicyState对象.</p>
+<h2 id="TriggerMonitor线程主函数doProcess">TriggerMonitor线程主函数doProcess</h2><figure class="highlight tcl"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br></pre></td><td class="code"><pre><span class="line">private void doProcess() throws IOException, InterruptedException &#123;</span><br><span class="line">  ArrayList&lt;PolicyInfo&gt; allPolicies = new ArrayList&lt;PolicyInfo&gt;();</span><br><span class="line">  ArrayList&lt;PolicyInfo&gt; allPoliciesWithSrcPath = new ArrayList&lt;PolicyInfo&gt;();</span><br><span class="line">  <span class="keyword">for</span> (PolicyInfo <span class="keyword">info</span> : configMgr.getAllPolicies()) &#123;</span><br><span class="line">    allPolicies.add(<span class="keyword">info</span>);</span><br><span class="line">    <span class="keyword">if</span> (<span class="keyword">info</span>.getSrcPath() != null) &#123;</span><br><span class="line">      allPoliciesWithSrcPath.add(<span class="keyword">info</span>);</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">while</span> (running) &#123;</span><br><span class="line">    Thread.sleep(RaidNode.triggerMonitorSleepTime);</span><br><span class="line">    boolean reloaded = configMgr.reloadConfigsIfNecessary();</span><br><span class="line">    <span class="keyword">if</span> (reloaded) &#123;</span><br><span class="line">      allPolicies.clear();</span><br><span class="line">      allPoliciesWithSrcPath.clear();</span><br><span class="line">      <span class="keyword">for</span> (PolicyInfo <span class="keyword">info</span> : configMgr.getAllPolicies()) &#123;</span><br><span class="line">        allPolicies.add(<span class="keyword">info</span>);</span><br><span class="line">        <span class="keyword">if</span> (<span class="keyword">info</span>.getSrcPath() != null) &#123;</span><br><span class="line">          allPoliciesWithSrcPath.add(<span class="keyword">info</span>);</span><br><span class="line">        &#125;</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    LOG.<span class="keyword">info</span>(<span class="string">"TriggerMonitor.doProcess "</span> + allPolicies.size());</span><br><span class="line"></span><br><span class="line">    <span class="keyword">for</span> (PolicyInfo <span class="keyword">info</span>: allPolicies) &#123;</span><br><span class="line">      this.putPolicyInfo(<span class="keyword">info</span>);</span><br><span class="line"></span><br><span class="line">      List&lt;FileStatus&gt; filteredPaths = null;</span><br><span class="line">      <span class="keyword">if</span> (shouldReadFileList(<span class="keyword">info</span>)) &#123;</span><br><span class="line">        filteredPaths = readFileList(<span class="keyword">info</span>);</span><br><span class="line">      &#125; else <span class="keyword">if</span> (shouldSelectFiles(<span class="keyword">info</span>)) &#123;</span><br><span class="line">        LOG.<span class="keyword">info</span>(<span class="string">"Triggering Policy Filter "</span> + <span class="keyword">info</span>.getName() +</span><br><span class="line">            <span class="string">" "</span> + <span class="keyword">info</span>.getSrcPath());</span><br><span class="line">        try &#123;</span><br><span class="line">          filteredPaths = selectFiles(<span class="keyword">info</span>, allPoliciesWithSrcPath);</span><br><span class="line">        &#125; <span class="keyword">catch</span> (Exception e) &#123;</span><br><span class="line">          LOG.<span class="keyword">info</span>(<span class="string">"Exception while invoking filter on policy "</span> + <span class="keyword">info</span>.getName() +</span><br><span class="line">              <span class="string">" srcPath "</span> + <span class="keyword">info</span>.getSrcPath() +</span><br><span class="line">              <span class="string">" exception "</span> + StringUtils.stringifyException(e));</span><br><span class="line">          <span class="keyword">continue</span>;</span><br><span class="line">        &#125;</span><br><span class="line">      &#125; else &#123;</span><br><span class="line">        <span class="keyword">continue</span>;</span><br><span class="line">      &#125;</span><br><span class="line"></span><br><span class="line">      <span class="keyword">if</span> (filteredPaths == null || filteredPaths.size() == <span class="number">0</span>) &#123;</span><br><span class="line">        LOG.<span class="keyword">info</span>(<span class="string">"No filtered paths for policy "</span> + <span class="keyword">info</span>.getName());</span><br><span class="line">        <span class="keyword">continue</span>;</span><br><span class="line">      &#125;</span><br><span class="line"></span><br><span class="line">      // Apply the action on accepted paths</span><br><span class="line">      LOG.<span class="keyword">info</span>(<span class="string">"Triggering Policy Action "</span> + <span class="keyword">info</span>.getName() +</span><br><span class="line">          <span class="string">" "</span> + filteredPaths.size() + <span class="string">" files"</span>);</span><br><span class="line">      try &#123;</span><br><span class="line">        raidFiles(<span class="keyword">info</span>, filteredPaths);</span><br><span class="line">      &#125; <span class="keyword">catch</span> (Throwable e) &#123;</span><br><span class="line">        LOG.<span class="keyword">info</span>(<span class="string">"Exception while invoking action on policy "</span> + <span class="keyword">info</span>.getName() +</span><br><span class="line">            <span class="string">" srcPath "</span> + <span class="keyword">info</span>.getSrcPath() +</span><br><span class="line">            <span class="string">" exception "</span> + StringUtils.stringifyException(e), e);</span><br><span class="line">        <span class="keyword">continue</span>;</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    lastTriggerTime = System.currentTimeMillis();</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>这里,running为RaidNode的运行状态.两次Raid操作的间隔10s.</p>
+<p>首先判断是否重新加载raid配置文件(每隔10s读取配置文件,看文件是否已经修改且过了5s).<br>对allPolicies和allPoliciesWithSrcPath更新.<br>更新policy之后,对每个policy读取可Raid的文件,进行Raid操作,Raid操作通过raidFiles(info,filteredPaths)完成.</p>
+<p>根据policy配置,有两种读取可raid文件的方式:</p>
+<ol>
+<li>给定fileListPath,则需读取该文件中的文件列表,一行对应一个文件或目录</li>
+<li>直接给定文件或目录路径srcPath,这里的srcPath支持模式匹配.<br>?匹配任意一个字符;<br>*匹配0个或以上的字符;<br>[abc]匹配abc中一个字符;<br>[a-c]同上;<br>[^abc]匹配除abc以外的字符;<br>{ab,bc}匹配ab或bc;<br>具体见hadoop FileSytem中的globStatus方法;</li>
+</ol>
+<h2 id="通过fileListPath读取待Raid文件">通过<code>fileListPath</code>读取待Raid文件</h2><h3 id="是否读取policy文件列表">是否读取policy文件列表</h3><p>该方式由<code>shouldReadFileList</code>方法判断是否应该读文件列表<br><figure class="highlight processing"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="built_in">boolean</span> shouldReadFileList(PolicyInfo info) &#123;</span><br><span class="line">  <span class="keyword">if</span> (info.getFileListPath() == <span class="keyword">null</span> || !info.getShouldRaid()) &#123;</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">false</span>;</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">String</span> policyName = info.getName();</span><br><span class="line">  PolicyState scanState = policyStateMap.<span class="built_in">get</span>(policyName);</span><br><span class="line">  <span class="keyword">if</span> (scanState.isFileListReadInProgress()) &#123;</span><br><span class="line">    <span class="built_in">int</span> maxJobsPerPolicy = configMgr.getMaxJobsPerPolicy();</span><br><span class="line">    <span class="built_in">int</span> runningJobsCount = getRunningJobsForPolicy(policyName);</span><br><span class="line">    <span class="comment">// If there is a scan in progress for this policy, we can have</span></span><br><span class="line">    <span class="comment">// upto maxJobsPerPolicy running jobs.</span></span><br><span class="line">    <span class="keyword">return</span> (runningJobsCount &lt; maxJobsPerPolicy);</span><br><span class="line">  &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">    <span class="keyword">long</span> lastReadStart = scanState.startTime;</span><br><span class="line">    <span class="keyword">return</span> (now() &gt; lastReadStart + configMgr.getPeriodicity());</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如果当前policy有读取Raid文件的job在运行,则只有满足当前policy运行的jobs数目小于<code>raid.distraid.max.jobs</code><br>(成员<code>maxJobsPerPolicy</code>,缺省10)才能继续读取待Raid的文件,这对应一个policy中文件过多,需要多个job读取文件进行Raid操作.</p>
+<p>为什么不需要判断Raid间隔这一条件呢?因为已经有Job在运行了,说明间隔这一条件满足(该policy已经读过一些文件了,只是还没读完).<br>若没有job运行,则policy当前时间满足加载同一policy配置的raid文件周期<code>raid.policy.rescan.interval</code>时便可.</p>
+<h3 id="读取可Raid的文件">读取可Raid的文件</h3><p>该方式下读取待Raid文件,返回fileListPath中文件或目录可以执行Raid操作的部分.<br><figure class="highlight stylus"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">public List&lt;FileStatus&gt; <span class="function"><span class="title">readFileList</span><span class="params">(PolicyInfo info)</span></span> throws IOException</span><br></pre></td></tr></table></figure></p>
+<p>一个policy一次Raid区块/文件限制:<br><figure class="highlight sml"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">int</span> selectLimit = codec.isDirRaid? configMgr.getMaxBlocksPerDirRaidJob<span class="literal">()</span>:configMgr.getMaxFilesPerJob<span class="literal">()</span>;</span><br></pre></td></tr></table></figure></p>
+<p>即对于目录Raid来说限制为<code>maxBlocksPerDirRaidJob</code>(为Block数目),由配置<code>hdfs.raid.dir.raid.block.limit</code>设置,缺省5000.<br>而对于文件Raid来说,限制为<code>maxFilesPerJob</code>(文件数目),由配置<code>raid.distraid.max.files</code>设置,缺省5000.</p>
+<p><code>readFileList</code>主程序循环读取文件列表中的每一行<br><figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">while</span> ((l = scanState.fileListReader.readLine()) != <span class="keyword">null</span>) &#123;</span><br><span class="line">  Path p = <span class="keyword">new</span> Path(l);</span><br><span class="line">  FileSystem fs = p.getFileSystem(conf);</span><br><span class="line">  p = fs.makeQualified(p);</span><br><span class="line">  FileStatus stat = <span class="keyword">null</span>;</span><br><span class="line">  <span class="keyword">try</span> &#123;</span><br><span class="line">    stat = ParityFilePair.FileStatusCache.<span class="keyword">get</span>(fs, p);</span><br><span class="line">  &#125; <span class="keyword">catch</span> (FileNotFoundException e) &#123;</span><br><span class="line">    LOG.warn(<span class="string">"Path "</span> + p  + <span class="string">" does not exist"</span>, e);</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">if</span> (stat == <span class="keyword">null</span>) &#123;</span><br><span class="line">    <span class="keyword">continue</span>;</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">short</span> repl = <span class="number">0</span>;</span><br><span class="line">  List&lt;FileStatus&gt; lfs = <span class="keyword">null</span>;</span><br><span class="line">  <span class="keyword">if</span> (codec.isDirRaid) &#123;</span><br><span class="line">    <span class="keyword">if</span> (!stat.isDir()) &#123;</span><br><span class="line">      <span class="keyword">continue</span>;<span class="comment">//目录Raid下,非目录项跳过</span></span><br><span class="line">    &#125;</span><br><span class="line">    lfs = RaidNode.listDirectoryRaidFileStatus(conf, fs, p);</span><br><span class="line">    <span class="keyword">if</span> (lfs == <span class="keyword">null</span>) &#123;</span><br><span class="line">      <span class="keyword">continue</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    repl = DirectoryStripeReader.getReplication(lfs);</span><br><span class="line">  &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">    repl = stat.getReplication();</span><br><span class="line">  &#125;</span><br></pre></td></tr></table></figure></p>
+<p>从上可以看出,一个policy对应一个<code>codecID</code>,若配置codecID为目录Raid,则fileListPath中的项不是目录则不会加入到待Raid列表中,跳过</p>
+<p>读取文件列表中一项后,判断是否可以raid:<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (!RaidNode.shouldRaid(conf, fs, stat, codec, lfs)) &#123;</span><br><span class="line">  <span class="keyword">if</span> (LOG.isDebugEnabled()) &#123;</span><br><span class="line">    LOG.debug(<span class="string">"Should not raid file: "</span> + l);</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">continue</span>;</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> <span class="function"><span class="keyword">boolean</span> <span class="title">shouldRaid</span><span class="params">(Configuration conf, FileSystem srcFs,</span><br><span class="line">  FileStatus stat, Codec codec, List&lt;FileStatus&gt; lfs)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">  Path p = stat.getPath();</span><br><span class="line">  <span class="keyword">long</span> blockNum = <span class="number">0</span>L;</span><br><span class="line">  <span class="keyword">if</span> (stat.isDir() != codec.isDirRaid) &#123;</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">false</span>;</span><br><span class="line">  &#125;<span class="comment">//路径状态(文件或目录)与codec不一致不进行Raid操作</span></span><br><span class="line"></span><br><span class="line">  <span class="keyword">if</span> (tooNewForRaid(stat)) &#123;</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">false</span>;</span><br><span class="line">  &#125;<span class="comment">//路径太新(修改时间到现在没有超过RaidNode.modTimePeriod,配置项raid.mod.time.period,默认1天),不进行Raid操作</span></span><br><span class="line"></span><br><span class="line">  blockNum = codec.isDirRaid ? DirectoryStripeReader.getBlockNum(lfs) : numBlocks(stat);</span><br><span class="line"></span><br><span class="line">  <span class="comment">// if the file/directory has fewer than 2 blocks, then nothing to do</span></span><br><span class="line">  <span class="keyword">if</span> (blockNum &lt;= RaidState.TOO_SMALL_NOT_RAID_NUM_BLOCKS) &#123;</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">false</span>;</span><br><span class="line">  &#125;<span class="comment">//路径Blocks数目小于TOO_SMALL_NOT_RAID_NUM_BLOCKS(2),不进行Raid操作.</span></span><br><span class="line"></span><br><span class="line">  <span class="keyword">return</span> !raidedByOtherHighPriCodec(conf, stat, codec);</span><br><span class="line">  <span class="comment">//已经被其他高优先级的Codec编码过的,不进行Raid操作.</span></span><br><span class="line">  <span class="comment">//代码就不贴了,就是遍历所有codec,取出优先级高的codec,看是否存在该目录的校验文件ParityFilePair.parityExists(stat, tcodec, conf).</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>是否可以Raid见上注释,需要注意的<code>TOO_SMALL_NOT_RAID_NUM_BLOCKS</code>,为RaidState的静态成员,值为2.</p>
+<p><del>另外,从最后判断高优先级codec来看,想象这样一种情景:<br>若一个目录中原来只有4个文件,已经进行了编码操作,然后添加了若干文件(假如4),我们配置的(10,4)rs码,则同样的优先级下,该目录下所有的文件参与<br>新编码过程(是否包括原来编码过的文件?不包括,已经编码的文件状态为RAIDED,不参与后续任何编码).而若已经被高优先级的codec编码,且高优先级<br>codec没到再次编码时间,低优先级的codec到了编码时间,则不予处理,仍然交给高优先级codec进行编码.</del></p>
+<p>如果应该Raid则修改备份数,添加至待Raid列表中,若超出一个policy的可以Raid的区块/文件限制,则退出循环,添加完成(剩下的下一次编码?):<br><figure class="highlight stata"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> ((repl &gt; targetReplication) || (repl == targetReplication &amp;&amp; !ParityFilePair.parityExists(stat, codec, <span class="keyword">conf</span>))) &#123;</span><br><span class="line">    <span class="keyword">list</span>.add(stat);</span><br><span class="line">    <span class="keyword">if</span> (codec.isDirRaid) &#123;</span><br><span class="line">        dirRaidNumBlocks += DirectoryStripeReader.getBlockNum(lfs);;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// for dir-raid, we judge from number of blocks rather than</span></span><br><span class="line"><span class="comment">// that of directories</span></span><br><span class="line"><span class="keyword">if</span> (codec.isDirRaid &amp;&amp; dirRaidNumBlocks &gt;= selectLimit || !codec.isDirRaid &amp;&amp; <span class="keyword">list</span>.size() &gt;= selectLimit) &#123;</span><br><span class="line">    <span class="keyword">break</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<h2 id="通过srcPath读取待Raid文件">通过<code>srcPath</code>读取待Raid文件</h2><h3 id="是否读取待Raid文件列表">是否读取待Raid文件列表</h3><p>该方式下由<code>shouldSelectFiles</code>判断是否应该继续读取待Raid文件<br><figure class="highlight processing"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="built_in">boolean</span> shouldSelectFiles(PolicyInfo info) &#123;</span><br><span class="line">  <span class="keyword">if</span> (!info.getShouldRaid()) &#123;</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">false</span>;</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">String</span> policyName = info.getName();</span><br><span class="line">  <span class="built_in">int</span> runningJobsCount = getRunningJobsForPolicy(policyName);</span><br><span class="line">  PolicyState scanState = policyStateMap.<span class="built_in">get</span>(policyName);</span><br><span class="line">  <span class="keyword">if</span> (scanState.isScanInProgress()) &#123;</span><br><span class="line">    <span class="built_in">int</span> maxJobsPerPolicy = configMgr.getMaxJobsPerPolicy();</span><br><span class="line">    <span class="comment">// If there is a scan in progress for this policy, we can have</span></span><br><span class="line">    <span class="comment">// upto maxJobsPerPolicy running jobs.</span></span><br><span class="line">    <span class="keyword">return</span> (runningJobsCount &lt; maxJobsPerPolicy);</span><br><span class="line">  &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">    <span class="comment">// Check the time of the last full traversal before starting a fresh</span></span><br><span class="line">    <span class="comment">// traversal.</span></span><br><span class="line">    <span class="keyword">long</span> lastScan = scanState.startTime;</span><br><span class="line">    <span class="keyword">return</span> (now() &gt; lastScan + configMgr.getPeriodicity());</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>可见,判断条件和<code>fileListPath</code>的基本一致.<br>若有job在运行,则根据配置判断是否可以继续运行job,否则判断是否达到可重新加载周期.</p>
+<h3 id="读取可Raid文件">读取可Raid文件</h3><p>该方式下加载待Raid文件,通过<code>selectFiles</code>完成.<br><figure class="highlight nginx"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="title">filteredPaths</span> = <span class="built_in">select</span>Files(<span class="built_in">info</span>, allPoliciesWithSrcPath);</span><br></pre></td></tr></table></figure></p>
+<p>其中,<code>allPoliciesWithSrcPath</code>为所有policy中有srcPath属性的.  </p>
+<p>这种方式一次处理也有限制:<br><figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">int</span> selectLimit = configMgr.getMaxFilesPerJob();</span><br><span class="line"><span class="built_in">List</span>&lt;FileStatus&gt; returnSet = <span class="keyword">new</span> ArrayList&lt;FileStatus&gt;(selectLimit);</span><br></pre></td></tr></table></figure></p>
+<p>一次Raid操作限制为<code>maxFilesPerJob</code>成员,通过<code>raid.distraid.max.files</code>设置,缺省5000.这里的returnSet中的元素可能是文件(文件Raid),<br>也可能是目录(目录Raid)</p>
+<p>TriggerMonitor中<code>policyStateMap</code>成员保存每一个policy的状态信息,<code>PolicyState</code>对象含有以下成员:<br><figure class="highlight processing"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">long</span> startTime = <span class="number">0</span>;</span><br><span class="line"><span class="comment">// A policy may specify either a path for directory traversal</span></span><br><span class="line"><span class="comment">// or a file with the list of files to raid.</span></span><br><span class="line">DirectoryTraversal pendingTraversal = <span class="keyword">null</span>;</span><br><span class="line"><span class="keyword">BufferedReader</span> fileListReader = <span class="keyword">null</span>;</span><br></pre></td></tr></table></figure></p>
+<p>通过srcPath指定待Raid文件路径的,需要通过<code>DirectoryTraversal</code>进行遍历,以过滤能够Raid的路径.<code>srcPath</code>支持模式匹配,上面已有说明.</p>
+<p>selectFiles中,若当前policy已有DirectoryTraversal在遍历,则使用现有的即<code>pendingTraversal</code>(policy目录下新增文件,只使用原来的<br>DirectoryTraversal,新增文件怎么添加至原来DirectoryTraversal的<code>directories</code>属性的?)否则,对应目录Raid和文件Raid分别创建<br>DirectoryTraversal对象,其中目录Raid通过<code>raidLeafDirectoryRetriever</code>创建,而文件Raid通过<code>raidFileRetriever</code>创建:<br><figure class="highlight sml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (scanState.isScanInProgress<span class="literal">()</span>) &#123;</span><br><span class="line">    <span class="type">LOG</span>.info(<span class="string">"Resuming traversal for policy "</span> + policyName);</span><br><span class="line">    traversal = scanState.pendingTraversal;</span><br><span class="line">&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">    <span class="type">LOG</span>.info(<span class="string">"Start new traversal for policy "</span> + policyName);</span><br><span class="line">    scanState.startTime = now<span class="literal">()</span>;</span><br><span class="line">    <span class="keyword">if</span> (!<span class="type">Codec</span>.getCodec(info.getCodecId<span class="literal">()</span>).isDirRaid) &#123;</span><br><span class="line">        traversal = <span class="type">DirectoryTraversal</span>.raidFileRetriever(</span><br><span class="line">        info, info.getSrcPathExpanded<span class="literal">()</span>, allPolicies, conf, </span><br><span class="line">        directoryTraversalThreads, directoryTraversalShuffle,</span><br><span class="line">        <span class="literal">true</span>);</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        traversal = <span class="type">DirectoryTraversal</span>.raidLeafDirectoryRetriever(</span><br><span class="line">        info, info.getSrcPathExpanded<span class="literal">()</span>, allPolicies, conf,</span><br><span class="line">        directoryTraversalThreads, directoryTraversalShuffle,</span><br><span class="line">        <span class="literal">true</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    scanState.setTraversal(traversal);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>这里传入的参数中,<code>info.getSrcPathExpanded</code>即srcPath的模式匹配,返回匹配到的所有路径.<br><code>directoryTraversalThreads</code>为遍历线程的数目,配置<code>raid.directorytraversal.threads</code>,缺省4个.<br><code>directoryTraversalShuffle</code>为是否打乱srcPath解析路径,配置<code>raid.directorytraversal.shuffle</code>,缺省为true.</p>
+<p>在两个函数中,创建对应的DirectoryTraversal:<br><figure class="highlight processing"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//文件Raid</span></span><br><span class="line"><span class="keyword">return</span> <span class="keyword">new</span> DirectoryTraversal(<span class="string">"Raid File Retriever "</span>, roots, fs, <span class="built_in">filter</span>,numThreads, doShuffle, allowStandby, <span class="keyword">false</span>);</span><br><span class="line"><span class="comment">//目录Raid</span></span><br><span class="line"><span class="keyword">return</span> <span class="keyword">new</span> DirectoryTraversal(<span class="string">"Raid File Retriever "</span>, roots, fs, <span class="built_in">filter</span>,numThreads, doShuffle, allowStandby, <span class="keyword">true</span>);</span><br></pre></td></tr></table></figure></p>
+<p>最后一个参数为<code>checkLeafDir</code>,目录Raid中对叶子目录才可能加到待Raid列表中.  </p>
+<h4 id="DirectoryTraversal">DirectoryTraversal</h4><p><code>DirectoryTraversal</code>主要成员:<br><figure class="highlight processing"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">static</span> <span class="keyword">final</span> <span class="keyword">public</span> FileStatus FINISH_TOKEN = <span class="keyword">new</span> FileStatus();</span><br><span class="line"><span class="keyword">static</span> <span class="keyword">final</span> <span class="built_in">int</span> OUTPUT_QUEUE_SIZE = <span class="number">10000</span>;</span><br><span class="line"><span class="keyword">final</span> <span class="keyword">private</span> BlockingQueue&lt;FileStatus&gt; output;</span><br><span class="line"><span class="keyword">final</span> <span class="keyword">private</span> BlockingDeque&lt;Path&gt; directories;</span><br><span class="line"><span class="keyword">final</span> <span class="keyword">private</span> Filter <span class="built_in">filter</span>;</span><br><span class="line"><span class="keyword">final</span> <span class="keyword">private</span> Processor[] processors;</span><br><span class="line"><span class="keyword">final</span> <span class="keyword">private</span> AtomicInteger totalDirectories;</span><br><span class="line"><span class="keyword">final</span> <span class="keyword">private</span> AtomicInteger activeThreads;</span><br><span class="line"><span class="keyword">final</span> <span class="keyword">private</span> <span class="built_in">boolean</span> doShuffle;</span><br><span class="line"><span class="keyword">final</span> <span class="keyword">private</span> <span class="built_in">boolean</span> allowStandby;</span><br><span class="line"><span class="keyword">private</span> <span class="keyword">volatile</span> <span class="built_in">boolean</span> finished = <span class="keyword">false</span>;</span><br></pre></td></tr></table></figure></p>
+<p><code>directories</code>由roots初始化,为policy的srcPath匹配的路径;<br><code>output</code>为经过过滤后最终能够参与Raid的文件或目录;<br>两者都为阻塞队列,因为遍历由<code>processors</code>默认4个线程执行遍历.   </p>
+<p><code>OUTPUT_QUEUE_SIZE</code>指定了output输出队列的大小.<br><code>FINISH_TOKEN</code>为output结束标记.<br><figure class="highlight processing"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">this</span>.output = <span class="keyword">new</span> ArrayBlockingQueue&lt;FileStatus&gt;(OUTPUT_QUEUE_SIZE);</span><br><span class="line"><span class="keyword">this</span>.directories = <span class="keyword">new</span> LinkedBlockingDeque&lt;Path&gt;();</span><br><span class="line"><span class="keyword">this</span>.<span class="built_in">filter</span> = <span class="built_in">filter</span>;</span><br><span class="line"><span class="keyword">this</span>.totalDirectories = <span class="keyword">new</span> AtomicInteger(roots.<span class="built_in">size</span>());</span><br><span class="line"><span class="keyword">this</span>.processors = <span class="keyword">new</span> Processor[numThreads];</span><br><span class="line"><span class="keyword">this</span>.activeThreads = <span class="keyword">new</span> AtomicInteger(numThreads);</span><br><span class="line"><span class="keyword">this</span>.doShuffle = doShuffle;</span><br><span class="line"><span class="keyword">this</span>.allowStandby = allowUseStandby;</span><br><span class="line"><span class="keyword">if</span> (doShuffle) &#123;</span><br><span class="line">  List&lt;Path&gt; toShuffleAndAdd = <span class="keyword">new</span> ArrayList&lt;Path&gt;();</span><br><span class="line">  toShuffleAndAdd.addAll(roots);</span><br><span class="line">  Collections.shuffle(toShuffleAndAdd);</span><br><span class="line">  <span class="keyword">this</span>.directories.addAll(toShuffleAndAdd);</span><br><span class="line">&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">  <span class="keyword">this</span>.directories.addAll(roots);</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">if</span> (roots.isEmpty()) &#123;</span><br><span class="line">  <span class="keyword">try</span> &#123;</span><br><span class="line">    output.put(FINISH_TOKEN);</span><br><span class="line">  &#125; <span class="keyword">catch</span> (InterruptedException e) &#123;</span><br><span class="line">    <span class="keyword">throw</span> <span class="keyword">new</span> IOException(e);</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">return</span>;</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">for</span> (<span class="built_in">int</span> i = <span class="number">0</span>; i &lt; processors.length; ++i) &#123;</span><br><span class="line">  <span class="keyword">if</span> (checkLeafDir) &#123;</span><br><span class="line">    processors[i] = <span class="keyword">new</span> LeafDirectoryProcessor();</span><br><span class="line">  &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">    processors[i] = <span class="keyword">new</span> Processor();</span><br><span class="line">  &#125;</span><br><span class="line">  processors[i].setName(friendlyName + i);</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">for</span> (<span class="built_in">int</span> i = <span class="number">0</span>; i &lt; processors.length; ++i) &#123;</span><br><span class="line">  processors[i].start();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>根据传入的参数初始化DirectoryTraversal对象,主要包括:</p>
+<ul>
+<li>根据传入的匹配路径<code>roots</code>,初始化<code>direcotries</code>,并根据<code>doShuffle</code>决定是否将所有路径打乱顺序.  </li>
+<li>根据传入的Filter对象<code>filter</code>,初始化成员<code>filter</code>,filter用于检查一个路径是否能够Raid.</li>
+<li>根据传入的线程数<code>numThreads</code>创建相应的线程,且根据传入的<code>checkLeafDir</code>决定是创建文件遍历对应的线程<code>Processor</code>还是目录对应的线程<br><code>LeafDirectoryProcessor</code>.</li>
+</ul>
+<p>最后将创建的线程启动,进行遍历操作.</p>
+<h4 id="多线程遍历匹配路径">多线程遍历匹配路径</h4><p>线程中,循环读取directories中路径,进行过滤,过滤结果通过<code>submitOutputs</code>提交,该函数中也将新发现的需继续遍历的目录添加至directories中<br><figure class="highlight stata"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">while</span> (!finished &amp;&amp; totalDirectories.<span class="literal">get</span>() &gt; 0) &#123;</span><br><span class="line">  Path <span class="keyword">dir</span> = null;</span><br><span class="line">  try &#123;</span><br><span class="line">    <span class="keyword">dir</span> = directories.poll(1000L, TimeUnit.MILLISECONDS);</span><br><span class="line">  &#125; catch (InterruptedException <span class="keyword">e</span>) &#123;</span><br><span class="line">    <span class="keyword">continue</span>;</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">if</span> (<span class="keyword">dir</span> == null) &#123;</span><br><span class="line">    <span class="keyword">continue</span>;</span><br><span class="line">  &#125;</span><br><span class="line">  try &#123;</span><br><span class="line">    filterDirectory(<span class="keyword">dir</span>, subDirs, filtered);</span><br><span class="line">  &#125; catch (Throwable <span class="keyword">ex</span>) &#123;</span><br><span class="line">    <span class="keyword">LOG</span>.<span class="keyword">error</span>(getName() + <span class="string">" throws Throwable. Skip "</span> + <span class="keyword">dir</span>, <span class="keyword">ex</span>);</span><br><span class="line">    totalDirectories.decrementAndGet();</span><br><span class="line">    <span class="keyword">continue</span>;</span><br><span class="line">  &#125;</span><br><span class="line">  int numOfDirectoriesChanged = -1 + subDirs.size();</span><br><span class="line">  <span class="keyword">if</span> (totalDirectories.addAndGet(numOfDirectoriesChanged) == 0) &#123;</span><br><span class="line">    interruptProcessors();</span><br><span class="line">  &#125;</span><br><span class="line">  submitOutputs(filtered, subDirs);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>每次从direcotires中拿出一个路径<code>dir</code>,通过<code>filterDirectory</code>进行过滤,能够进行Raid的路径存放在<code>filtered</code>中,而需要添加到directories中<br>继续过滤的路径存放在<code>subDirs</code>中.<br><code>subDirs</code>和<code>filtered</code>通过<code>submitOutputs</code>提交,subDirs放入directories中,而filtered添加到该DirectoryTraversal的最终输出结果<code>output</code><br>成员中,为过滤结果.  </p>
+<p>对于文件Raid和目录Raid,有不同的filterDirectory实现.  </p>
+<h6 id="文件Raid过滤">文件Raid过滤</h6><p>对于文件Raid,<code>filterDirectory</code>方法如下:<br><figure class="highlight processing"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">elements = fs.listStatus(dir);</span><br><span class="line"><span class="keyword">if</span> (elements != <span class="keyword">null</span>) &#123;</span><br><span class="line">    <span class="keyword">for</span> (FileStatus element : elements) &#123;</span><br><span class="line">      <span class="keyword">if</span> (<span class="built_in">filter</span>.check(element)) &#123;</span><br><span class="line">        filtered.<span class="built_in">add</span>(element);</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="keyword">if</span> (element.isDir()) &#123;</span><br><span class="line">        subDirs.<span class="built_in">add</span>(element.getPath());</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>通过<code>filter</code>成员的<code>check</code>函数对一个路径过滤,文件Raid进行过滤的路径为目录时添加到<code>subDirs</code>中.<br>因此文件Raid对于给定的srcPath会递归的遍历子目录直至遍历到文件,检查文件是否可Raid.  </p>
+<p>文件Raid的<code>filter</code>如下:<br><figure class="highlight pf"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">Filter filter = new Filter() &#123;</span><br><span class="line">  @Override</span><br><span class="line">  public boolean check(FileStatus f) throws IOException &#123;</span><br><span class="line">    long now = RaidNode.now();</span><br><span class="line">    if (f.isDir()) &#123;</span><br><span class="line">      return false;</span><br><span class="line">    &#125;</span><br><span class="line">    RaidState <span class="keyword">state</span> = checker.check(info, f, now, false);</span><br><span class="line">    LOG.<span class="keyword">debug</span>(f.getPath().<span class="keyword">to</span>Uri().getPath() + <span class="string">" : "</span> + <span class="keyword">state</span>);</span><br><span class="line">    return <span class="keyword">state</span> == RaidState.NOT_RAIDED_BUT_SHOULD;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure></p>
+<p>可见对于文件Raid,如果srcPath匹配的路径下还存在目录,check返回flase,不会添加到<code>filtered</code>中,而是加入<code>subDirs</code>中,最终加入到<br>DirectoryTraversal的directories中,继续过滤.</p>
+<p>而如果最终得到的element即传入filter的check函数参数f为文件时,通过<code>Checker</code>类对象<code>checker</code>的<code>check</code>方法返回PolicyInfo <code>info</code>下文件<code>f</code><br>的<code>RaidState</code>,RaidState表示文件的Raid状态,为枚举类型,包含以下值:<br><figure class="highlight dns"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">RAIDED,已经Raid过了,存在校验文件<span class="comment">;</span></span><br><span class="line">NOT_RAIDED_TOO_NEW,文件或目录修改后没达到可Raid的周期,太新了,不能Raid<span class="comment">;</span></span><br><span class="line">NOT_RAIDED_TOO_SMALL,文件或目录对应的Block数目小于2,不能Raid<span class="comment">;</span></span><br><span class="line">NOT_RAIDED_BUT_SHOULD,文件或目录满足Raid条件,可以加入到待Raid列表中,可以Raid<span class="comment">;</span></span><br><span class="line">NOT_RAIDED_OTHER_POLICY,文件或目录应该由其他Policy进行优先Raid,不能由当前policy Raid<span class="comment">;</span></span><br><span class="line">NOT_RAIDED_NO_POLICY,文件或目录没有对应的Policy(更具体的为ExpandedPolicy),不能Raid<span class="comment">;</span></span><br></pre></td></tr></table></figure></p>
+<p>只有检查到文件(在这里,f此时只能是文件)的Raid状态为<code>NOT_RAIDED_BUT_SHOULD</code>时,即应该由本policy进行Raid,才返回true,将会添加到待Raid列表中.<br>关于<code>Checker</code>对象的创建以及<code>check</code>方法的详细分析,因为和目录Raid十分一致,放在后面.</p>
+<h5 id="目录Raid过滤">目录Raid过滤</h5><p>对于目录Raid,对应的处理线程为<code>LeafDirectoryProcessor</code>,该线程主程序流程和<code>Processor</code>一样,只是重写了<code>filterDirectory</code>方法如下:<br><figure class="highlight processing"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line">elements = fs.listStatus(dir);</span><br><span class="line"><span class="keyword">if</span> (elements != <span class="keyword">null</span>) &#123;</span><br><span class="line">    <span class="built_in">boolean</span> isLeafDir = <span class="keyword">true</span>;</span><br><span class="line">    <span class="keyword">for</span> (FileStatus element : elements) &#123;</span><br><span class="line">      <span class="keyword">if</span> (element.isDir()) &#123;</span><br><span class="line">        subDirs.<span class="built_in">add</span>(element.getPath());</span><br><span class="line">        isLeafDir = <span class="keyword">false</span>;</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;<span class="comment">//目录下还有目录,将子目录添加至subDirs中,返回时添加至directories中,isLeafDir置false,后面的判断不通过,不进行过滤</span></span><br><span class="line">    <span class="keyword">if</span> (isLeafDir &amp;&amp; elements.length &gt; <span class="number">0</span>) &#123;</span><br><span class="line">      FileStatus dirStat = avatarFs != <span class="keyword">null</span>?</span><br><span class="line">          avatarFs.getFileStatus(dir):</span><br><span class="line">          fs.getFileStatus(dir);</span><br><span class="line">      <span class="keyword">if</span> (<span class="built_in">filter</span>.check(dirStat)) &#123;</span><br><span class="line">        filtered.<span class="built_in">add</span>(dirStat);</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>路径为文件时直接跳过,非叶子目录继续添加到directories中过滤,对叶子目录通过filter的check方法判断是否能够Raid,能的话添加至filtered中,<br>之后添加至output成员中.</p>
+<p>目录Raid对应的filter:<br><figure class="highlight pf"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">Filter filter = new Filter() &#123;</span><br><span class="line">  @Override</span><br><span class="line">  public boolean check(FileStatus f) throws IOException &#123;</span><br><span class="line">    long now = RaidNode.now();</span><br><span class="line">    if (!f.isDir()) &#123;</span><br><span class="line">      return false;</span><br><span class="line">    &#125;</span><br><span class="line">    List<span class="variable">&lt;FileStatus&gt;</span> lfs = RaidNode.listDirectoryRaidFileStatus(conf,</span><br><span class="line">        fs, f.getPath());</span><br><span class="line">    RaidState <span class="keyword">state</span> = checker.check(info, f, now, false, lfs);</span><br><span class="line">    if (LOG.isDebugEnabled()) &#123;</span><br><span class="line">      LOG.<span class="keyword">debug</span>(f.getPath() + <span class="string">" : "</span> + <span class="keyword">state</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    return <span class="keyword">state</span> == RaidState.NOT_RAIDED_BUT_SHOULD;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure></p>
+<p>其他基本和文件Raid一致,Checker的check函数中多了个<code>lfs</code>,即叶子目录下所有文件状态列表(注意这里filter传入的参数<code>f</code>只可能为叶子目录).<br>而关于目录Raid的Checker创建和check函数的分析见下.</p>
+<h5 id="Checker"><code>Checker</code></h5><p>一个policy对应一个Checker,包括了policy下所有匹配到路径的信息.    </p>
+<h6 id="构建">构建</h6><p>不管文件Raid还是目录Raid都使用这个类来判断给定路径的Raid状态,文件Raid和目录Raid创建Checker对象:<br><figure class="highlight actionscript"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">final</span> RaidState.Checker checker = <span class="keyword">new</span> RaidState.Checker(allInfos, conf);</span><br></pre></td></tr></table></figure></p>
+<p><code>allInfos</code>是所有包含srcPath的policy,<code>Checker</code>主要成员属性如下:<br><figure class="highlight zephir"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">final</span> <span class="keyword">private</span> <span class="keyword">List</span>&lt;ExpandedPolicy&gt; sortedExpendedPolicy;</span><br><span class="line"><span class="keyword">private</span> <span class="keyword">boolean</span> inferMTimeFromName;</span><br><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> ThreadLocalDateFormat dateFormat =</span><br><span class="line">  <span class="keyword">new</span> ThreadLocalDateFormat(<span class="string">"yyyy-MM-dd"</span>);</span><br><span class="line"><span class="keyword">private</span> <span class="keyword">List</span>&lt;String&gt; excludePatterns = <span class="keyword">new</span> ArrayList&lt;String&gt;();</span><br><span class="line"><span class="keyword">private</span> <span class="keyword">List</span>&lt;FileStatus&gt; lfs = <span class="keyword">null</span>;</span><br></pre></td></tr></table></figure></p>
+<p>创建<code>Checker</code>时,对每一个含有srcPath的policy,解析其srcPath,解析出来的每一个路径创建一个<code>ExpandedPolicy</code>对象,包含具体路径和原policy<br>的修改时间备份等信息,原policy作为ExpandedPolicy的父policy.<br><figure class="highlight nimrod"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">List</span>&lt;<span class="type">ExpandedPolicy</span>&gt; sortedExpendedPolicy =  new <span class="type">ArrayList</span>&lt;<span class="type">ExpandedPolicy</span>&gt;();</span><br><span class="line"><span class="keyword">for</span> (<span class="type">PolicyInfo</span> policy : allInfos) &#123;</span><br><span class="line">   sortedExpendedPolicy.addAll(<span class="type">ExpandedPolicy</span>.expandPolicy(policy));</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">static</span> <span class="type">List</span>&lt;<span class="type">ExpandedPolicy</span>&gt; expandPolicy(<span class="type">PolicyInfo</span> info)</span><br><span class="line">  throws <span class="type">IOException</span> &#123;</span><br><span class="line">    <span class="type">List</span>&lt;<span class="type">ExpandedPolicy</span>&gt; <span class="literal">result</span> = new <span class="type">ArrayList</span>&lt;<span class="type">ExpandedPolicy</span>&gt;();</span><br><span class="line">    <span class="keyword">for</span> (<span class="type">Path</span> srcPath : info.getSrcPathExpanded()) &#123;//srcPath匹配到的所有路径</span><br><span class="line">      <span class="type">String</span> srcPrefix = normalizePath(srcPath);</span><br><span class="line">      long modTimePeriod = <span class="type">Long</span>.parseLong(info.getProperty(<span class="string">"modTimePeriod"</span>));</span><br><span class="line">      <span class="type">int</span> targetReplication =</span><br><span class="line">        <span class="type">Integer</span>.parseInt(info.getProperty(<span class="string">"targetReplication"</span>));</span><br><span class="line">      <span class="type">Codec</span> codec = <span class="type">Codec</span>.getCodec(info.getCodecId());</span><br><span class="line">      <span class="type">ExpandedPolicy</span> ePolicy = new <span class="type">ExpandedPolicy</span>(srcPrefix, modTimePeriod, codec, targetReplication, info);</span><br><span class="line">      /*</span><br><span class="line">        每一个匹配到的路径创建一个<span class="type">ExpandedPolicy</span>对象,所有匹配到的路径共享源<span class="type">PolicyInfo</span>的配置属性(即policy文件配置的属性)</span><br><span class="line">        例如,srcPath为:/usr/*,存在文件/usr/file1,/usr/sub/file2,/usr/sub/file3,则会创建<span class="number">2</span>个<span class="type">ExpandedPolicy</span>,对应的路径为:</span><br><span class="line">        /usr/file1和/usr/sub/(/usr/*/*才能匹配到/usr/sub/file2和/usr/sub/file3).</span><br><span class="line">      */</span><br><span class="line">      <span class="literal">result</span>.add(ePolicy);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> <span class="literal">result</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>这就是说原来policy的srcPath对应的不是具体的路径,而是一个路径匹配描述路径,将路径匹配出来,对每一个具体路径创建一个ExpandedPolicy,同时通过<br>ExpandedPolicy的<code>parentPolicy</code>字段保存srcPath的policy和匹配路径ExpandedPolicy的关系.<br>这里注意的是ExpandedPolicy并不是PolicyInfo的子类.  </p>
+<p>构建完成之后,排序,因此最终成员<code>sortedExpendedPolicy</code>是有序的:<br><figure class="highlight dns"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">Collections.sort(sortedExpendedPolicy, expandedPolicyComparator)<span class="comment">;</span></span><br><span class="line">this.sortedExpendedPolicy = Collections.unmodifiableList(sortedExpendedPolicy)<span class="comment">;</span></span><br></pre></td></tr></table></figure></p>
+<p><code>expandedPolicyComparator</code>为<code>ExpandedPolicyComparator</code>,其compare方法如下:<br><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">int</span> <span class="title">compare</span><span class="params">(ExpandedPolicy p1, ExpandedPolicy p2)</span> </span>&#123;</span><br><span class="line">  <span class="keyword">if</span> (p1.srcPrefix.length() &gt; p2.srcPrefix.length()) &#123;</span><br><span class="line">    <span class="comment">// Prefers longer prefix</span></span><br><span class="line">    <span class="keyword">return</span> -<span class="number">1</span>;</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">if</span> (p1.srcPrefix.length() &lt; p2.srcPrefix.length()) &#123;</span><br><span class="line">    <span class="keyword">return</span> <span class="number">1</span>;</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">if</span> (p1.codec.priority &gt; p2.codec.priority) &#123;</span><br><span class="line">    <span class="comment">// Prefers higher priority</span></span><br><span class="line">    <span class="keyword">return</span> -<span class="number">1</span>;</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">if</span> (p1.codec.priority &lt; p2.codec.priority) &#123;</span><br><span class="line">    <span class="keyword">return</span> <span class="number">1</span>;</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="comment">// Prefers lower target replication factor</span></span><br><span class="line">  <span class="keyword">return</span> p1.targetReplication &lt; p2.targetReplication ? -<span class="number">1</span> : <span class="number">1</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>即路径长的在前面,路径长度相同的优先级高的在前面,之后才是编码后备份数少的在前面,这主要是在Checker的check方法里要按序遍历所有的ExpandedPolicy.</p>
+<p>同等条件下,高优先级的排在前面很好理解,先判断高优先级的是否应该Raid(matched函数).不过路径长的排在前面不知道什么作用.</p>
+<p>构建完有序policy列表后,还需根据<code>raid.exclude.patterns</code>创建不进行编码的文件列表<code>excludePatterns</code>:<br><figure class="highlight processing"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">excludePatterns.<span class="built_in">add</span>(TRASH_PATTERN);</span><br><span class="line"><span class="keyword">String</span> excluded = conf.<span class="built_in">get</span>(<span class="string">"raid.exclude.patterns"</span>);</span><br><span class="line">    <span class="keyword">if</span> (excluded != <span class="keyword">null</span>) &#123;</span><br><span class="line">    <span class="keyword">for</span> (<span class="keyword">String</span> p: excluded.<span class="built_in">split</span>(<span class="string">","</span>)) &#123;</span><br><span class="line">      excludePatterns.<span class="built_in">add</span>(p);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>至此,Checker的构建完成.</p>
+<h6 id="check函数判断Raid状态">check函数判断Raid状态</h6><p>由上知,对文件Raid最终遍历到的文件,以及对目录Raid最终遍历到的叶子目录,这里两者都记为f,都会通过filter的check函数判断是否能够Raid,<br>而该判断是通过Checker的check函数返回Raid状态是否为<code>NOT_RAIDED_BUT_SHOULD</code>来确定的.  </p>
+<p>check函数原型如下:<br><figure class="highlight gradle"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> RaidState check(PolicyInfo info, FileStatus <span class="keyword">file</span>, <span class="keyword">long</span> now, <span class="keyword">boolean</span> skipParityCheck) <span class="keyword">throws</span> IOException &#123;</span><br><span class="line">  <span class="keyword">return</span> check(info, <span class="keyword">file</span>, now, skipParityCheck, <span class="keyword">null</span>);</span><br><span class="line">&#125;</span><br><span class="line">  </span><br><span class="line"><span class="keyword">public</span> RaidState check(PolicyInfo info, FileStatus <span class="keyword">file</span>, <span class="keyword">long</span> now, <span class="keyword">boolean</span> skipParityCheck, List&lt;FileStatus&gt; lfs) <span class="keyword">throws</span> IOException</span><br></pre></td></tr></table></figure></p>
+<p>再看文件Raid和目录Raid中的调用:<br><figure class="highlight pf"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">文件Raid:</span><br><span class="line">RaidState <span class="keyword">state</span> = checker.check(info, f, now, false);</span><br><span class="line">目录Raid:</span><br><span class="line">RaidState <span class="keyword">state</span> = checker.check(info, f, now, false, lfs);</span><br></pre></td></tr></table></figure></p>
+<p>因此,两者的<code>skipParityCheck</code>都为false,目录Raid还需传入叶子目录f下所有的文件状态列表lfs.</p>
+<p>check函数中,首先获取文件或叶子目录f的修改时间,如果<code>raid.infermtimefromname</code>为true,则从文件名推断时间,否则通过文件系统得到修改时间.<br>接着遍历之前创建的<code>sortedExpendedPolicy</code>,看是否有其他policy已经编码或应该编码的:<br><figure class="highlight stata"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">for</span> (ExpandedPolicy policy : sortedExpendedPolicy) &#123;</span><br><span class="line">    <span class="keyword">if</span> (policy.parentPolicy == info) &#123;</span><br><span class="line">      matched = policy;</span><br><span class="line">      <span class="keyword">break</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    RaidState rs = policy.<span class="literal">match</span>(<span class="keyword">file</span>, mtime, now, <span class="keyword">conf</span>, lfs);</span><br><span class="line">    <span class="keyword">if</span> (rs == RaidState.RAIDED) &#123;</span><br><span class="line">      <span class="keyword">return</span> NOT_RAIDED_OTHER_POLICY;</span><br><span class="line">    &#125; <span class="keyword">else</span> <span class="keyword">if</span> (rs == RaidState.NOT_RAIDED_BUT_SHOULD) &#123;</span><br><span class="line">      hasNotRaidedButShouldPolicy = true;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p><code>sortedExpendedPolicy</code>路径长度最长的在前面,长度一致的优先级高的在前面,否则编码后备份数少的在前面.具体见上构造过程的排序.  </p>
+<p>如果能够直接找到与policy相匹配的ExpandedPolicy,使用最先找到的ExpandedPolicy进行过滤(主要使用修改时间,从PolicyInfo的子<br>ExpandedPolicy找最先插入sortedExpendedPolicy的那个).</p>
+<p>如果有其他policy已经对其Raid过了,则直接返回RAIDED,RAIDED不加到列表中.<br>而如果其他的policy需要Raid则标志位置位,返回<code>NOT_RAIDED_OTHER_POLICY</code></p>
+<p>当返回<code>NOT_RAIDED_NO_POLICY</code>时,表示文件没有对应的policy,有如下情况:<br><figure class="highlight gradle"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (matched == <span class="keyword">null</span>) &#123;</span><br><span class="line">    <span class="keyword">return</span> NOT_RAIDED_NO_POLICY;</span><br><span class="line">&#125;<span class="comment">//遍历所有的sortedExpendedPolicy,没有匹配的ExpandedPolicy</span></span><br><span class="line"><span class="keyword">if</span> (shouldExclude(uriPath)) &#123;</span><br><span class="line">    <span class="keyword">return</span> NOT_RAIDED_NO_POLICY;</span><br><span class="line">&#125;<span class="comment">//在excludePatterns内,通过raid.exclude.patterns设置</span></span><br><span class="line"><span class="keyword">if</span> (<span class="keyword">file</span>.isDir() != matched.codec.isDirRaid) &#123;</span><br><span class="line">    <span class="keyword">return</span> NOT_RAIDED_NO_POLICY;</span><br><span class="line">&#125;<span class="comment">//属性(文件/目录)与codec不匹配,这里对文件Raid来说将子目录添加至directories中继续遍历,而对目录Raid来说匹配到具体文件,忽略.</span></span><br></pre></td></tr></table></figure></p>
+<p>返回<code>NOT_RAIDED_TOO_SMALL</code>,表示policy设置的路径总区块数目过小(小于2):<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">long</span> blockNum = matched.codec.isDirRaid? DirectoryStripeReader.getBlockNum(lfs): computeNumBlocks(file);</span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> (blockNum &lt;= TOO_SMALL_NOT_RAID_NUM_BLOCKS) &#123;</span><br><span class="line">    <span class="keyword">return</span> NOT_RAIDED_TOO_SMALL;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如果存在的ExpandedPolicy和路径匹配,且区块大小合适,即以上情况都没出现,可能Raid,则最终由匹配到的ExpandedPolicy获取状态信息:<br><figure class="highlight stata"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">RaidState finalState = matched.getBasicState(<span class="keyword">file</span>, mtime, now,skipParityCheck, <span class="keyword">conf</span>, lfs);</span><br><span class="line"><span class="keyword">if</span> (finalState == RaidState.RAIDED) &#123;</span><br><span class="line">    <span class="keyword">return</span> finalState;</span><br><span class="line">&#125; <span class="keyword">else</span> <span class="keyword">if</span> (hasNotRaidedButShouldPolicy) &#123;</span><br><span class="line">    <span class="keyword">return</span> RaidState.NOT_RAIDED_OTHER_POLICY;</span><br><span class="line">&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">    <span class="keyword">return</span> finalState;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p><code>getBasicState</code>如下:<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="function">RaidState <span class="title">getBasicState</span><span class="params">(FileStatus f, <span class="keyword">long</span> mtime, <span class="keyword">long</span> now,</span><br><span class="line">      <span class="keyword">boolean</span> skipParityCheck, Configuration conf, List&lt;FileStatus&gt; lfs)</span></span><br><span class="line">          <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (f.isDir() != codec.isDirRaid) &#123;</span><br><span class="line">      <span class="keyword">return</span> RaidState.NOT_RAIDED_NO_POLICY;</span><br><span class="line">    &#125;<span class="comment">//路径状态和codec不匹配</span></span><br><span class="line">    <span class="keyword">if</span> (now - mtime &lt; modTimePeriod) &#123;</span><br><span class="line">      <span class="keyword">return</span> RaidState.NOT_RAIDED_TOO_NEW;</span><br><span class="line">    &#125;<span class="comment">//修改后没达到可以Raid的周期</span></span><br><span class="line">    <span class="keyword">long</span> repl = f.isDir()? DirectoryStripeReader.getReplication(lfs): f.getReplication();</span><br><span class="line">    <span class="keyword">if</span> (repl == targetReplication) &#123;</span><br><span class="line">      <span class="keyword">if</span> (skipParityCheck || ParityFilePair.parityExists(f, codec, conf)) &#123;</span><br><span class="line">        <span class="keyword">return</span> RaidState.RAIDED;</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> RaidState.NOT_RAIDED_BUT_SHOULD;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>可见,传入参数<code>skipParityCheck</code>表示判断是否存在校验文件(即是否已经编码过了)时,只通过比较当前源路径的备份数是否等于编码后源路径备份数,<br>而不需要看实际校验文件是否存在.<br>当该参数为true时,如果我们设置源文件备份数和编码后源文件备份数一致,可能误判.<br>从上文件Raid和目录Raid来看,传入的都为false.</p>
+<p>可见只有存在相应的ExpandedPolicy,不在excluded列表中,包含的Block大于2,没有其他的ExpandedPolicy需要Raid,路径状态和codec匹配,<br>修改时间大于配置的<code>modTimePeriod</code>(即policy文件中的modTimePeriod),且没有Raid过时才返回<code>NOT_RAIDED_BUT_SHOULD</code>,即添加至待Raid列表中.</p>
+<h3 id="过滤实例分析总结">过滤实例分析总结</h3><h4 id="文件Raid_policy过滤">文件Raid policy过滤</h4><p>文件Raid会对srcPath匹配的路径下所有文件进行编码,包括子目录下的文件.<br>虽然sortedExpendedPolicy中与policy有关的ExpandedPolicy不包含匹配的子目录,但是<code>Processor</code>线程会将子目录放入directories中递归遍历,<br>最后过滤用的ExpandedPolicy为PolicyInfo关联的ExpandedPolicy最先插入的那个,主要使用PolicyInfo的修改时间进行判断.</p>
+<p><strong>例如:</strong><br>srcPath: /usr/xiaoyun/*<br>文件系统中存在两个文件: /usr/xiaoyun/idea /usr/xiaoyun/sub/idea1</p>
+<p>则ExpandedPolicy会有两个,其<code>srcPrefix</code>为/usr/xiaoyun/idea和/usr/xiaoyun/sub/,因为*匹配0个或多个字符,/usr/xiaoyun/*/*<br>才能匹配到/usr/xiaoyun/sub/idea1.  </p>
+<p>这样如果没有其他policy可能对这两个文件进行Raid,则<code>Processor</code>线程遍历/usr/xiaoyun/idea时直接因为其为文件,满足条件时加入到列表中.  </p>
+<p>而遍历/usr/xiaoyun/sub/时,因为其为目录,与codec不匹配,check直接返回false,之后因为其为目录,被Processor线程加入到directories中,下一次遍历.<br>下一次遍历/usr/xiaoyun/sub/idea1时,最终获得的ExpandedPolicy对应的为以上两个中的一个(根据插入顺序,实验中为/usr/xiaoyun/idea<br>对应的那个),获取修改时间,满足条件加入到列表中.</p>
+<p>以上分析经过实际实验验证过.</p>
+<h4 id="目录Raid_policy过滤">目录Raid policy过滤</h4><p>对于目录Riad,若:<br>srcPath为:/usr/xiaoyun/*<br>文件系统中存在:/usr/xiaoyun/idea,/usr/xiaoyun/sub/idea1,/usr/xiaoyun/sub/idea2<br>将对sub子目录下的idea1,idea2进行编码.<br>因为sub为叶子目录,/usr/xiaoyun/idea虽然能匹配到,但是不是目录,不会加到列表中.  </p>
+<p>而如果sub目录下还有一个子目录如sub1,则sub下面的idea1,idea2不会编码.当然也要考虑目录和文件Raid的优先级.</p>
+<h4 id="文件Raid+目录Raid过滤">文件Raid+目录Raid过滤</h4><p>rs码,若文件rs优先级小于目录rs,srcPath都为/*,存在以下文件结构:<br><code>/idea1,/sub/idea2,/sub/sub1/idea3,/sub/sub1/idea4</code><br>则文件rs将编码idea1,idea2文件,目录rs将编码sub1目录下的idea3,idea4文件.<br>而如果文件rs优先级大于目录rs,则文件rs将编码所有文件,目录rs不编码任何文件.</p>
+<p>实际测试结果与预期不符,文件Raid优先级小于目录Raid时,所有文件都由文件Raid进行编码.</p>
+<p>查看修改后日志,发现循环执行所有<code>policies</code>时,在<code>allPoliies</code>中先执行文件Raid对应的Policy.遍历到sub1目录时,由于其为目录,filter的<br>check函数中直接返回false,在遍历目录下文件idea3,idea4时才会继续执行checker.check.<br>在checker.check中从<code>sortedExpendedPolicy</code>中,虽然刚开始会匹配到目录Raid的ExpandedPolicy(srcPath相同,对应前缀长度相同而<br>目录Raid优先级高,目录的在sortedExpendedPolicy前面),但是由于此时为文件,执行ExpandedPolicy的<code>getBasicState</code>时和codec不匹配<br>直接返回<code>NOT_RAIDED_NO_POLICY</code>,对结果无影响.<br>因此此时最终还是会匹配到文件Raid对应的ExpandedPolicy,从而执行相应的getBasicState,添加至Raid列表中,执行文件Raid.</p>
+<p>那么如果先执行目录Raid对应的Policy呢,idea1,idea2因为是文件直接跳过,到sub1子目录时,因为是叶子目录,最先就获取了目录Raid对应的<br>ExpandedPolicy(在有序阻塞队列前面),idea3,idea4便会由目录Raid进行编码.</p>
+<p>那么,在doProcess的while循环中,policies的执行先后顺序到底怎么样呢,由前知:<br><figure class="highlight pf"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ArrayList<span class="variable">&lt;PolicyInfo&gt;</span> <span class="literal">all</span>Policies = new ArrayList<span class="variable">&lt;PolicyInfo&gt;</span>();</span><br></pre></td></tr></table></figure></p>
+<p>allPolicies为ArrayList,遍历顺序应该是插入顺序,也就是policy文件中policy的先后顺序,而测试中policy文件先是目录Raid才是文件Raid.</p>
+<p>不过从日志文件可以看出以上的测试是先执行文件Raid再执行目录Raid,导致了所有文件都是由文件Raid进行编码,不知道为什么会这样.  </p>
+<p>接着重新执行了一次测试,结果符合预期,文件Raid编码idea1,idea2,目录Raid编码idea3,idea4.<br>感觉这里有点<code>混乱</code>.多次测试发现大部分这种文件Raid和目录Raid的policy覆盖同一个目录下的文件时,目录Raid优先级高的情况下,大部分都是由<br>目录Raid进行编码,不过有时也会出现文件Raid进行编码的情况.</p>
+<p>从测试结果也可以看出,文件Raid以文件为单位,即如果列表中两个文件分别为4个Block,执行(10,4)rs编码,两个文件分别参与编码,每个都需要填充<br>6个0block,最终生成两个校验文件.<br>而目录Block以目录为单位,如果一个叶子目录下有两个分别为4个Block的文件,执行(10,4)rs编码,两个文件共同参与一次编码,共8个block,填充<br>2个0block,最终生成一个校验文件.</p>
+</span>
+      
+    </div>
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/Hadoop-0-20/" rel="tag">#Hadoop-0.20</a>
+          
+            <a href="/tags/RaidNode/" rel="tag">#RaidNode</a>
+          
+        </div>
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/ParallelStreamReader/" rel="next" title="RaidNode源码阅读---辅助类之ParallelStreamReader">
+                <i class="fa fa-chevron-left"></i> RaidNode源码阅读---辅助类之ParallelStreamReader
+              </a>
+            
+          </div>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/RaidNode启动/" rel="prev" title="RaidNode源码阅读---RaidNode启动过程分析">
+                RaidNode源码阅读---RaidNode启动过程分析 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </article>
+
+
+
+    <div class="post-spread">
+      
+        <!-- JiaThis Button BEGIN -->
+<div class="jiathis_style">
+  <a class="jiathis_button_tsina"></a>
+  <a class="jiathis_button_tqq"></a>
+  <a class="jiathis_button_weixin"></a>
+  <a class="jiathis_button_cqq"></a>
+  <a class="jiathis_button_douban"></a>
+  <a class="jiathis_button_renren"></a>
+  <a class="jiathis_button_qzone"></a>
+  <a class="jiathis_button_kaixin001"></a>
+  <a class="jiathis_button_copy"></a>
+  <a href="http://www.jiathis.com/share" class="jiathis jiathis_txt jiathis_separator jtico jtico_jiathis" target="_blank"></a>
+  <a class="jiathis_counter_style"></a>
+</div>
+<script type="text/javascript" >
+  var jiathis_config={
+    hideMore:false
+  }
+</script>
+<script type="text/javascript" src="http://v3.jiathis.com/code/jia.js" charset="utf-8"></script>
+<!-- JiaThis Button END -->
+
+      
+    </div>
+  </div>
+
+
+        </div>
+
+        
+
+
+        
+  <div class="comments" id="comments">
+    
+      <div class="ds-thread" data-thread-key="Raid文件选取/"
+           data-title="RaidNode源码阅读---编码过程之上篇Raid文件选取(LocalRaidNode)" data-url="http://xiao-yun.github.io/Raid文件选取/">
+      </div>
+    
+  </div>
+
+
+      </div>
+
+      
+        
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap" >
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel ">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+          <img class="site-author-image" src="/images/hero.jpg" alt="xiaoyun" itemprop="image"/>
+          <p class="site-author-name" itemprop="name">xiaoyun</p>
+        </div>
+        <p class="site-description motion-element" itemprop="description">学习笔记，网上资源摘要等</p>
+        <nav class="site-state motion-element">
+          <div class="site-state-item site-state-posts">
+            <a href="/archives">
+              <span class="site-state-item-count">7</span>
+              <span class="site-state-item-name">日志</span>
+            </a>
+          </div>
+
+          <div class="site-state-item site-state-categories">
+            <a href="/categories">
+              <span class="site-state-item-count">4</span>
+              <span class="site-state-item-name">分类</span>
+              </a>
+          </div>
+
+          <div class="site-state-item site-state-tags">
+            <a href="/tags">
+              <span class="site-state-item-count">3</span>
+              <span class="site-state-item-name">标签</span>
+              </a>
+          </div>
+
+        </nav>
+
+        
+
+        <div class="links-of-author motion-element">
+          
+            
+              <span class="links-of-author-item">
+                <a href="https://github.com/xiao-yun" target="_blank">
+                  
+                    <i class="fa fa-globe"></i> github
+                  
+                </a>
+              </span>
+            
+          
+        </div>
+
+        
+        
+
+        <div class="links-of-author motion-element">
+          
+        </div>
+
+      </section>
+
+      
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc-indicator-top post-toc-indicator">
+            <i class="fa fa-angle-double-up"></i>
+          </div>
+          <div class="post-toc">
+            
+              
+            
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#TriggerMonitor"><span class="nav-number">1.</span> <span class="nav-text">TriggerMonitor</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#主要成员:"><span class="nav-number">1.1.</span> <span class="nav-text">主要成员:</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#TriggerMonitor线程主函数doProcess"><span class="nav-number">1.2.</span> <span class="nav-text">TriggerMonitor线程主函数doProcess</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#通过fileListPath读取待Raid文件"><span class="nav-number">1.3.</span> <span class="nav-text">通过fileListPath读取待Raid文件</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#是否读取policy文件列表"><span class="nav-number">1.3.1.</span> <span class="nav-text">是否读取policy文件列表</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#读取可Raid的文件"><span class="nav-number">1.3.2.</span> <span class="nav-text">读取可Raid的文件</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#通过srcPath读取待Raid文件"><span class="nav-number">1.4.</span> <span class="nav-text">通过srcPath读取待Raid文件</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#是否读取待Raid文件列表"><span class="nav-number">1.4.1.</span> <span class="nav-text">是否读取待Raid文件列表</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#读取可Raid文件"><span class="nav-number">1.4.2.</span> <span class="nav-text">读取可Raid文件</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#DirectoryTraversal"><span class="nav-number">1.4.2.1.</span> <span class="nav-text">DirectoryTraversal</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#多线程遍历匹配路径"><span class="nav-number">1.4.2.2.</span> <span class="nav-text">多线程遍历匹配路径</span></a><ol class="nav-child"><li class="nav-item nav-level-6"><a class="nav-link" href="#文件Raid过滤"><span class="nav-number">1.4.2.2.0.1.</span> <span class="nav-text">文件Raid过滤</span></a></li></ol></li><li class="nav-item nav-level-5"><a class="nav-link" href="#目录Raid过滤"><span class="nav-number">1.4.2.2.1.</span> <span class="nav-text">目录Raid过滤</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#Checker"><span class="nav-number">1.4.2.2.2.</span> <span class="nav-text">Checker</span></a><ol class="nav-child"><li class="nav-item nav-level-6"><a class="nav-link" href="#构建"><span class="nav-number">1.4.2.2.2.1.</span> <span class="nav-text">构建</span></a></li><li class="nav-item nav-level-6"><a class="nav-link" href="#check函数判断Raid状态"><span class="nav-number">1.4.2.2.2.2.</span> <span class="nav-text">check函数判断Raid状态</span></a></li></ol></li></ol></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#过滤实例分析总结"><span class="nav-number">1.4.3.</span> <span class="nav-text">过滤实例分析总结</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#文件Raid_policy过滤"><span class="nav-number">1.4.3.1.</span> <span class="nav-text">文件Raid policy过滤</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#目录Raid_policy过滤"><span class="nav-number">1.4.3.2.</span> <span class="nav-text">目录Raid policy过滤</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#文件Raid+目录Raid过滤"><span class="nav-number">1.4.3.3.</span> <span class="nav-text">文件Raid+目录Raid过滤</span></a></li></ol></li></ol></li></ol></li></ol></div>
+            
+          </div>
+          <div class="post-toc-indicator-bottom post-toc-indicator">
+            <i class="fa fa-angle-double-down"></i>
+          </div>
+        </section>
+      
+
+    </div>
+  </aside>
+
+
+      
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright" >
+  
+  &copy; 
+  <span itemprop="copyrightYear">2015</span>
+  <span class="with-love">
+    <i class="icon-next-heart fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">xiaoyun</span>
+</div>
+
+<div class="powered-by">
+  由 <a class="theme-link" href="http://hexo.io">Hexo</a> 强力驱动
+</div>
+
+<div class="theme-info">
+  主题 -
+  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
+    NexT.Mist
+  </a>
+</div>
+
+
+
+      </div>
+    </footer>
+
+    <div class="back-to-top"></div>
+  </div>
+
+  <script type="text/javascript" src="/vendors/jquery/index.js?v=2.1.3"></script>
+
+  
+  
+
+  
+    
+
+  
+    
+  
+
+  <script type="text/javascript">
+    var duoshuoQuery = {short_name:"xiaoyuncom"};
+    (function() {
+      var ds = document.createElement('script');
+      ds.type = 'text/javascript';ds.async = true;
+      ds.id = 'duoshuo-script';
+      ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+      ds.charset = 'UTF-8';
+      (document.getElementsByTagName('head')[0]
+      || document.getElementsByTagName('body')[0]).appendChild(ds);
+    })();
+  </script>
+    
+     
+
+
+    
+  
+
+  
+  <script type="text/javascript" src="/vendors/fancybox/source/jquery.fancybox.pack.js"></script>
+  <script type="text/javascript" src="/js/fancy-box.js?v=0.4.5.2"></script>
+
+
+  <script type="text/javascript" src="/js/helpers.js?v=0.4.5.2"></script>
+  <script type="text/javascript" src="/vendors/velocity/velocity.min.js"></script>
+<script type="text/javascript" src="/vendors/velocity/velocity.ui.min.js"></script>
+
+<script type="text/javascript" src="/js/motion.js?v=0.4.5.2" id="motion.global"></script>
+
+
+  <script type="text/javascript" src="/vendors/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  <script type="text/javascript" src="/vendors/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  
+<script type="text/javascript" src="/js/bootstrap.scrollspy.js?v=0.4.5.2" id="bootstrap.scrollspy.custom"></script>
+
+
+<script type="text/javascript" id="sidebar.toc.highlight">
+  $(document).ready(function () {
+    var tocSelector = '.post-toc';
+    var $tocSelector = $(tocSelector);
+    var activeCurrentSelector = '.active-current';
+
+    $tocSelector
+      .on('activate.bs.scrollspy', function () {
+        var $currentActiveElement = $(tocSelector + ' .active').last();
+
+        removeCurrentActiveClass();
+        $currentActiveElement.addClass('active-current');
+
+        $tocSelector[0].scrollTop = $currentActiveElement.position().top;
+      })
+      .on('clear.bs.scrollspy', function () {
+        removeCurrentActiveClass();
+      });
+
+    function removeCurrentActiveClass () {
+      $(tocSelector + ' ' + activeCurrentSelector)
+        .removeClass(activeCurrentSelector.substring(1));
+    }
+
+    function processTOC () {
+      getTOCMaxHeight();
+      toggleTOCOverflowIndicators();
+    }
+
+    function getTOCMaxHeight () {
+      var height = $('.sidebar').height() -
+                   $tocSelector.position().top -
+                   $('.post-toc-indicator-bottom').height();
+
+      $tocSelector.css('height', height);
+
+      return height;
+    }
+
+    function toggleTOCOverflowIndicators () {
+      tocOverflowIndicator(
+        '.post-toc-indicator-top',
+        $tocSelector.scrollTop() > 0 ? 'show' : 'hide'
+      );
+
+      tocOverflowIndicator(
+        '.post-toc-indicator-bottom',
+        $tocSelector.scrollTop() >= $tocSelector.find('ol').height() - $tocSelector.height() ? 'hide' : 'show'
+      )
+    }
+
+    $(document).on('sidebar.motion.complete', function () {
+      processTOC();
+    });
+
+    $('body').scrollspy({ target: tocSelector });
+    $(window).on('resize', function () {
+      if ( $('.sidebar').hasClass('sidebar-active') ) {
+        processTOC();
+      }
+    });
+
+    onScroll($tocSelector);
+
+    function onScroll (element) {
+      element.on('mousewheel DOMMouseScroll', function (event) {
+          var oe = event.originalEvent;
+          var delta = oe.wheelDelta || -oe.detail;
+
+          this.scrollTop += ( delta < 0 ? 1 : -1 ) * 30;
+          event.preventDefault();
+
+          toggleTOCOverflowIndicators();
+      });
+    }
+
+    function tocOverflowIndicator (indicator, action) {
+      var $indicator = $(indicator);
+      var opacity = action === 'show' ? 1 : 0;
+      $indicator.velocity ?
+        $indicator.velocity('stop').velocity({
+          opacity: opacity
+        }, { duration: 100 }) :
+        $indicator.stop().animate({
+          opacity: opacity
+        }, 100);
+    }
+
+  });
+</script>
+
+<script type="text/javascript" id="sidebar.nav">
+  $(document).ready(function () {
+    var html = $('html');
+    var TAB_ANIMATE_DURATION = 200;
+    var hasVelocity = $.isFunction(html.velocity);
+
+    $('.sidebar-nav li').on('click', function () {
+      var item = $(this);
+      var activeTabClassName = 'sidebar-nav-active';
+      var activePanelClassName = 'sidebar-panel-active';
+      if (item.hasClass(activeTabClassName)) {
+        return;
+      }
+
+      var currentTarget = $('.' + activePanelClassName);
+      var target = $('.' + item.data('target'));
+
+      hasVelocity ?
+        currentTarget.velocity('transition.slideUpOut', TAB_ANIMATE_DURATION, function () {
+          target
+            .velocity('stop')
+            .velocity('transition.slideDownIn', TAB_ANIMATE_DURATION)
+            .addClass(activePanelClassName);
+        }) :
+        currentTarget.animate({ opacity: 0 }, TAB_ANIMATE_DURATION, function () {
+          currentTarget.hide();
+          target
+            .stop()
+            .css({'opacity': 0, 'display': 'block'})
+            .animate({ opacity: 1 }, TAB_ANIMATE_DURATION, function () {
+              currentTarget.removeClass(activePanelClassName);
+              target.addClass(activePanelClassName);
+            });
+        });
+
+      item.siblings().removeClass(activeTabClassName);
+      item.addClass(activeTabClassName);
+    });
+
+    $('.post-toc a').on('click', function (e) {
+      e.preventDefault();
+      var targetSelector = escapeSelector(this.getAttribute('href'));
+      var offset = $(targetSelector).offset().top;
+      hasVelocity ?
+        html.velocity('stop').velocity('scroll', {
+          offset: offset  + 'px',
+          mobileHA: false
+        }) :
+        $('html, body').stop().animate({
+          scrollTop: offset
+        }, 500);
+    });
+
+    // Expand sidebar on post detail page by default, when post has a toc.
+    motionMiddleWares.sidebar = function () {
+      var $tocContent = $('.post-toc-content');
+      if (CONFIG.sidebar === 'post') {
+        if ($tocContent.length > 0 && $tocContent.html().trim().length > 0) {
+          displaySidebar();
+        }
+      }
+    };
+  });
+</script>
+
+
+
+  <script type="text/javascript" src="/js/bootstrap.js"></script>
+
+  
+  
+
+  
+  
+
+</body>
+</html>

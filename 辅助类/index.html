@@ -1,0 +1,922 @@
+<!doctype html>
+<html class="theme-next   use-motion ">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+  <link href="/vendors/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css"/>
+
+
+
+
+  <link href="//fonts.googleapis.com/css?family=Lato:300,400,700,400italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+
+
+
+<link href="/vendors/font-awesome/css/font-awesome.min.css?v=4.4.0" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=0.4.5.2" rel="stylesheet" type="text/css" />
+
+
+  <meta name="keywords" content="Hadoop-0.20,RaidNode," />
+
+
+
+
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=0.4.5.2" />
+
+
+
+
+
+
+<meta name="description" content="Hadoop版本:hadoop-20-master
+
+ConfigManager主要成员12345678910111213public static final long RELOAD_WAIT = 5 * 1000;private long lastReloadAttempt; // Last time we tried to reload the config fileprivate long">
+<meta property="og:type" content="article">
+<meta property="og:title" content="RaidNode源码阅读---辅助类">
+<meta property="og:url" content="http://xiao-yun.github.io/辅助类/index.html">
+<meta property="og:site_name" content="xiaoyun">
+<meta property="og:description" content="Hadoop版本:hadoop-20-master
+
+ConfigManager主要成员12345678910111213public static final long RELOAD_WAIT = 5 * 1000;private long lastReloadAttempt; // Last time we tried to reload the config fileprivate long">
+<meta property="og:updated_time" content="2015-12-11T08:04:02.228Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="RaidNode源码阅读---辅助类">
+<meta name="twitter:description" content="Hadoop版本:hadoop-20-master
+
+ConfigManager主要成员12345678910111213public static final long RELOAD_WAIT = 5 * 1000;private long lastReloadAttempt; // Last time we tried to reload the config fileprivate long">
+
+
+
+<script type="text/javascript" id="hexo.configuration">
+  var CONFIG = {
+    scheme: 'Mist',
+    sidebar: 'hide',
+    motion: true
+  };
+</script>
+
+  <title> RaidNode源码阅读---辅助类 | xiaoyun </title>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  <!--[if lte IE 8]>
+  <div style=' clear: both; height: 59px; padding:0 0 0 15px; position: relative;margin:0 auto;'>
+    <a href="http://windows.microsoft.com/en-US/internet-explorer/products/ie/home?ocid=ie6_countdown_bannercode">
+      <img src="http://7u2nvr.com1.z0.glb.clouddn.com/picouterie.jpg" border="0" height="42" width="820"
+           alt="You are using an outdated browser. For a faster, safer browsing experience, upgrade for free today or use other browser ,like chrome firefox safari."
+           style='margin-left:auto;margin-right:auto;display: block;'/>
+    </a>
+  </div>
+<![endif]-->
+  
+
+
+
+  <script type="text/javascript">
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "//hm.baidu.com/hm.js?caeb4129c91d1e6fb3d562d35fedef0d";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+  <div class="container one-column page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-meta ">
+  
+
+  <div class="custom-logo-site-title">
+    <a href="/"  class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <span class="site-title">xiaoyun</span>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+  <p class="site-subtitle"></p>
+</div>
+
+<div class="site-nav-toggle">
+  <button>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+  </button>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu menu-left">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-home fa-fw"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives" rel="section">
+            
+              <i class="menu-item-icon fa fa-archive fa-fw"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories" rel="section">
+            
+              <i class="menu-item-icon fa fa-th fa-fw"></i> <br />
+            
+            分类
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+              <i class="menu-item-icon fa fa-tags fa-fw"></i> <br />
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about" rel="section">
+            
+              <i class="menu-item-icon fa fa-user fa-fw"></i> <br />
+            
+            关于
+          </a>
+        </li>
+      
+
+      
+      
+    </ul>
+  
+
+  
+    <div class="site-search">
+      
+  
+  <form class="site-search-form">
+    <input type="text" id="st-search-input" class="st-search-input st-default-search-input" />
+  </form>
+
+
+<script type="text/javascript">
+  (function(w,d,t,u,n,s,e){w['SwiftypeObject']=n;w[n]=w[n]||function(){
+    (w[n].q=w[n].q||[]).push(arguments);};s=d.createElement(t);
+    e=d.getElementsByTagName(t)[0];s.async=1;s.src=u;e.parentNode.insertBefore(s,e);
+  })(window,document,'script','//s.swiftypecdn.com/install/v2/st.js','_st');
+
+  _st('install', 'Nq1MdxGEF4xQgzakv9MC','2.0.0');
+</script>
+
+
+
+    </div>
+  
+</nav>
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div id="content" class="content">
+          
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                RaidNode源码阅读---辅助类
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            发表于
+            <time itemprop="dateCreated" datetime="2015-12-11T16:04:02+08:00" content="2015-12-11">
+              2015-12-11
+            </time>
+          </span>
+
+          
+            <span class="post-category" >
+              &nbsp; | &nbsp; 分类于
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Hadoop-0-20/" itemprop="url" rel="index">
+                    <span itemprop="name">Hadoop-0.20</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Hadoop-0-20/RaidNode/" itemprop="url" rel="index">
+                    <span itemprop="name">RaidNode</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Hadoop-0-20/RaidNode/源码阅读/" itemprop="url" rel="index">
+                    <span itemprop="name">源码阅读</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Hadoop-0-20/RaidNode/源码阅读/RaidNode源码阅读/" itemprop="url" rel="index">
+                    <span itemprop="name">RaidNode源码阅读</span>
+                  </a>
+                </span>
+
+                
+                
+
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                &nbsp; | &nbsp;
+                <a href="/辅助类/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="辅助类/" itemprop="commentsCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+
+        </div>
+      </header>
+    
+
+
+    <div class="post-body">
+
+      
+      
+
+      
+        <span itemprop="articleBody"><blockquote>
+<p>Hadoop版本:<a href="https://github.com/facebookarchive/hadoop-20" title="facebook hadoop" target="_blank" rel="external">hadoop-20-master</a></p>
+</blockquote>
+<h1 id="ConfigManager">ConfigManager</h1><h2 id="主要成员">主要成员</h2><pre><code><span class="comment"><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="keyword">long</span> RELOAD_WAIT = <span class="number">5</span> * <span class="number">1000</span>;</span><br><span class="line"><span class="keyword">private</span> <span class="keyword">long</span> lastReloadAttempt; <span class="comment">// Last time we tried to reload the config file</span></span><br><span class="line"><span class="keyword">private</span> <span class="keyword">long</span> lastSuccessfulReload; <span class="comment">// Last time we successfully reloaded config</span></span><br><span class="line"><span class="keyword">private</span> <span class="keyword">boolean</span> lastReloadAttemptFailed = <span class="keyword">false</span>;</span><br><span class="line"><span class="keyword">private</span> <span class="keyword">long</span> reloadInterval = RELOAD_INTERVAL;</span><br><span class="line"><span class="keyword">private</span> <span class="keyword">long</span> periodicity; <span class="comment">// time between runs of all policies</span></span><br><span class="line"><span class="keyword">private</span> <span class="keyword">long</span> harPartfileSize;</span><br><span class="line"><span class="keyword">private</span> <span class="keyword">int</span> maxJobsPerPolicy; <span class="comment">// Max no. of jobs running simultaneously for a job.</span></span><br><span class="line"><span class="keyword">private</span> <span class="keyword">int</span> maxFilesPerJob; <span class="comment">// Max no. of files raided by a job.</span></span><br><span class="line"><span class="keyword">private</span> <span class="keyword">int</span> maxBlocksPerDirRaidJob; <span class="comment">// Max no. of blocks raided by a dir-raid job</span></span><br><span class="line"><span class="comment">// Reload the configuration</span></span><br><span class="line"><span class="keyword">private</span> <span class="keyword">boolean</span> doReload;</span><br><span class="line"><span class="keyword">private</span> Thread reloadThread;</span><br></pre></td></tr></table></figure></span>
+</code></pre><h2 id="raid_policy文件">raid policy文件</h2><p>raid policy文件的加载,主要方法:<code>reloadConfigs()</code>重新加载policy文件.<br>policy文件为<code>configFileName</code>成员属性.</p>
+<p>加载结果存入成员属性allPolicies中:<br><figure class="highlight pf"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">Collection<span class="variable">&lt;PolicyInfo&gt;</span> <span class="literal">all</span>Policies = new ArrayList<span class="variable">&lt;PolicyInfo&gt;</span>();</span><br><span class="line"><span class="built_in">set</span>AllPolicies(<span class="literal">all</span>);</span><br></pre></td></tr></table></figure></p>
+<h3 id="配置">配置</h3><p>policy文件中一个policy以policy元素开始,对应PolicyInfo类,policy子元素可以为:  </p>
+<table>
+<thead>
+<tr>
+<th style="text-align:center">元素</th>
+<th style="text-align:center">说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">srcPath</td>
+<td style="text-align:center">指定编码的源文件路径,路径为属性prefix</td>
+</tr>
+<tr>
+<td style="text-align:center">fileList</td>
+<td style="text-align:center">文件列表</td>
+</tr>
+<tr>
+<td style="text-align:center">codecId</td>
+<td style="text-align:center">编码方式对应的ID</td>
+</tr>
+<tr>
+<td style="text-align:center">shouldRaid</td>
+<td style="text-align:center">是否应该编码</td>
+</tr>
+<tr>
+<td style="text-align:center">description</td>
+<td style="text-align:center">描述信息</td>
+</tr>
+<tr>
+<td style="text-align:center">parentPolicy</td>
+<td style="text-align:center">父policy,属性将被拷贝至当前policy</td>
+</tr>
+<tr>
+<td style="text-align:center">property</td>
+<td style="text-align:center">name-value对,保存在PolicyInfo的properties属性中</td>
+</tr>
+</tbody>
+</table>
+<p>另外,policyName为policy元素的属性.</p>
+<p>对于其中的property,可以设置的值有:</p>
+<ul>
+<li><code>targetReplication</code>,编码后原文件备份数;</li>
+<li><code>metaReplication</code>,编码后校验文件备份数;</li>
+<li><code>modTimePeriod</code>,原文件修改后经过多久可以参与编码,单位ms;</li>
+<li><code>simulate</code>,与codec的json设置的simulate_block_fix类似,缺省false;</li>
+</ul>
+<h3 id="加载时机">加载时机</h3><p>是否重新加载policy文件在方法<code>reloadConfigsIfNecessary</code>中,大致条件:<br><code>time &gt; lastReloadAttempt + reloadInterval;</code><br>即当前时间满足加载间隔,<code>reloadInterval</code>为<code>raid.config.reload.interval</code>,默认10s<br>policy文件自从上次成功加载后修改过,且修改后时间大于RELOAD_WAIT(5s)<br><figure class="highlight applescript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (<span class="property">time</span> &gt; lastReloadAttempt + reloadInterval) &#123;</span><br><span class="line">      lastReloadAttempt = <span class="property">time</span>;</span><br><span class="line">      <span class="keyword">try</span> &#123;</span><br><span class="line">        File <span class="type">file</span> = new File(configFileName);</span><br><span class="line">        long lastModified = <span class="type">file</span>.lastModified();</span><br><span class="line">        <span class="keyword">if</span> (lastModified &gt; lastSuccessfulReload &amp;&amp;</span><br><span class="line">            <span class="property">time</span> &gt; lastModified + RELOAD_WAIT) &#123;</span><br><span class="line">          reloadConfigs();</span><br><span class="line">          lastSuccessfulReload = <span class="property">time</span>;</span><br><span class="line">          lastReloadAttemptFailed = <span class="constant">false</span>;</span><br><span class="line"><span class="command">          return</span> <span class="constant">true</span>;</span><br><span class="line">        &#125;</span><br><span class="line">      &#125;</span><br><span class="line">      ...</span><br></pre></td></tr></table></figure></p>
+<hr>
+<h1 id="Codec">Codec</h1><h2 id="构造:">构造:</h2><p>通过JSON格式构造,在配置文件中:<br><figure class="highlight gradle"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> Codec(JSONObject json) <span class="keyword">throws</span> JSONException &#123;</span><br><span class="line">    <span class="keyword">this</span>.jsonStr = json.toString();</span><br><span class="line">    <span class="keyword">this</span>.id = json.getString(<span class="string">"id"</span>);</span><br><span class="line">    <span class="keyword">this</span>.parityLength = json.getInt(<span class="string">"parity_length"</span>);</span><br><span class="line">    <span class="keyword">this</span>.stripeLength = json.getInt(<span class="string">"stripe_length"</span>);</span><br><span class="line">    <span class="keyword">this</span>.erasureCodeClass = json.getString(<span class="string">"erasure_code"</span>);</span><br><span class="line">    <span class="keyword">this</span>.parityDirectory = json.getString(<span class="string">"parity_dir"</span>);</span><br><span class="line">    <span class="keyword">this</span>.priority = json.getInt(<span class="string">"priority"</span>);</span><br><span class="line">    <span class="keyword">this</span>.<span class="keyword">description</span> = getJSONString(json, <span class="string">"description"</span>, <span class="string">""</span>);</span><br><span class="line">    <span class="keyword">this</span>.isDirRaid = <span class="keyword">Boolean</span>.parseBoolean(getJSONString(json, <span class="string">"dir_raid"</span>, <span class="string">"false"</span>));</span><br><span class="line">    <span class="keyword">this</span>.tmpParityDirectory = getJSONString(</span><br><span class="line">        json, <span class="string">"tmp_parity_dir"</span>, <span class="string">"/tmp"</span> + <span class="keyword">this</span>.parityDirectory);</span><br><span class="line">    <span class="keyword">this</span>.tmpHarDirectory = getJSONString(</span><br><span class="line">        json, <span class="string">"tmp_har_dir"</span>, <span class="string">"/tmp"</span> + <span class="keyword">this</span>.parityDirectory + <span class="string">"_har"</span>);</span><br><span class="line">    <span class="keyword">this</span>.simulateBlockFix = json.getBoolean(<span class="string">"simulate_block_fix"</span>);</span><br><span class="line">    checkDirectory(parityDirectory);</span><br><span class="line">    checkDirectory(tmpParityDirectory);</span><br><span class="line">    checkDirectory(tmpHarDirectory);</span><br><span class="line">    setPathSeparatorDirectories();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>可见,缺省<code>dir_raid</code>为false,为文件Raid.<br><code>tmp_parity_dir</code>缺省为/tmp/parity_dir.<br><code>tmp_har_dir</code>缺省为/tmp/parity_dir_har.  </p>
+<h2 id="ErasureCode对象构造:">ErasureCode对象构造:</h2><p>读取配置<br><figure class="highlight stata"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">Class</span>&lt;?&gt; erasureCode = <span class="keyword">conf</span>.getClass(ERASURE_CODE_KEY_PREFIX + this.id,</span><br><span class="line">            <span class="keyword">conf</span>.getClassByName(this.erasureCodeClass));</span><br><span class="line">ErasureCode code = (ErasureCode) ReflectionUtils.newInstance(erasureCode,</span><br><span class="line">        <span class="keyword">conf</span>);</span><br></pre></td></tr></table></figure></p>
+<p>可见,policy的id可以配置为具体的ErasureCode实现类,如果不是实现类则通过<code>erasure_code</code>配置.</p>
+<hr>
+<h1 id="Encoder">Encoder</h1><p>编码过程中,一个<code>EncodingCandidate</code>对应一个Encoder,负责具体编码过程.<br>这里,主要成员通过构造函数说明,构造函数如下:<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line">Encoder(Configuration conf, Codec codec) &#123;</span><br><span class="line">    <span class="keyword">this</span>.conf = conf;</span><br><span class="line">    <span class="keyword">this</span>.parallelism = conf.getInt(<span class="string">"raid.encoder.parallelism"</span>,</span><br><span class="line">                                   DEFAULT_PARALLELISM);</span><br><span class="line">    <span class="keyword">this</span>.codec = codec;</span><br><span class="line">    <span class="keyword">this</span>.code = codec.createErasureCode(conf);</span><br><span class="line">    <span class="keyword">this</span>.rand = <span class="keyword">new</span> Random();</span><br><span class="line">    <span class="keyword">this</span>.maxBufSize = conf.getInt(ENCODING_MAX_BUFFER_SIZE_KEY,</span><br><span class="line">        DEFAULT_MAX_BUFFER_SIZE);</span><br><span class="line">    <span class="keyword">this</span>.bufSize = conf.getInt(<span class="string">"raid.encoder.bufsize"</span>, maxBufSize);</span><br><span class="line">    <span class="keyword">this</span>.writeBufs = <span class="keyword">new</span> <span class="keyword">byte</span>[codec.parityLength][];</span><br><span class="line">    <span class="keyword">this</span>.checksumStore = RaidNode.createChecksumStore(conf, <span class="keyword">false</span>);</span><br><span class="line">    <span class="keyword">this</span>.requiredChecksumStore = conf.getBoolean(</span><br><span class="line">        RaidNode.RAID_CHECKSUM_STORE_REQUIRED_KEY,</span><br><span class="line">        <span class="keyword">false</span>);</span><br><span class="line">    <span class="keyword">if</span> (codec.isDirRaid) &#123;</span><br><span class="line">      <span class="comment">// only need by directory raid</span></span><br><span class="line">      <span class="keyword">this</span>.stripeStore = RaidNode.createStripeStore(conf, <span class="keyword">false</span>, <span class="keyword">null</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">this</span>.retryCountPartialEncoding = conf.getInt(RETRY_COUNT_PARTIAL_ENCODING_KEY,</span><br><span class="line">        DEFAULT_RETRY_COUNT_PARTIAL_ENCODING);</span><br><span class="line">    allocateBuffers();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p><code>parallelism</code>为编码器读取源数据的并行度,在之后可以看到这个是为了读取stripe个源文件输入流而启动的线程数.<br>即假设进行(10,4)rs编码,一次编码过程有10个源区块,默认开启4个线程一次读取这10个区块数据至一个输入缓冲区中,<br>每次读取长度固定,一个线程读完一个区块固定长度的缓冲区后,读取下一个没有读取的区块,详细分析见ParallelStreamReader.  </p>
+<p><code>code</code>为擦除码,为codec的配置,具体见Codec部分.<br><code>bufSize</code>即为上面说的线程一次读取的字节长度,默认1MB.<br><code>writeBufs</code>为编码结果输出缓冲,有parityLength个缓冲区,每个缓冲区大小为bufSize,与线程每次读取长度对应,即每次编码bufSize,输出到<br>该缓冲区中.<br><code>checksumStore</code>可选项,需配置<code>hdfs.raid.checksum.store.required</code>为true.<br><code>stripeStore</code>可选项,当policy中存在目录Raid时必须配置.<br><code>retryCountPartialEncoding</code>局部编码过程失败后的重试次数.配置项<code>raid.encoder.retry.count.partial.encoding</code>.</p>
+<hr>
+<h1 id="PolicyInfo">PolicyInfo</h1><figure class="highlight lasso"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> Path srcPath;            <span class="comment">// the specified src path  </span></span><br><span class="line"><span class="keyword">private</span> Path fileListPath;       <span class="comment">// this path to the file containing list of files.  </span></span><br><span class="line"><span class="keyword">private</span> <span class="built_in">String</span> policyName;       <span class="comment">// name of policy  </span></span><br><span class="line"><span class="keyword">private</span> <span class="built_in">String</span> codecId;          <span class="comment">// the codec used  </span></span><br><span class="line"><span class="keyword">private</span> <span class="built_in">boolean</span> shouldRaid;      <span class="comment">// Should we raid files or not.  </span></span><br><span class="line"><span class="keyword">private</span> <span class="built_in">String</span> description;      <span class="comment">// A verbose description of this policy  </span></span><br><span class="line"><span class="keyword">private</span> Configuration conf;      <span class="comment">// Hadoop configuration  </span></span><br><span class="line"><span class="keyword">private</span> Properties properties;   <span class="comment">// Policy-dependent properties</span></span><br></pre></td></tr></table></figure>
+<hr>
+<h1 id="CheckSumStore">CheckSumStore</h1><p>存储校验和.<br><code>hdfs.raid.checksum.store.required</code>为true时,必须配置相应类.默认可以不配置.</p>
+<h2 id="LocalCheckSumStore">LocalCheckSumStore</h2><h3 id="存储方式">存储方式</h3><figure class="highlight applescript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">/**</span><br><span class="line"> * Instead <span class="keyword">of</span> storing mappings <span class="keyword">of</span> block <span class="keyword">and</span> checksums <span class="keyword">into</span> a <span class="type">file</span>,</span><br><span class="line"> * We store each mapping <span class="keyword">as</span> an empty <span class="type">file</span> like <span class="string">"blockid:checksum"</span>;</span><br><span class="line"> */</span><br></pre></td></tr></table></figure>
+<h3 id="主要成员-1">主要成员</h3><ul>
+<li><p><code>storeDirName</code>,本地存储目录,对应文件属性<code>storeDir</code>,为配置项<code>hdfs.raid.local.checksum.dir</code>,目录下为空文件,文件名为”blockid:checksum”</p>
+</li>
+<li><p>存储结构:</p>
+<figure class="highlight vbnet"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> ConcurrentHashMap&lt;<span class="built_in">String</span>, <span class="built_in">Long</span>&gt; store = <span class="keyword">new</span> ConcurrentHashMap&lt;<span class="built_in">String</span>, <span class="built_in">Long</span>&gt;();</span><br></pre></td></tr></table></figure>
+</li>
+</ul>
+<p>存储Block ID和对应校验和的键值对.</p>
+<h3 id="主要函数">主要函数</h3><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> initialize(Configuration conf, <span class="keyword">boolean</span> createStore) <span class="keyword">throws</span> IOException</span><br></pre></td></tr></table></figure>
+<p>初始化时读取配置,创建本地目录,读取目录中文件信息至store成员中.</p>
+<hr>
+<h1 id="StripeStore">StripeStore</h1><p>对于目录Raid必须配置.</p>
+<h2 id="LocalStripeStore">LocalStripeStore</h2><p>LocalStripeStore信息存储在<code>hdfs.raid.local.stripe.dir</code>目录下  </p>
+<h3 id="存储方式-1">存储方式</h3><figure class="highlight gherkin"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">/<span class="keyword">*</span><span class="keyword">*</span>  </span><br><span class="line"><span class="keyword">*</span> for each stripe blk1,blk2,...,blkn under one codec  </span><br><span class="line"><span class="keyword">*</span> we generates n files:  </span><br><span class="line"><span class="keyword">*</span> codecId:blk1  </span><br><span class="line"><span class="keyword">*</span> codecId:blk2  </span><br><span class="line"><span class="keyword">*</span> ...  </span><br><span class="line"><span class="keyword">*</span> codecId:blkn  </span><br><span class="line"><span class="keyword">*</span> they are all hardlinks of the same file whose content is   </span><br><span class="line"><span class="keyword">*</span> <span class="string">"blk1:blk2:...:blkn"</span>  </span><br><span class="line"><span class="keyword">*</span>/</span><br></pre></td></tr></table></figure>
+<h3 id="主要成员-2">主要成员</h3><ul>
+<li><code>storeDirName</code>,本地存储目录,对应文件属性<code>storeDir</code></li>
+<li><p>主要存储结构:</p>
+  <figure class="highlight lasso"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> ConcurrentHashMap&lt;<span class="built_in">String</span>, LocalStripeInfo&gt; blockToStripeStore = <span class="literal">new</span> ConcurrentHashMap&lt;<span class="built_in">String</span>, LocalStripeInfo&gt;();</span><br><span class="line"><span class="keyword">public</span> ConcurrentHashMap&lt;<span class="built_in">List</span>&lt;Block&gt;, Long&gt; stripeSet = <span class="literal">new</span> ConcurrentHashMap&lt;<span class="built_in">List</span>&lt;Block&gt;, Long&gt;();</span><br></pre></td></tr></table></figure>
+<p>  <code>blockToStripeStore</code>存储了区块和对应的<code>StripeInfo</code>,<code>LocalStripeInfo</code>为LocalStripeStore对应StripeInfo的子类.<br>  StripeInfo存储了一个stripe的基本信息,包括codec,源区块和校验区块:</p>
+  <figure class="highlight oxygene"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> Codec codec;</span><br><span class="line"><span class="keyword">public</span> <span class="keyword">Block</span> <span class="keyword">block</span>;</span><br><span class="line"><span class="keyword">public</span> List&lt;<span class="keyword">Block</span>&gt; parityBlocks;</span><br><span class="line"><span class="keyword">public</span> List&lt;<span class="keyword">Block</span>&gt; srcBlocks;</span><br></pre></td></tr></table></figure>
+<p>  若StripeStore存在,则可以通过blockToStripeStore获取一个block的对应stripe信息,从而可以进行相应的解码操作,在损坏区块的修复过程中便可以<br>  看到通过StripeStore进行修复的情况.</p>
+<p>  <code>stripeSet</code>存储可所有stripe的校验区块,键对应为一个stripe的校验区块列表,值固定为1.</p>
+<h3 id="主要函数-1">主要函数</h3><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> initialize(Configuration conf, <span class="keyword">boolean</span> createStore,FileSystem fs) <span class="keyword">throws</span> IOException</span><br></pre></td></tr></table></figure>
+</li>
+</ul>
+<p>初始化时读取配置,创建本地存储目录,读取本地目录下的文件<br>一个本地文件生成一个LocalStripeStore,文件名格式以及文件内容可见上<code>存储方式</code>的说明:<br><code>return new LocalStripeInfo(codec, blk, parityBlocks, srcBlocks);</code><br>codec是文件名中前部分,blk为后部分,parityBlocks为codec文件内容对应前parityLength个blk对应区块,srcBlocks为剩余区块;</p>
+<p>然后存入相应数据结构:<br><figure class="highlight nix"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">LocalStripeInfo <span class="variable">oldSi =</span> blockToStripeStore.put(si.getKey(), si);</span><br><span class="line"><span class="keyword">if</span> (oldSi != <span class="constant">null</span>) &#123;</span><br><span class="line"><span class="built_in">throw</span> new IOException(<span class="string">"There are two stripes for the same key: "</span> +</span><br><span class="line">  si.getKey() + <span class="string">"\n old: "</span> +oldSi.<span class="built_in">toString</span>() + <span class="string">"\n new: "</span> +</span><br><span class="line">  si.<span class="built_in">toString</span>());</span><br><span class="line">&#125;</span><br><span class="line">stripeSet.put(si.parityBlocks, <span class="number">1</span>L);</span><br></pre></td></tr></table></figure></p>
+<p>si.getKey()即为文件名.</p>
+<hr>
+<h1 id="BlockIntegrityMonitor">BlockIntegrityMonitor</h1><p>负责损坏区块和丢失区块的修复.  </p>
+<h2 id="主要线程">主要线程</h2><figure class="highlight actionscript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">Daemon blockFixerThread = <span class="literal">null</span>;</span><br><span class="line">Daemon blockCopierThread = <span class="literal">null</span>;</span><br><span class="line">Daemon corruptFileCounterThread = <span class="literal">null</span>;</span><br></pre></td></tr></table></figure>
+<p><code>blockFixerThread</code>对应损坏区块的修复,<code>blockCopierThread</code>对应丢失区块的修复,<code>corruptFileCounterThread</code>为损坏文件计数线程.<br>在RaidNode初始化过程中根据配置项创建相应线程.<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">boolean</span> useBlockFixer = !conf.getBoolean(RAID_DISABLE_CORRUPT_BLOCK_FIXER_KEY, <span class="keyword">false</span>);</span><br><span class="line"><span class="keyword">boolean</span> useBlockCopier = !conf.getBoolean(RAID_DISABLE_DECOMMISSIONING_BLOCK_COPIER_KEY, <span class="keyword">true</span>);</span><br><span class="line"><span class="keyword">boolean</span> useCorruptFileCounter = !conf.getBoolean(RAID_DISABLE_CORRUPTFILE_COUNTER_KEY, <span class="keyword">false</span>);</span><br><span class="line"></span><br><span class="line">Runnable fixer = blockIntegrityMonitor.getCorruptionMonitor();</span><br><span class="line"><span class="keyword">if</span> (useBlockFixer &amp;&amp; (fixer != <span class="keyword">null</span>)) &#123;</span><br><span class="line">  <span class="keyword">this</span>.blockFixerThread = <span class="keyword">new</span> Daemon(fixer);</span><br><span class="line">  <span class="keyword">this</span>.blockFixerThread.setName(<span class="string">"Block Fixer"</span>);</span><br><span class="line">  <span class="keyword">this</span>.blockFixerThread.start();</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">Runnable copier = blockIntegrityMonitor.getDecommissioningMonitor();</span><br><span class="line"><span class="keyword">if</span> (useBlockCopier &amp;&amp; (copier != <span class="keyword">null</span>)) &#123;</span><br><span class="line">  <span class="keyword">this</span>.blockCopierThread = <span class="keyword">new</span> Daemon(copier);</span><br><span class="line">  <span class="keyword">this</span>.blockCopierThread.setName(<span class="string">"Block Copier"</span>);</span><br><span class="line">  <span class="keyword">this</span>.blockCopierThread.start();</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">Runnable counter = blockIntegrityMonitor.getCorruptFileCounter();</span><br><span class="line"><span class="keyword">if</span> (useCorruptFileCounter &amp;&amp; counter != <span class="keyword">null</span>) &#123;</span><br><span class="line">  <span class="keyword">this</span>.corruptFileCounterThread = <span class="keyword">new</span> Daemon(counter);</span><br><span class="line">  <span class="keyword">this</span>.corruptFileCounterThread.setName(<span class="string">"Corrupt File Counter"</span>);</span><br><span class="line">  <span class="keyword">this</span>.corruptFileCounterThread.start();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>配置项<code>raid.blockreconstruction.corrupt.disable</code>默认为false,对应<code>blockFixerThread</code>默认存在.<br>配置项<code>raid.blockreconstruction.decommissioning.disable</code>默认为true,对应<code>blockCopierThread</code>默认不存在.<br>配置项<code>raid.corruptfile.counter.disable</code>默认为false,对应<code>corruptFileCounterThread</code>默认存在.  </p>
+<h2 id="LocalBlockIntegrityMonitor">LocalBlockIntegrityMonitor</h2><p>对于<code>LocalBlockIntegrityMonitor</code>来说,<code>getDecomissioningMOnitor</code>和<code>getCorruptFileCounter</code>都没有实现,<code>getCorruptionMonitor</code>即为本对象:<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="annotation">@Override</span></span><br><span class="line"><span class="keyword">public</span> <span class="function">Runnable <span class="title">getDecommissioningMonitor</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="comment">// This class does not monitor decommissioning files. </span></span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">null</span>;</span><br><span class="line">&#125;</span><br><span class="line"><span class="annotation">@Override</span></span><br><span class="line"><span class="keyword">public</span> <span class="function">Runnable <span class="title">getCorruptFileCounter</span><span class="params">()</span> </span>&#123;</span><br><span class="line">  <span class="keyword">return</span> <span class="keyword">null</span>;</span><br><span class="line">&#125;</span><br><span class="line"><span class="annotation">@Override</span></span><br><span class="line"><span class="keyword">public</span> <span class="function">Runnable <span class="title">getCorruptionMonitor</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">this</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>因此,<code>LocalBlockIntegrityMonitor</code>就算配置了允许DemissionionMonitor和CorruptFileCounter,也没有效;</p>
+<h3 id="主要成员:">主要成员:</h3><ul>
+<li><p><code>monitorDirs</code>,损坏文件目录</p>
+  <figure class="highlight delphi"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">String</span>[] monitorDirs;</span><br></pre></td></tr></table></figure>
+<p>  创建LocalBlockIntegrityMonitor时,初始化,为文件系统中损坏文件的目录:</p>
+  <figure class="highlight lisp"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">monitorDirs = getCorruptMonitorDirs<span class="list">(<span class="keyword">getConf</span><span class="list">()</span>)</span><span class="comment">;</span></span><br></pre></td></tr></table></figure>
+<p>  从<code>raid.corruptfile.counter.dirs</code>读取,默认为”/“,即读取整个文件系统中的损坏文件.</p>
+</li>
+<li><p><code>monitorSeconds</code>,读取<code>raid.monitor.seconds</code>,默认”18000,86400,604800”(5h,1d,1w)</p>
+  <figure class="highlight delphi"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="keyword">String</span>[] monitorSeconds;</span><br></pre></td></tr></table></figure>
+</li>
+<li><p><code>recoveyTimes</code>,一个被管理的损坏文件目录对应一个直方图,直方图RaidHistogram有窗口,对应<code>raid.monitor.seconds</code></p>
+  <figure class="highlight processing"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">protected</span> <span class="keyword">HashMap</span>&lt;<span class="keyword">String</span>, RaidHistogram&gt; recoveryTimes;</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>`histoLen``,直方图长度</p>
+  <figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="keyword">int</span> histoLen</span><br></pre></td></tr></table></figure>
+</li>
+<li><p><code>percents</code>,直方图百分比</p>
+  <figure class="highlight fortran"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> ArrayList&lt;<span class="built_in">Float</span>&gt; percents;</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>其他</p>
+<ul>
+<li><p>统计信息</p>
+  <figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="keyword">long</span> numFilesFixed = <span class="number">0</span>;</span><br><span class="line"><span class="keyword">private</span> <span class="keyword">long</span> numFileFixFailures = <span class="number">0</span>;</span><br><span class="line"><span class="keyword">private</span> <span class="keyword">long</span> numFilesCopied = <span class="number">0</span>;</span><br><span class="line"><span class="keyword">private</span> <span class="keyword">long</span> numFileCopyFailures = <span class="number">0</span>;</span><br><span class="line"><span class="keyword">private</span> <span class="keyword">long</span> numBlockFixSimulationFailures = <span class="number">0</span>;</span><br><span class="line"><span class="keyword">private</span> <span class="keyword">long</span> numBlockFixSimulationSuccess = <span class="number">0</span>;</span><br><span class="line"><span class="keyword">private</span> <span class="keyword">long</span> numFilesToFixDropped = <span class="number">0</span>;</span><br><span class="line"><span class="keyword">private</span> <span class="keyword">long</span> numfileFixBytesReadRemoteRack = <span class="number">0</span>;</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>间隔</p>
+  <figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// interval between checks for lost files</span></span><br><span class="line"> <span class="keyword">protected</span> <span class="keyword">long</span> blockCheckInterval;</span><br><span class="line"> <span class="keyword">protected</span> <span class="keyword">long</span> corruptFileCountInterval;</span><br><span class="line"> <span class="keyword">protected</span> <span class="keyword">short</span> notRaidedReplication;</span><br></pre></td></tr></table></figure>
+  <figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">volatile</span> <span class="keyword">long</span> lastSuccessfulFixTime = System.currentTimeMillis();</span><br><span class="line"><span class="keyword">public</span> <span class="keyword">volatile</span> <span class="keyword">long</span> approximateNumRecoverableFiles = <span class="number">0L</span>;</span><br></pre></td></tr></table></figure>
+</li>
+</ul>
+</li>
+</ul>
+</span>
+      
+    </div>
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/Hadoop-0-20/" rel="tag">#Hadoop-0.20</a>
+          
+            <a href="/tags/RaidNode/" rel="tag">#RaidNode</a>
+          
+        </div>
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/配置相关/" rel="next" title="Hadoop配置相关---RaidNode">
+                <i class="fa fa-chevron-left"></i> Hadoop配置相关---RaidNode
+              </a>
+            
+          </div>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/raidFiles/" rel="prev" title="RaidNode源码阅读---RaidNode编码过程下篇编码操作(LocalRaidNode)">
+                RaidNode源码阅读---RaidNode编码过程下篇编码操作(LocalRaidNode) <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </article>
+
+
+
+    <div class="post-spread">
+      
+        <!-- JiaThis Button BEGIN -->
+<div class="jiathis_style">
+  <a class="jiathis_button_tsina"></a>
+  <a class="jiathis_button_tqq"></a>
+  <a class="jiathis_button_weixin"></a>
+  <a class="jiathis_button_cqq"></a>
+  <a class="jiathis_button_douban"></a>
+  <a class="jiathis_button_renren"></a>
+  <a class="jiathis_button_qzone"></a>
+  <a class="jiathis_button_kaixin001"></a>
+  <a class="jiathis_button_copy"></a>
+  <a href="http://www.jiathis.com/share" class="jiathis jiathis_txt jiathis_separator jtico jtico_jiathis" target="_blank"></a>
+  <a class="jiathis_counter_style"></a>
+</div>
+<script type="text/javascript" >
+  var jiathis_config={
+    hideMore:false
+  }
+</script>
+<script type="text/javascript" src="http://v3.jiathis.com/code/jia.js" charset="utf-8"></script>
+<!-- JiaThis Button END -->
+
+      
+    </div>
+  </div>
+
+
+        </div>
+
+        
+
+
+        
+  <div class="comments" id="comments">
+    
+      <div class="ds-thread" data-thread-key="辅助类/"
+           data-title="RaidNode源码阅读---辅助类" data-url="http://xiao-yun.github.io/辅助类/">
+      </div>
+    
+  </div>
+
+
+      </div>
+
+      
+        
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap" >
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel ">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+          <img class="site-author-image" src="/images/hero.jpg" alt="xiaoyun" itemprop="image"/>
+          <p class="site-author-name" itemprop="name">xiaoyun</p>
+        </div>
+        <p class="site-description motion-element" itemprop="description">学习笔记，网上资源摘要等</p>
+        <nav class="site-state motion-element">
+          <div class="site-state-item site-state-posts">
+            <a href="/archives">
+              <span class="site-state-item-count">7</span>
+              <span class="site-state-item-name">日志</span>
+            </a>
+          </div>
+
+          <div class="site-state-item site-state-categories">
+            <a href="/categories">
+              <span class="site-state-item-count">4</span>
+              <span class="site-state-item-name">分类</span>
+              </a>
+          </div>
+
+          <div class="site-state-item site-state-tags">
+            <a href="/tags">
+              <span class="site-state-item-count">3</span>
+              <span class="site-state-item-name">标签</span>
+              </a>
+          </div>
+
+        </nav>
+
+        
+
+        <div class="links-of-author motion-element">
+          
+            
+              <span class="links-of-author-item">
+                <a href="https://github.com/xiao-yun" target="_blank">
+                  
+                    <i class="fa fa-globe"></i> github
+                  
+                </a>
+              </span>
+            
+          
+        </div>
+
+        
+        
+
+        <div class="links-of-author motion-element">
+          
+        </div>
+
+      </section>
+
+      
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc-indicator-top post-toc-indicator">
+            <i class="fa fa-angle-double-up"></i>
+          </div>
+          <div class="post-toc">
+            
+              
+            
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#ConfigManager"><span class="nav-number">1.</span> <span class="nav-text">ConfigManager</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#主要成员"><span class="nav-number">1.1.</span> <span class="nav-text">主要成员</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#raid_policy文件"><span class="nav-number">1.2.</span> <span class="nav-text">raid policy文件</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#配置"><span class="nav-number">1.2.1.</span> <span class="nav-text">配置</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#加载时机"><span class="nav-number">1.2.2.</span> <span class="nav-text">加载时机</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Codec"><span class="nav-number">2.</span> <span class="nav-text">Codec</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#构造:"><span class="nav-number">2.1.</span> <span class="nav-text">构造:</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#ErasureCode对象构造:"><span class="nav-number">2.2.</span> <span class="nav-text">ErasureCode对象构造:</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Encoder"><span class="nav-number">3.</span> <span class="nav-text">Encoder</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#PolicyInfo"><span class="nav-number">4.</span> <span class="nav-text">PolicyInfo</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#CheckSumStore"><span class="nav-number">5.</span> <span class="nav-text">CheckSumStore</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#LocalCheckSumStore"><span class="nav-number">5.1.</span> <span class="nav-text">LocalCheckSumStore</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#存储方式"><span class="nav-number">5.1.1.</span> <span class="nav-text">存储方式</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#主要成员-1"><span class="nav-number">5.1.2.</span> <span class="nav-text">主要成员</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#主要函数"><span class="nav-number">5.1.3.</span> <span class="nav-text">主要函数</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#StripeStore"><span class="nav-number">6.</span> <span class="nav-text">StripeStore</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#LocalStripeStore"><span class="nav-number">6.1.</span> <span class="nav-text">LocalStripeStore</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#存储方式-1"><span class="nav-number">6.1.1.</span> <span class="nav-text">存储方式</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#主要成员-2"><span class="nav-number">6.1.2.</span> <span class="nav-text">主要成员</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#主要函数-1"><span class="nav-number">6.1.3.</span> <span class="nav-text">主要函数</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#BlockIntegrityMonitor"><span class="nav-number">7.</span> <span class="nav-text">BlockIntegrityMonitor</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#主要线程"><span class="nav-number">7.1.</span> <span class="nav-text">主要线程</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#LocalBlockIntegrityMonitor"><span class="nav-number">7.2.</span> <span class="nav-text">LocalBlockIntegrityMonitor</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#主要成员:"><span class="nav-number">7.2.1.</span> <span class="nav-text">主要成员:</span></a></li></ol></li></ol></li></ol></div>
+            
+          </div>
+          <div class="post-toc-indicator-bottom post-toc-indicator">
+            <i class="fa fa-angle-double-down"></i>
+          </div>
+        </section>
+      
+
+    </div>
+  </aside>
+
+
+      
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright" >
+  
+  &copy; 
+  <span itemprop="copyrightYear">2015</span>
+  <span class="with-love">
+    <i class="icon-next-heart fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">xiaoyun</span>
+</div>
+
+<div class="powered-by">
+  由 <a class="theme-link" href="http://hexo.io">Hexo</a> 强力驱动
+</div>
+
+<div class="theme-info">
+  主题 -
+  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
+    NexT.Mist
+  </a>
+</div>
+
+
+
+      </div>
+    </footer>
+
+    <div class="back-to-top"></div>
+  </div>
+
+  <script type="text/javascript" src="/vendors/jquery/index.js?v=2.1.3"></script>
+
+  
+  
+
+  
+    
+
+  
+    
+  
+
+  <script type="text/javascript">
+    var duoshuoQuery = {short_name:"xiaoyuncom"};
+    (function() {
+      var ds = document.createElement('script');
+      ds.type = 'text/javascript';ds.async = true;
+      ds.id = 'duoshuo-script';
+      ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+      ds.charset = 'UTF-8';
+      (document.getElementsByTagName('head')[0]
+      || document.getElementsByTagName('body')[0]).appendChild(ds);
+    })();
+  </script>
+    
+     
+
+
+    
+  
+
+  
+  <script type="text/javascript" src="/vendors/fancybox/source/jquery.fancybox.pack.js"></script>
+  <script type="text/javascript" src="/js/fancy-box.js?v=0.4.5.2"></script>
+
+
+  <script type="text/javascript" src="/js/helpers.js?v=0.4.5.2"></script>
+  <script type="text/javascript" src="/vendors/velocity/velocity.min.js"></script>
+<script type="text/javascript" src="/vendors/velocity/velocity.ui.min.js"></script>
+
+<script type="text/javascript" src="/js/motion.js?v=0.4.5.2" id="motion.global"></script>
+
+
+  <script type="text/javascript" src="/vendors/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  <script type="text/javascript" src="/vendors/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  
+<script type="text/javascript" src="/js/bootstrap.scrollspy.js?v=0.4.5.2" id="bootstrap.scrollspy.custom"></script>
+
+
+<script type="text/javascript" id="sidebar.toc.highlight">
+  $(document).ready(function () {
+    var tocSelector = '.post-toc';
+    var $tocSelector = $(tocSelector);
+    var activeCurrentSelector = '.active-current';
+
+    $tocSelector
+      .on('activate.bs.scrollspy', function () {
+        var $currentActiveElement = $(tocSelector + ' .active').last();
+
+        removeCurrentActiveClass();
+        $currentActiveElement.addClass('active-current');
+
+        $tocSelector[0].scrollTop = $currentActiveElement.position().top;
+      })
+      .on('clear.bs.scrollspy', function () {
+        removeCurrentActiveClass();
+      });
+
+    function removeCurrentActiveClass () {
+      $(tocSelector + ' ' + activeCurrentSelector)
+        .removeClass(activeCurrentSelector.substring(1));
+    }
+
+    function processTOC () {
+      getTOCMaxHeight();
+      toggleTOCOverflowIndicators();
+    }
+
+    function getTOCMaxHeight () {
+      var height = $('.sidebar').height() -
+                   $tocSelector.position().top -
+                   $('.post-toc-indicator-bottom').height();
+
+      $tocSelector.css('height', height);
+
+      return height;
+    }
+
+    function toggleTOCOverflowIndicators () {
+      tocOverflowIndicator(
+        '.post-toc-indicator-top',
+        $tocSelector.scrollTop() > 0 ? 'show' : 'hide'
+      );
+
+      tocOverflowIndicator(
+        '.post-toc-indicator-bottom',
+        $tocSelector.scrollTop() >= $tocSelector.find('ol').height() - $tocSelector.height() ? 'hide' : 'show'
+      )
+    }
+
+    $(document).on('sidebar.motion.complete', function () {
+      processTOC();
+    });
+
+    $('body').scrollspy({ target: tocSelector });
+    $(window).on('resize', function () {
+      if ( $('.sidebar').hasClass('sidebar-active') ) {
+        processTOC();
+      }
+    });
+
+    onScroll($tocSelector);
+
+    function onScroll (element) {
+      element.on('mousewheel DOMMouseScroll', function (event) {
+          var oe = event.originalEvent;
+          var delta = oe.wheelDelta || -oe.detail;
+
+          this.scrollTop += ( delta < 0 ? 1 : -1 ) * 30;
+          event.preventDefault();
+
+          toggleTOCOverflowIndicators();
+      });
+    }
+
+    function tocOverflowIndicator (indicator, action) {
+      var $indicator = $(indicator);
+      var opacity = action === 'show' ? 1 : 0;
+      $indicator.velocity ?
+        $indicator.velocity('stop').velocity({
+          opacity: opacity
+        }, { duration: 100 }) :
+        $indicator.stop().animate({
+          opacity: opacity
+        }, 100);
+    }
+
+  });
+</script>
+
+<script type="text/javascript" id="sidebar.nav">
+  $(document).ready(function () {
+    var html = $('html');
+    var TAB_ANIMATE_DURATION = 200;
+    var hasVelocity = $.isFunction(html.velocity);
+
+    $('.sidebar-nav li').on('click', function () {
+      var item = $(this);
+      var activeTabClassName = 'sidebar-nav-active';
+      var activePanelClassName = 'sidebar-panel-active';
+      if (item.hasClass(activeTabClassName)) {
+        return;
+      }
+
+      var currentTarget = $('.' + activePanelClassName);
+      var target = $('.' + item.data('target'));
+
+      hasVelocity ?
+        currentTarget.velocity('transition.slideUpOut', TAB_ANIMATE_DURATION, function () {
+          target
+            .velocity('stop')
+            .velocity('transition.slideDownIn', TAB_ANIMATE_DURATION)
+            .addClass(activePanelClassName);
+        }) :
+        currentTarget.animate({ opacity: 0 }, TAB_ANIMATE_DURATION, function () {
+          currentTarget.hide();
+          target
+            .stop()
+            .css({'opacity': 0, 'display': 'block'})
+            .animate({ opacity: 1 }, TAB_ANIMATE_DURATION, function () {
+              currentTarget.removeClass(activePanelClassName);
+              target.addClass(activePanelClassName);
+            });
+        });
+
+      item.siblings().removeClass(activeTabClassName);
+      item.addClass(activeTabClassName);
+    });
+
+    $('.post-toc a').on('click', function (e) {
+      e.preventDefault();
+      var targetSelector = escapeSelector(this.getAttribute('href'));
+      var offset = $(targetSelector).offset().top;
+      hasVelocity ?
+        html.velocity('stop').velocity('scroll', {
+          offset: offset  + 'px',
+          mobileHA: false
+        }) :
+        $('html, body').stop().animate({
+          scrollTop: offset
+        }, 500);
+    });
+
+    // Expand sidebar on post detail page by default, when post has a toc.
+    motionMiddleWares.sidebar = function () {
+      var $tocContent = $('.post-toc-content');
+      if (CONFIG.sidebar === 'post') {
+        if ($tocContent.length > 0 && $tocContent.html().trim().length > 0) {
+          displaySidebar();
+        }
+      }
+    };
+  });
+</script>
+
+
+
+  <script type="text/javascript" src="/js/bootstrap.js"></script>
+
+  
+  
+
+  
+  
+
+</body>
+</html>

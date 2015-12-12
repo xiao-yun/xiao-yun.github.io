@@ -1,0 +1,892 @@
+<!doctype html>
+<html class="theme-next   use-motion ">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+  <link href="/vendors/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css"/>
+
+
+
+
+  <link href="//fonts.googleapis.com/css?family=Lato:300,400,700,400italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+
+
+
+<link href="/vendors/font-awesome/css/font-awesome.min.css?v=4.4.0" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=0.4.5.2" rel="stylesheet" type="text/css" />
+
+
+  <meta name="keywords" content="Hadoop-0.20,RaidNode," />
+
+
+
+
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=0.4.5.2" />
+
+
+
+
+
+
+<meta name="description" content="Hadoop版本:hadoop-20-master
+
+LocalRaidNode编码操作通过raidFiles完成,函数原型如下:123456@Overridevoid raidFiles(PolicyInfo info, List&amp;lt;FileStatus&amp;gt; paths) throws IOException &amp;#123;List&amp;lt;EncodingCandidate&amp;gt; lec">
+<meta property="og:type" content="article">
+<meta property="og:title" content="RaidNode源码阅读---RaidNode编码过程下篇编码操作(LocalRaidNode)">
+<meta property="og:url" content="http://xiao-yun.github.io/raidFiles/index.html">
+<meta property="og:site_name" content="xiaoyun">
+<meta property="og:description" content="Hadoop版本:hadoop-20-master
+
+LocalRaidNode编码操作通过raidFiles完成,函数原型如下:123456@Overridevoid raidFiles(PolicyInfo info, List&amp;lt;FileStatus&amp;gt; paths) throws IOException &amp;#123;List&amp;lt;EncodingCandidate&amp;gt; lec">
+<meta property="og:updated_time" content="2015-12-11T08:11:39.624Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="RaidNode源码阅读---RaidNode编码过程下篇编码操作(LocalRaidNode)">
+<meta name="twitter:description" content="Hadoop版本:hadoop-20-master
+
+LocalRaidNode编码操作通过raidFiles完成,函数原型如下:123456@Overridevoid raidFiles(PolicyInfo info, List&amp;lt;FileStatus&amp;gt; paths) throws IOException &amp;#123;List&amp;lt;EncodingCandidate&amp;gt; lec">
+
+
+
+<script type="text/javascript" id="hexo.configuration">
+  var CONFIG = {
+    scheme: 'Mist',
+    sidebar: 'hide',
+    motion: true
+  };
+</script>
+
+  <title> RaidNode源码阅读---RaidNode编码过程下篇编码操作(LocalRaidNode) | xiaoyun </title>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  <!--[if lte IE 8]>
+  <div style=' clear: both; height: 59px; padding:0 0 0 15px; position: relative;margin:0 auto;'>
+    <a href="http://windows.microsoft.com/en-US/internet-explorer/products/ie/home?ocid=ie6_countdown_bannercode">
+      <img src="http://7u2nvr.com1.z0.glb.clouddn.com/picouterie.jpg" border="0" height="42" width="820"
+           alt="You are using an outdated browser. For a faster, safer browsing experience, upgrade for free today or use other browser ,like chrome firefox safari."
+           style='margin-left:auto;margin-right:auto;display: block;'/>
+    </a>
+  </div>
+<![endif]-->
+  
+
+
+
+  <script type="text/javascript">
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "//hm.baidu.com/hm.js?caeb4129c91d1e6fb3d562d35fedef0d";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+  <div class="container one-column page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-meta ">
+  
+
+  <div class="custom-logo-site-title">
+    <a href="/"  class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <span class="site-title">xiaoyun</span>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+  <p class="site-subtitle"></p>
+</div>
+
+<div class="site-nav-toggle">
+  <button>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+  </button>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu menu-left">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-home fa-fw"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives" rel="section">
+            
+              <i class="menu-item-icon fa fa-archive fa-fw"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories" rel="section">
+            
+              <i class="menu-item-icon fa fa-th fa-fw"></i> <br />
+            
+            分类
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+              <i class="menu-item-icon fa fa-tags fa-fw"></i> <br />
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about" rel="section">
+            
+              <i class="menu-item-icon fa fa-user fa-fw"></i> <br />
+            
+            关于
+          </a>
+        </li>
+      
+
+      
+      
+    </ul>
+  
+
+  
+    <div class="site-search">
+      
+  
+  <form class="site-search-form">
+    <input type="text" id="st-search-input" class="st-search-input st-default-search-input" />
+  </form>
+
+
+<script type="text/javascript">
+  (function(w,d,t,u,n,s,e){w['SwiftypeObject']=n;w[n]=w[n]||function(){
+    (w[n].q=w[n].q||[]).push(arguments);};s=d.createElement(t);
+    e=d.getElementsByTagName(t)[0];s.async=1;s.src=u;e.parentNode.insertBefore(s,e);
+  })(window,document,'script','//s.swiftypecdn.com/install/v2/st.js','_st');
+
+  _st('install', 'Nq1MdxGEF4xQgzakv9MC','2.0.0');
+</script>
+
+
+
+    </div>
+  
+</nav>
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div id="content" class="content">
+          
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                RaidNode源码阅读---RaidNode编码过程下篇编码操作(LocalRaidNode)
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            发表于
+            <time itemprop="dateCreated" datetime="2015-12-11T16:11:39+08:00" content="2015-12-11">
+              2015-12-11
+            </time>
+          </span>
+
+          
+            <span class="post-category" >
+              &nbsp; | &nbsp; 分类于
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Hadoop-0-20/" itemprop="url" rel="index">
+                    <span itemprop="name">Hadoop-0.20</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Hadoop-0-20/RaidNode/" itemprop="url" rel="index">
+                    <span itemprop="name">RaidNode</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Hadoop-0-20/RaidNode/源码阅读/" itemprop="url" rel="index">
+                    <span itemprop="name">源码阅读</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Hadoop-0-20/RaidNode/源码阅读/RaidNode源码阅读/" itemprop="url" rel="index">
+                    <span itemprop="name">RaidNode源码阅读</span>
+                  </a>
+                </span>
+
+                
+                
+
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                &nbsp; | &nbsp;
+                <a href="/raidFiles/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="raidFiles/" itemprop="commentsCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+
+        </div>
+      </header>
+    
+
+
+    <div class="post-body">
+
+      
+      
+
+      
+        <span itemprop="articleBody"><blockquote>
+<p>Hadoop版本:<a href="https://github.com/facebookarchive/hadoop-20" title="facebook hadoop" target="_blank" rel="external">hadoop-20-master</a></p>
+</blockquote>
+<p>LocalRaidNode编码操作通过raidFiles完成,函数原型如下:<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="annotation">@Override</span></span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">raidFiles</span><span class="params">(PolicyInfo info, List&lt;FileStatus&gt; paths)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">List&lt;EncodingCandidate&gt; lec = RaidNode.splitPaths(conf,</span><br><span class="line">    Codec.getCodec(info.getCodecId()), paths);</span><br><span class="line">doRaid(conf, info, lec);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>传入参数中<code>info</code>为policy文件中的一个policy,paths为该policy下可以Raid的路径列表(这里可能为文件或叶子目录),具体见上篇Raid文件的选取.<br>其中,splitPaths根据配置参数,将待Raid的文件列表转换成EncodingCandidate列表:<br><figure class="highlight groovy"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">for</span> (FileStatus <span class="string">s :</span> paths) &#123;</span><br><span class="line">  <span class="keyword">if</span> (codec.isDirRaid != s.isDir()) &#123;</span><br><span class="line">    <span class="keyword">continue</span>;</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="typename">long</span> numBlocks = <span class="number">0</span>L;</span><br><span class="line">  <span class="keyword">if</span> (codec.isDirRaid) &#123;</span><br><span class="line">    List&lt;FileStatus&gt; lfs = RaidNode.listDirectoryRaidFileStatus(</span><br><span class="line">        conf, srcFs, s.getPath());</span><br><span class="line">    <span class="keyword">if</span> (lfs == <span class="literal">null</span>) &#123;</span><br><span class="line">      <span class="keyword">continue</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">for</span> (FileStatus <span class="string">stat :</span> lfs) &#123;</span><br><span class="line">      numBlocks += RaidNode.numBlocks(stat);</span><br><span class="line">    &#125;</span><br><span class="line">  &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">    numBlocks = RaidNode.numBlocks(s);</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="typename">long</span> numStripes = RaidNode.numStripes(numBlocks, codec.stripeLength);</span><br><span class="line">  String encodingId = System.currentTimeMillis() + <span class="string">"."</span> + rand.nextLong();</span><br><span class="line">  <span class="keyword">for</span> (<span class="typename">long</span> startStripe = <span class="number">0</span>; startStripe &lt; numStripes;</span><br><span class="line">       startStripe += encodingUnit) &#123;</span><br><span class="line">    lec.add(<span class="keyword">new</span> EncodingCandidate(s, startStripe, encodingId, encodingUnit,</span><br><span class="line">        s.getModificationTime()));</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>对于路径和codec不匹配的,不予处理.然后统计每个path的区块数(path可能为文件或目录).<br>对于目录path,通过listDirectoryRaidFileStatus统计目录下所有的Blocks,简单的对目录下所有文件(目录下的目录不处理)对应的区块相加.<br>不过对于小于<code>hdfs.raid.min.filesize</code>(默认10KB)的文件不进行统计.<br>而对于文件path,则直接是该文件对应的Block数目.  </p>
+<p>有了path的Block数目,根据codec的stripeLength,便能得到该path对应的stripe数目<code>numStripes</code>.<br>然后,创建<code>numStripes/encodingUnit</code>个<code>EncodingCandidate</code>对象.这里<code>encodingUnit</code>为配置项<code>hdfs.raid.stripe.encoding</code>默认为1.<br>即一个EncodingCandidate对应一个stripe,例如对于(10,4)rs码来说,默认情况下,一个EncodingCandidate负责编码10个区块.</p>
+<p>从上面代码可以看出,对于待Riad列表来说,一个path对应一个encodingId,ID号为当前时间加上一个随机数,不管path下能够对应几个stripe.<br>如果path(文件或目录)对应Block数目过多,需多个EncodingCandidate进行处理,则这几个EncodingCandidate共享这一个encodingId,以进行辨识.<br>另外,从上代码可以看出,不管path下面的Block数目怎么少(最小2个Block),它至少对应一个EncodingCandidate.如对于(10,4)rs码,如果一个path<br>的Block只有4个,它也单独需要一个EncodingCandidate进行处理,剩下的6个Block在后面会看到将用0Block进行填充.</p>
+<p>这主要说明了文件Riad和目录Raid的含义,文件Raid编码独立单元即为文件,即使它再小也不能和其他小文件进行拼接一起编码.若文件对应Block很多,<br>则分别由不同的EncodingCandidate进行处理,一个EncodingCandidate可以处理的Block数依赖于stripeLength和encodingUnit,一个文件的<br>所有的EncodingCandidate共享一个encodingId.<br>目录Raid编码独立单元为目录,目录下面Block数目再小也不能和其他目录进行拼接一起编码,一个目录的所有EncodingCandidate共享一个encodingId.</p>
+<p>接着,由<code>doRaid(conf, info, lec);</code>对EncodingCandidate列表进行Raid操作.<br><figure class="highlight stata"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">for</span> (EncodingCandidate ec : paths) &#123;</span><br><span class="line">  doRaid(<span class="keyword">conf</span>, ec, destPref, codec, statistics,</span><br><span class="line">        RaidUtils.NULL_PROGRESSABLE, doSimulate,</span><br><span class="line">        targetRepl, metaRepl);</span><br><span class="line">  <span class="keyword">if</span> (<span class="keyword">count</span> % 1000 == 0) &#123;</span><br><span class="line">    <span class="keyword">LOG</span>.info(<span class="string">"RAID statistics "</span> + statistics.<span class="keyword">toString</span>());</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">count</span>++;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>对每一个EncodingCandidate一次执行<code>doRaid(conf, ec, destPref, codec, statistics,RaidUtils.NULL_PROGRESSABLE, doSimulate,
+        targetRepl, metaRepl);</code>.<br>这里<code>destPref</code>为配置的codec的校验文件存放路径<code>parity_dir</code>,<code>dosimulate</code>为policy中的属性<code>simulate</code>,默认为false.<br><code>targetRepl</code>为policy属性<code>targetReplication</code>,<code>metaRepl</code>为policy属性<code>metaReplication</code>.</p>
+<p>然后,在函数中,分别对目录Raid和文件Raid两种情况调用不同子函数:<br><figure class="highlight nimrod"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (codec.isDirRaid) &#123;</span><br><span class="line">    <span class="literal">result</span> = doDirRaid(conf, ec, destPath, codec, statistics, reporter,</span><br><span class="line">        doSimulate, targetRepl, metaRepl);</span><br><span class="line">&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">    <span class="literal">result</span> = doFileRaid(conf, ec, destPath, codec, statistics, reporter,</span><br><span class="line">        doSimulate, targetRepl, metaRepl);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>两个函数将ec管理的文件或目录下的所有文件编码至destPath中,输出路径为destPath/srcPath,并根据doSimulate更新源区块的备份数.  </p>
+<h2 id="doFileRaid">doFileRaid</h2><p>在doFileRaid中,首先检查path的区块是否大于2,这个之前其实已经检查过了:<br><figure class="highlight perl"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">BlockLocation[] locations = srcFs.getFileBlockLocations(<span class="keyword">stat</span>, <span class="number">0</span>, <span class="keyword">stat</span>.getLen());</span><br><span class="line"><span class="regexp">//</span> <span class="keyword">if</span> the file has fewer than <span class="number">2</span> blocks, then nothing to <span class="keyword">do</span></span><br><span class="line"><span class="keyword">if</span> (locations.<span class="keyword">length</span> &lt;= <span class="number">2</span>) &#123;</span><br><span class="line">  <span class="keyword">return</span> LOGRESULTS.NOACTION;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如果区块数满足要求,则生成校验文件,并根据<code>doSimulate</code>决定是否更正源文件的备份数,其中还有统计信息的更新,这里不分析:<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">boolean</span> parityGenerated = generateParityFile(conf, ec, targetRepl, reporter,</span><br><span class="line">    srcFs, destPath, codec, locations.length, stat.getReplication(),</span><br><span class="line">    metaRepl, stat.getBlockSize(), <span class="keyword">null</span>);</span><br><span class="line"><span class="keyword">if</span> (!parityGenerated) &#123;</span><br><span class="line">  <span class="keyword">return</span> LOGRESULTS.NOACTION;</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">if</span> (!doSimulate) &#123;</span><br><span class="line">  <span class="keyword">if</span> (srcFs.setReplication(p, (<span class="keyword">short</span>)targetRepl) == <span class="keyword">false</span>) &#123;</span><br><span class="line">    LOG.info(<span class="string">"Error in reducing replication of "</span> + p + <span class="string">" to "</span> + targetRepl);</span><br><span class="line">    statistics.remainingSize += diskSpace;</span><br><span class="line">    <span class="keyword">return</span> LOGRESULTS.FAILURE;</span><br><span class="line">  &#125;;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<h2 id="doDirRaid">doDirRaid</h2><p>doDirRaid同样的首先计算目录path下的区块数,判断是否大于2,不过因为是目录,需要统计目录下所有文件的区块总和:<br><figure class="highlight zephir"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">List</span>&lt;FileStatus&gt; lfs = RaidNode.listDirectoryRaidFileStatus(conf, srcFs, p);</span><br><span class="line"><span class="keyword">if</span> (lfs == <span class="keyword">null</span>) &#123;</span><br><span class="line">  <span class="keyword">return</span> LOGRESULTS.NOACTION;</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// add up the total number of blocks in the directory</span></span><br><span class="line"><span class="keyword">long</span> blockNum = DirectoryStripeReader.getBlockNum(lfs);</span><br><span class="line"><span class="comment">// if the directory has fewer than 2 blocks, then nothing to do</span></span><br><span class="line"><span class="keyword">if</span> (blockNum &lt;= <span class="number">2</span>) &#123;</span><br><span class="line">  <span class="keyword">return</span> LOGRESULTS.NOACTION;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>同样的区块数满足要求,生成校验文件,并根据<code>doSimulate</code>是否更新目录下所有源文件的备份数,更新统计信息:<br><figure class="highlight groovy"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">try</span> &#123;</span><br><span class="line">  parityGenerated = generateParityFile(conf, ec, targetRepl, reporter, srcFs,</span><br><span class="line">      destPath, codec, blockNum, srcRepl, metaRepl, parityBlockSize, lfs);</span><br><span class="line">&#125; <span class="keyword">catch</span> (InterruptedException e) &#123;</span><br><span class="line">  <span class="keyword">throw</span> <span class="keyword">new</span> IOException (e);</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">if</span> (!parityGenerated) </span><br><span class="line">  <span class="keyword">return</span> LOGRESULTS.NOACTION;</span><br><span class="line"><span class="keyword">if</span> (!doSimulate) &#123;</span><br><span class="line">  <span class="keyword">for</span> (FileStatus <span class="string">fsStat:</span> lfs) &#123;</span><br><span class="line">    <span class="keyword">if</span> (srcFs.setReplication(fsStat.getPath(), (<span class="typename">short</span>)targetRepl) == <span class="literal">false</span>) &#123;</span><br><span class="line">      LOG.info(<span class="string">"Error in reducing replication of "</span> +</span><br><span class="line">        fsStat.getPath() + <span class="string">" to "</span> + targetRepl);</span><br><span class="line">      statistics.remainingSize += diskSpace;</span><br><span class="line">      <span class="keyword">return</span> LOGRESULTS.FAILURE;</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>由上可见,<code>generateParityFile</code>文件Raid和目录Raid共用,区别在于最后一个参数,文件Raid为null,而目录Raid为目录下的文件列表.<br>其中<code>locations</code>为原path(文件或目录)所有的Blocks,而不是参数ec对应的Blocks.</p>
+<h2 id="generateParityFile">generateParityFile</h2><p>首先,获取编码输出路径,<code>generateParityFile</code>的destPath输入参数为codec配置的<code>parity_dir</code>参数,而对于一个<code>EncodingCandidate</code>来说,<br>它的输出路径通过<code>getOriginalParityFile</code>获得:<br><figure class="highlight dns"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">FileStatus stat = ec.srcStat<span class="comment">;</span></span><br><span class="line">Path inpath = stat.getPath()<span class="comment">;</span></span><br><span class="line">Path outpath =  getOriginalParityFile(destPathPrefix, inpath)<span class="comment">;</span></span><br></pre></td></tr></table></figure></p>
+<p><code>inpath</code>为null或其父目录为null,则输出路径直接为<code>parity_dir</code>,否则输出路径为<code>parity_dir/inpath</code>,这个从编码测试结果可以验证.</p>
+<p>然后,要判断是否已经编码过了,即输出路径是否存在校验文件,且源文件备份数已做出相应修改:<br><figure class="highlight autoit"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">FileStatus stmp = outFs.getFileStatus(outpath)<span class="comment">;</span></span><br><span class="line"><span class="keyword">if</span> (stmp.getModificationTime() == stat.getModificationTime() &amp;&amp;</span><br><span class="line">  srcRepl == targetRepl) &#123;</span><br><span class="line"><span class="built_in">LOG</span>.info(<span class="string">"Parity file for "</span> + inpath + <span class="string">"("</span> + blockNum +</span><br><span class="line">    <span class="string">") is "</span> + outpath + <span class="string">" already upto-date and "</span> +</span><br><span class="line">    <span class="string">"file is at target replication . Nothing more to do."</span>)<span class="comment">;</span></span><br><span class="line"><span class="keyword">return</span> <span class="literal">false</span><span class="comment">;</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>没有编码过才能继续进行,创建Encoder对象,并验证ChecksumStore和StripeStore是否符合要求:<br><figure class="highlight dns"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">Encoder encoder = new Encoder(conf, codec)<span class="comment">;</span></span><br><span class="line">encoder.verifyStore()<span class="comment">;</span></span><br></pre></td></tr></table></figure></p>
+<p>Encoder构造见后面.编码器构造完成后,根据目录Raid或文件Raid执行不同流程:<br><figure class="highlight armasm"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="label">if</span> (codec.isDirRaid) &#123;</span><br><span class="line">  long numStripes = (<span class="keyword">blockNum </span>% codec.<span class="keyword">stripeLength </span>== <span class="number">0</span>) ?</span><br><span class="line">      (<span class="keyword">blockNum </span>/ codec.<span class="keyword">stripeLength) </span>:</span><br><span class="line">      ((<span class="keyword">blockNum </span>/ codec.<span class="keyword">stripeLength) </span>+ <span class="number">1</span>)<span class="comment">;</span></span><br><span class="line"></span><br><span class="line">  sReader = new DirectoryStripeReader(conf, codec, inFs,</span><br><span class="line">      ec.startStripe, ec.encodingUnit, inpath, lfs)<span class="comment">;</span></span><br><span class="line">  parityGenerated = encoder.encodeFile(conf, inFs, outFs, outpath,</span><br><span class="line">      (short)metaRepl, numStripes, <span class="keyword">blockSize, </span>reporter, sReader, ec)<span class="comment">;</span></span><br><span class="line">&#125; <span class="preprocessor">else</span> &#123;</span><br><span class="line">  FileStatus srcStat = inFs.getFileStatus(inpath)<span class="comment">;</span></span><br><span class="line">  long srcSize = srcStat.getLen()<span class="comment">;</span></span><br><span class="line">  long numBlocks = (srcSize % <span class="keyword">blockSize </span>== <span class="number">0</span>) ?</span><br><span class="line">                    (srcSize / <span class="keyword">blockSize) </span>:</span><br><span class="line">                    ((srcSize / <span class="keyword">blockSize) </span>+ <span class="number">1</span>)<span class="comment">;</span></span><br><span class="line">  long numStripes = (numBlocks % codec.<span class="keyword">stripeLength </span>== <span class="number">0</span>) ?</span><br><span class="line">                    (numBlocks / codec.<span class="keyword">stripeLength) </span>:</span><br><span class="line">                    ((numBlocks / codec.<span class="keyword">stripeLength) </span>+ <span class="number">1</span>)<span class="comment">;</span></span><br><span class="line">  sReader = new FileStripeReader(conf, <span class="keyword">blockSize,</span><br><span class="line"></span>      codec, inFs, ec.startStripe, ec.encodingUnit, inpath, srcSize)<span class="comment">;</span></span><br><span class="line">  parityGenerated = encoder.encodeFile(conf, inFs, outFs, outpath,</span><br><span class="line">      (short)metaRepl, numStripes, <span class="keyword">blockSize, </span>reporter, sReader, ec)<span class="comment">;</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>两者都先计算该EncodingCandidate对应原path的Blocks数目,用于在子函数中判断是否完成该path的所有Raid操作.<br>然后对于目录Raid创建DirectoryStripeReader,文件Raid创建FileStripeReader,一个EncodingCandidate对应一个StripeReader.<br>最后通过刚创建的Encoder进行编码.</p>
+<h2 id="文件Raid创建FileStripeReader">文件Raid创建FileStripeReader</h2><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">super(conf, codec, fs, stripeStartIdx);</span><br><span class="line"><span class="keyword">this</span>.blockSize = blockSize;</span><br><span class="line"><span class="keyword">this</span>.fs = fs;</span><br><span class="line"><span class="keyword">this</span>.srcFile = srcFile;</span><br><span class="line"><span class="keyword">this</span>.srcSize = srcSize;</span><br><span class="line"><span class="keyword">long</span> numBlocks = (<span class="keyword">long</span>) Math.<span class="built_in">ceil</span>(srcSize * <span class="number">1.0</span> / blockSize); </span><br><span class="line"><span class="keyword">long</span> totalStripe = RaidNode.numStripes(numBlocks, codec.stripeLength);</span><br><span class="line"><span class="keyword">if</span> (encodingUnit &lt; <span class="number">0</span>) &#123;</span><br><span class="line">  encodingUnit = totalStripe - stripeStartIdx;</span><br><span class="line">&#125;</span><br><span class="line">stripeEndIdx = Math.min(totalStripe, stripeStartIdx + encodingUnit);</span><br></pre></td></tr></table></figure>
+<p>调用父类构造函数主要初始化开始stripeID <code>stripeStartIdx</code>,和当前stripeID <code>currentStripeIdx</code>.<br><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">this</span>.codec = codec;</span><br><span class="line"><span class="keyword">this</span>.conf = conf;</span><br><span class="line"><span class="keyword">this</span>.fs = fs;</span><br><span class="line"><span class="keyword">this</span>.stripeStartIdx = stripeStartIdx;</span><br><span class="line"><span class="keyword">this</span>.currentStripeIdx = stripeStartIdx;</span><br><span class="line"><span class="keyword">this</span>.bufferSize = conf.getInt(<span class="string">"io.file.buffer.size"</span>, <span class="number">64</span> * <span class="number">1024</span>);</span><br></pre></td></tr></table></figure></p>
+<p>计算了文件的区块数目,根据开始stripeID,编码单元encodingUnit和区块数目计算了该StripeReader对应的结束stripeID <code>stripeEndIdx</code>.</p>
+<h2 id="目录Raid创建DirectoryStripeReader">目录Raid创建DirectoryStripeReader</h2><figure class="highlight processing"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">super</span>(conf, codec, fs, stripeStartIdx);</span><br><span class="line"><span class="keyword">if</span> (lfs == <span class="keyword">null</span>) &#123;</span><br><span class="line">  <span class="keyword">throw</span> <span class="keyword">new</span> IOException(<span class="string">"Couldn't get files under directory "</span> + srcDir);</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">this</span>.parityBlockSize = getParityBlockSize(conf, lfs);</span><br><span class="line"><span class="keyword">this</span>.srcDir = srcDir;</span><br><span class="line"><span class="keyword">this</span>.lfs = lfs;</span><br><span class="line"><span class="keyword">this</span>.stripeBlocks = <span class="keyword">new</span> ArrayList&lt;BlockInfo&gt;();</span><br><span class="line"><span class="keyword">long</span> blockNum = <span class="number">0</span>L;</span><br><span class="line"><span class="keyword">for</span> (<span class="built_in">int</span> fid = <span class="number">0</span>; fid &lt; lfs.<span class="built_in">size</span>(); fid++) &#123;</span><br><span class="line">  FileStatus fsStat = lfs.<span class="built_in">get</span>(fid);</span><br><span class="line">  <span class="keyword">long</span> numBlock = RaidNode.getNumBlocks(fsStat);</span><br><span class="line">  blockNum += numBlock;</span><br><span class="line">  <span class="keyword">for</span> (<span class="built_in">int</span> bid = <span class="number">0</span>; bid &lt; numBlock; bid++) &#123;</span><br><span class="line">    stripeBlocks.<span class="built_in">add</span>(<span class="keyword">new</span> BlockInfo(fid, bid));</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">this</span>.numBlocks = blockNum; </span><br><span class="line"><span class="keyword">long</span> totalStripe = RaidNode.numStripes(blockNum, codec.stripeLength);</span><br><span class="line"><span class="keyword">if</span> (stripeStartIdx &gt;= totalStripe) &#123;</span><br><span class="line">  <span class="keyword">throw</span> <span class="keyword">new</span> IOException(<span class="string">"stripe start idx "</span> + stripeStartIdx + </span><br><span class="line">      <span class="string">" is equal or larger than total stripe number "</span> + totalStripe);</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">if</span> (encodingUnit &lt; <span class="number">0</span>) &#123;</span><br><span class="line">  encodingUnit = totalStripe;</span><br><span class="line">&#125;</span><br><span class="line">stripeEndIdx = Math.<span class="built_in">min</span>(totalStripe, stripeStartIdx + encodingUnit);</span><br></pre></td></tr></table></figure>
+<p>同样的先跟据传入的参数调用父类构造函数初始化<code>stripeStartIdx</code>和<code>currentStripeIdx</code>.<br>目录Raid下可能有多个文件,与文件Raid不同,需要遍历目录下所有文件,取最大的Block大小作为校验文件的Block大小.<br>相比较FileStripeReader,维护了目录下所有文件状态列表<code>lfs</code>,并记录了目录下所有的文件区块和文件索引对应的关系列表<code>stripeBlocks</code>.<br><code>stripeBlocks</code>中元素数量为目录下所有区块数量,用于在之后构建stripe的输入流时寻找对应的区块.每个元素为BlockInfo类型的对象,维护了一个区块<br>和其所属文件的对应关系.例如,目录下有两个文件,每个文件5个Block,则stripeBlocks中维护了如下的映射关系:<br>(0,0),(0,1),(0,2),(0,3),(0,4),(1,0),(1,1),(1,2),(1,3),(1,4)<br>最后当然也计算<code>stripeEndIdx</code>.</p>
+<h2 id="encodeFile">encodeFile</h2><p>Encoder的<code>encodeFile</code>也是由目录Raid和文件Raid共用,完成一个StripeReader(EncodingCandidate)的编码过程.<br>以下为该方法的注释:<br><figure class="highlight nimrod"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">/**</span><br><span class="line">* <span class="type">The</span> <span class="keyword">interface</span> to use to generate a parity file.</span><br><span class="line">* <span class="type">This</span> <span class="keyword">method</span> can be called multiple times <span class="keyword">with</span> the same <span class="type">Encoder</span> <span class="keyword">object</span>,</span><br><span class="line">* thus allowing reuse <span class="keyword">of</span> the buffers allocated by the <span class="type">Encoder</span> <span class="keyword">object</span>.</span><br><span class="line">*</span><br></pre></td></tr></table></figure></p>
+<p>意思是说,对于一个独立的编码单元(文件Raid的文件或目录Raid的一个目录,这里记为一个路径path)来说,如果它对应多个EncodingCandidate,<br>需多次执行encodeFile,该path就存在三个Raid状态:<br><figure class="highlight vbnet"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">/**</span><br><span class="line"> * <span class="keyword">To</span> support retriable encoding, we use three checkpoints <span class="keyword">to</span> represent</span><br><span class="line"> * the last success state.</span><br><span class="line"> * <span class="number">1.</span> isEncoded: <span class="keyword">Set</span> <span class="keyword">to</span> <span class="literal">true</span> <span class="keyword">when</span> <span class="keyword">partial</span> partiy <span class="keyword">is</span> generated</span><br><span class="line"> * <span class="number">2.</span> isRenamed: <span class="keyword">Set</span> <span class="keyword">to</span> <span class="literal">true</span> <span class="keyword">when</span> all <span class="keyword">partial</span> parity are generated <span class="keyword">and</span></span><br><span class="line"> *               tmpPartialParityDir <span class="keyword">is</span> moved <span class="keyword">to</span> finalPartialParityDir</span><br><span class="line"> * <span class="number">3.</span> isConcated: <span class="keyword">Set</span> <span class="keyword">to</span> <span class="literal">true</span> <span class="keyword">when</span> <span class="keyword">partial</span> parities are concatenated <span class="keyword">into</span></span><br><span class="line"> *                a final parity.</span><br><span class="line"> */</span><br></pre></td></tr></table></figure></p>
+<p>记录Raid过程中的状态,这样允许在某一个EncodingCandidate编码失败时进行重试.  </p>
+<p>函数中存在以下局部变量:<br><figure class="highlight gherkin"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">long expectedParityFileSize = numStripes <span class="keyword">*</span> blockSize <span class="keyword">*</span> codec.parityLength;</span><br><span class="line">long expectedPartialParityBlocks = (sReader.stripeEndIdx - sReader.stripeStartIdx) <span class="keyword">*</span> codec.parityLength;</span><br><span class="line">long expectedPartialParityFileSize = expectedPartialParityBlocks <span class="keyword">*</span> blockSize;</span><br></pre></td></tr></table></figure></p>
+<p>其中<code>expectedParityFileSize</code>记录path所期望的校验文件大小,<code>expectedPartialParityBlocks</code>为当前EncodingCandidate所期望的区块数目,<br>称为局部校验区块数,<code>expectedPartialParityFileSize</code>为当前EncodingCandidate期望的校验文件大小,为局部校验文件.<br>说明:<br>    对于文件或目录来说,其所属的Block可能需要多个EncodingCandidate(StripeReader)进行处理,因此才有上面的变量.第一个变量用于判断是否完成<br>    了所有的编码,而后面的两个分别对应该次EncodingCandidate编码所应该产生的区块大小和文件大小.<br>    另外,之后所说的path都对应一个文件或叶子目录,即需要编码的单元.</p>
+<p>编码过程有以下临时目录:<br><figure class="highlight mathematica"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">String</span> jobID = RaidNode.getJobID(jobConf);</span><br><span class="line"><span class="keyword">Path</span> tmpDir = new <span class="keyword">Path</span>(codec.tmpParityDirectory, jobID);</span><br><span class="line"><span class="keyword">String</span> partialParityName = <span class="string">"partial_"</span> + MD5Hash.digest(srcFile.toUri().getPath()) +</span><br><span class="line">    <span class="string">"_"</span> + ec.srcStat.getModificationTime() + <span class="string">"_"</span> + ec.encodingUnit + <span class="string">"_"</span> +</span><br><span class="line">    ec.encodingId;</span><br><span class="line"><span class="keyword">Path</span> partialParityDir = new <span class="keyword">Path</span>(tmpDir, partialParityName);</span><br><span class="line"><span class="keyword">Path</span> tmpPartialParityDir = new <span class="keyword">Path</span>(partialParityDir, <span class="string">"tmp"</span>);</span><br><span class="line"><span class="keyword">Path</span> finalPartialParityDir = new <span class="keyword">Path</span>(partialParityDir, <span class="string">"final"</span>);</span><br></pre></td></tr></table></figure></p>
+<p><code>jobID</code>通过<code>mapred.job.id</code>设置,若不存在,则为<code>localRaid</code>+<code>date</code>(当前时间,ms).<br>因此,对于一个path来说,其临时编码路径为:<code>/tmp/${parity_dir}/jobID</code>.<br>临时路径下存在一个局部校验路径:<code>partialParityDir</code>,而该目录下又存在<code>tmp</code>和<code>final</code>两个目录.  </p>
+<p>当前EncodingCandidate还没编码完成时,在<code>tmp</code>目录下创建属于该EncodingCandidate的临时文件,进行局部编码:<br><figure class="highlight lasso"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (<span class="subst">!</span>ec<span class="built_in">.</span>isConcated) &#123;</span><br><span class="line">  <span class="keyword">if</span> (<span class="subst">!</span>ec<span class="built_in">.</span>isEncoded) &#123;</span><br><span class="line">    <span class="keyword">if</span> (<span class="subst">!</span>parityFs<span class="built_in">.</span>mkdirs(tmpPartialParityDir)) &#123;</span><br><span class="line">      throw <span class="literal">new</span> IOException(<span class="string">"Could not create "</span> + tmpPartialParityDir);</span><br><span class="line">    &#125;</span><br><span class="line">    Path partialTmpParity = <span class="literal">new</span> Path(tmpPartialParityDir,</span><br><span class="line">      Long<span class="built_in">.</span>toString(sReader<span class="built_in">.</span>getCurrentStripeIdx()));</span><br><span class="line">    <span class="keyword">LOG</span><span class="built_in">.</span>info(<span class="string">"Encoding partial parity "</span> + partialTmpParity);</span><br><span class="line">    <span class="keyword">if</span> (<span class="subst">!</span>encodeTmpParityFile(jobConf, sReader, dfs,</span><br><span class="line">                       partialTmpParity, parityFile, tmpRepl, blockSize,</span><br><span class="line">                       expectedPartialParityBlocks, expectedPartialParityFileSize,</span><br><span class="line">                       reporter)) &#123;</span><br><span class="line">      <span class="keyword">return</span> <span class="literal">false</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">LOG</span><span class="built_in">.</span>info(<span class="string">"Encoded partial parity "</span> + partialTmpParity);</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="attribute">...</span></span><br></pre></td></tr></table></figure></p>
+<p>一个EncodingCandidate对应的临时校验文件名与stripeID对应.<br>通过encodeTmpParityFile进行局部校验文件的编码操作,完成一个EncodingCandidate的编码过程.<br>输入参数partialTmpParity为该EncodingCandidate对应的临时校验文件,也即该函数的编码结果输出文件.<br>expectedPartialParityBlocks为parityLength*encodingUnit个Blocks.  </p>
+<p>局部校验文件编码成功,则当前EncodingCandidate状态<code>isEncoded</code>为true,然后等待当前EncodingCandidate所属文件或目录的其他EncodingCandidate<br>局部编码完成,都编码完成后将tmp目录重命名为final目录,置<code>isRenamed</code>为true.<br><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line">ec.isEncoded = <span class="literal">true</span>;</span><br><span class="line"><span class="keyword">long</span> expectedNum = (<span class="keyword">long</span>) Math.<span class="built_in">ceil</span>(numStripes * <span class="number">1.0</span> / ec.encodingUnit);</span><br><span class="line"><span class="keyword">if</span> (!ec.isRenamed) &#123;</span><br><span class="line">    <span class="keyword">if</span> (!finishAllPartialEncoding(parityFs, tmpPartialParityDir, expectedNum)) &#123;</span><br><span class="line">      <span class="keyword">return</span> <span class="literal">false</span>;</span><br><span class="line">    &#125;</span><br><span class="line">InjectionHandler.processEventIO(</span><br><span class="line">    InjectionEvent.RAID_ENCODING_FAILURE_RENAME_FILE);</span><br><span class="line"><span class="comment">// Move the directory to final</span></span><br><span class="line"><span class="keyword">if</span> (!dfs.rename(tmpPartialParityDir, finalPartialParityDir)) &#123;</span><br><span class="line">  LOG.info(<span class="string">"Fail to rename "</span> + tmpPartialParityDir + <span class="string">" to "</span> +</span><br><span class="line">      finalPartialParityDir);</span><br><span class="line">  <span class="keyword">return</span> <span class="literal">false</span>;</span><br><span class="line">&#125;</span><br><span class="line">LOG.info(<span class="string">"Renamed "</span> + tmpPartialParityDir + <span class="string">" to "</span> +</span><br><span class="line">         finalPartialParityDir);</span><br><span class="line">ec.isRenamed = <span class="literal">true</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>状态还不是isRenamed,即表示还没有完成所有的局部编码,通过<code>finishAllPartialEncoding</code>判断并等待其他局部编码完成.<br>该函数中最多判断<code>raid.encoder.retry.count.partial.encoding</code>(默认3)次,看是否其他的局部编码完成,最后一次休眠等待.</p>
+<p>重命名后,说明所有的局部编码完成,此时tmp目录重命名为final,final目录下含有所需的所有局部校验文件.<br>然后需要判断final目录下的文件是否正确(文件名和encodingUnit,文件大小和期望大小),正确的话列出所有文件,然后将除<br>第一个文件外的其他所有文件依次追加到第一个文件末尾(第一个文件startstripe最小),完成concate的过程,并置<code>isConcated</code>为true:<br><figure class="highlight processing"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line">FileStatus[] stats = parityFs.listStatus(finalPartialParityDir);</span><br><span class="line"><span class="comment">// Verify partial parities are correct</span></span><br><span class="line">Vector&lt;Path&gt; partialPaths = getPartialPaths((<span class="built_in">int</span>)ec.encodingUnit,</span><br><span class="line">      (<span class="built_in">int</span>)expectedNum, stats, codec, numStripes);</span><br><span class="line">finalTmpParity = partialPaths.<span class="built_in">get</span>(<span class="number">0</span>);</span><br><span class="line">InjectionHandler.processEventIO(</span><br><span class="line">  InjectionEvent.RAID_ENCODING_FAILURE_CONCAT_FILE);</span><br><span class="line"><span class="keyword">if</span> (partialPaths.<span class="built_in">size</span>() &gt; <span class="number">1</span>) &#123;</span><br><span class="line">    Path[] restPaths = partialPaths.subList(<span class="number">1</span>,</span><br><span class="line">        partialPaths.<span class="built_in">size</span>()).toArray(<span class="keyword">new</span> Path[partialPaths.<span class="built_in">size</span>() - <span class="number">1</span>]);</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">      <span class="comment">// Concat requires source and target files are in the same directory</span></span><br><span class="line">      dfs.<span class="built_in">concat</span>(finalTmpParity, restPaths, <span class="keyword">true</span>);</span><br><span class="line">      LOG.info(<span class="string">"Concated "</span> + partialPaths.<span class="built_in">size</span>() + <span class="string">" files into "</span> + finalTmpParity);</span><br><span class="line">    </span><br><span class="line">    &#125; <span class="keyword">catch</span> (IOException ioe) &#123;</span><br><span class="line">      <span class="comment">// Maybe other tasks already finish concating.</span></span><br><span class="line">      LOG.info(<span class="string">"Fail to concat "</span> + partialPaths.<span class="built_in">size</span>() +</span><br><span class="line">          <span class="string">" files into "</span> + finalTmpParity, ioe);</span><br><span class="line">      <span class="keyword">throw</span> ioe;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line">ec.isConcated = <span class="keyword">true</span>;</span><br></pre></td></tr></table></figure></p>
+<p>至此,原path(一个文件或目录)编码全部完成,编码结果存在一个文件中,文件位于临时目录下.<br>接着便对最终的编码文件作合理性判断(区块数和大小),若符合要求,则重命名为最终的编码文件.<br>相应的,若支持StripeStore,则还需存储stripes<br><figure class="highlight actionscript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (dfs.exists(parityFile))&#123;</span><br><span class="line">  dfs.<span class="keyword">delete</span>(parityFile, <span class="literal">false</span>);</span><br><span class="line">&#125;</span><br><span class="line">dfs.mkdirs(parityFile.getParent());</span><br><span class="line"><span class="keyword">if</span> (!dfs.rename(finalTmpParity, parityFile)) &#123;</span><br><span class="line">  String msg = <span class="string">"Unable to rename file "</span> + finalTmpParity + <span class="string">" to "</span> + parityFile;</span><br><span class="line">  <span class="keyword">throw</span> <span class="keyword">new</span> IOException (msg);</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">if</span> (stripeStore != <span class="literal">null</span>) &#123;</span><br><span class="line">  <span class="keyword">this</span>.writeToStripeStore(ec.srcStripes, dfs, fs, srcFile, parityFs, parityFile, expectedParityFileSize, reporter,finalTmpParity);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p><code>writeToStripeStore</code>中通过CheckSumStore的<code>putStripe</code>方法,将Stripe信息存放至Encoder的ChecksumStore中并在指定的目录创建相应的文件以及内容.</p>
+<h2 id="encodeTmpParityFile">encodeTmpParityFile</h2><p>encodeTmpParityFile编码局部校验文件,并不直接使用传进来的局部校验文件作为编码输出文件,而是另外创建了一个临时文件:<br><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">String jobID = RaidNode.getJobID(jobConf);</span><br><span class="line">Path tmpDir = <span class="keyword">new</span> Path(codec.tmpParityDirectory, jobID);</span><br><span class="line"><span class="keyword">if</span> (!parityFs.mkdirs(tmpDir)) &#123;</span><br><span class="line">  <span class="keyword">throw</span> <span class="keyword">new</span> IOException(<span class="string">"Could not create tmp dir "</span> + tmpDir);</span><br><span class="line">&#125;</span><br><span class="line">Path parityTmp = <span class="keyword">new</span> Path(tmpDir, parityFile.getName() + rand.nextLong());</span><br><span class="line">FSDataOutputStream out = parityFs.create(parityTmp,<span class="literal">true</span>,conf.getInt(<span class="string">"io.file.buffer.size"</span>, <span class="number">64</span> * <span class="number">1024</span>),tmpRepl,blockSize);</span><br></pre></td></tr></table></figure></p>
+<p>可见临时文件的目录为:<code>/tmp/${parity_dir}/jobID</code>,文件名为局部校验文件名加一个随机数,以这个临时文件作为编码结果输出.</p>
+<p>如果支持ChecksumStore,则需创建expectedPartialParityBlocks个CRC32对象,每一个Block对应一个,存储区块的校验和.<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">CRC32[] crcOuts = <span class="keyword">null</span>;</span><br><span class="line"><span class="keyword">if</span> (checksumStore != <span class="keyword">null</span>) &#123;</span><br><span class="line">    crcOuts = <span class="keyword">new</span> CRC32[(<span class="keyword">int</span>)expectedPartialParityBlocks];</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>然后通过<code>encodeFileToStream(sReader, blockSize, out, crcOuts, reporter);</code>进行编码,编码结果写入out即临时文件中,支持校验和的话,<br>同时计算parity数据校验和存入crcOuts中.</p>
+<p>如果一切正常,支持校验和的话,将得到的校验和存入ChecksumStore中,并创建配置的目录下的相应文件:<br><figure class="highlight actionscript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (checksumStore != <span class="literal">null</span>) &#123;</span><br><span class="line"><span class="keyword">this</span>.writeToChecksumStore((DistributedFileSystem)parityFs, crcOuts, parityTmp, expectedPartialParityFileSize, reporter);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p><code>writeToChecksumStore</code>中对每一个区块和对应校验和写到checksumstore中,<code>putIfAbsentChecksum</code>还会通过<code>putIfAbsent</code>建相应的文件<br><figure class="highlight gradle"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line">LocatedBlocks lbks = dfs.getLocatedBlocks(parityTmp, <span class="number">0</span>L,</span><br><span class="line">    expectedParityFileSize);</span><br><span class="line"><span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; crcOuts.length; i++) &#123;</span><br><span class="line">  <span class="keyword">this</span>.checksumStore.putIfAbsentChecksum(lbks.get(i).getBlock(), </span><br><span class="line">      crcOuts[i].getValue());</span><br><span class="line">  reporter.progress();</span><br><span class="line">&#125;</span><br><span class="line">@Override</span><br><span class="line"><span class="keyword">public</span> <span class="keyword">Long</span> putIfAbsent(Block blk, <span class="keyword">Long</span> newChecksum) <span class="keyword">throws</span> IOException &#123;</span><br><span class="line">    <span class="keyword">Long</span> oldChecksum = store.putIfAbsent(blk.toString(), newChecksum);</span><br><span class="line">    <span class="keyword">if</span> (oldChecksum == <span class="keyword">null</span>) &#123;</span><br><span class="line">      LOG.info(<span class="string">"Put "</span> + blk + <span class="string">" -&gt; "</span> + newChecksum);</span><br><span class="line">      <span class="keyword">File</span> newFile = getFile(blk, newChecksum);</span><br><span class="line">      newFile.createNewFile();</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> oldChecksum;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>最后将临时文件重命名为局部校验文件,完成局部校验的编码过程.<br><figure class="highlight autoit"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (!parityFs.rename(parityTmp, partialTmpParity)) &#123;</span><br><span class="line">    <span class="built_in">LOG</span>.warn(<span class="string">"Fail to rename file "</span> + parityTmp + <span class="string">" to "</span> + partialTmpParity)<span class="comment">;</span></span><br><span class="line">    <span class="keyword">return</span> <span class="literal">false</span><span class="comment">;</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<h2 id="encodeFileToStream">encodeFileToStream</h2><p><code>encodeFileToStream</code>完成一个StripeReader的编码,编码结果放在临时文件中(非上述tmp目录),根据需要计算校验文件的校验和,函数如下:<br><figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">encodeFileToStream</span>(<span class="params">StripeReader sReader,<span class="keyword">long</span> blockSize, FSDataOutputStream <span class="keyword">out</span>, CRC32[] crcOuts,Progressable reporter</span>)</span></span><br></pre></td></tr></table></figure></p>
+<p>在<code>encodeFileToStream</code>中,首先创建parityLength个输出流,需要将stripeLength个输入流编码成parityLength个输出流.<br>parityLength个输出流中,只有一个是输入参数out,也就是上面的临时文件流,其他的都是临时文件:<br><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">OutputStream[] tmpOuts = <span class="keyword">new</span> OutputStream[codec.parityLength];</span><br><span class="line"><span class="comment">// One parity block can be written directly to out, rest to local files.</span></span><br><span class="line">tmpOuts[<span class="number">0</span>] = out;</span><br><span class="line">File[] tmpFiles = <span class="keyword">new</span> File[codec.parityLength - <span class="number">1</span>];</span><br><span class="line"><span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; codec.parityLength - <span class="number">1</span>; i++) &#123;</span><br><span class="line">  tmpFiles[i] = File.createTempFile(<span class="string">"parity"</span>, <span class="string">"_"</span> + i);</span><br><span class="line">  LOG.info(<span class="string">"Created tmp file "</span> + tmpFiles[i]);</span><br><span class="line">  tmpFiles[i].deleteOnExit();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>接着便是对该StripReader所管理的stripes(stripe数取决于encodingUnit,见上)进行编码,如果当前StripeReader还有stripe未处理,则通过StripeReader<br>取出下一个未处理的stripe:<br><figure class="highlight armasm"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="label">while</span> (sReader.hasNext()) &#123;</span><br><span class="line">    reporter.progress()<span class="comment">;</span></span><br><span class="line">    <span class="keyword">StripeInputInfo </span><span class="keyword">stripeInputInfo </span>= null<span class="comment">;</span></span><br><span class="line">    InputStream[] <span class="keyword">blocks </span>= null<span class="comment">;</span></span><br><span class="line">    // Create input <span class="keyword">streams </span>for <span class="keyword">blocks </span>in the <span class="keyword">stripe.</span><br><span class="line"></span>    long currentStripeIdx = sReader.getCurrentStripeIdx()<span class="comment">;</span></span><br><span class="line">    <span class="keyword">stripeInputInfo </span>= sReader.getNextStripeInputs()<span class="comment">;</span></span><br></pre></td></tr></table></figure></p>
+<p>一个StripeInputInfo包含了一个stripe的信息,成员如下:<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="keyword">final</span> InputStream[] inputs;</span><br><span class="line"><span class="keyword">private</span> <span class="keyword">final</span> Path[] srcPaths;</span><br><span class="line"><span class="keyword">private</span> <span class="keyword">final</span> <span class="keyword">long</span>[] offSets;</span><br></pre></td></tr></table></figure></p>
+<p>即包括了stripeLength个输入流(文件Raid中为文件对应的流和<code>ZeroInputStream</code>,目录Raid中可能多个文件输入流和若干<code>ZeroInputStream</code>),<br>每个输入流对应的源文件和在源文件中的偏移量.  </p>
+<p><code>getNextStripeInputs</code>即根据StripeReader(文件或目录)返回下一个未Raid的StripeInputInfo:<br><figure class="highlight armasm"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="label">public</span> <span class="keyword">StripeInputInfo </span>getNextStripeInputs() throws IOException &#123;</span><br><span class="line">    <span class="keyword">StripeInputInfo </span><span class="keyword">stripeInputInfo </span>= getStripeInputs(currentStripeIdx)<span class="comment">;</span></span><br><span class="line">    currentStripeIdx ++<span class="comment">;</span></span><br><span class="line">    return <span class="keyword">stripeInputInfo;</span><br><span class="line"></span>&#125;</span><br></pre></td></tr></table></figure></p>
+<p><code>getStripeInputs</code>为抽象方法,对应FileStripeReader和DirectoryStripeReader有相应实现.  </p>
+<h3 id="FileStripeReader获取下一个StripeInputInfo">FileStripeReader获取下一个StripeInputInfo</h3><p>对应于上面创建的FileStripeReader,即文件Raid.<br><figure class="highlight armasm"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="label">long</span> <span class="keyword">stripeStartOffset </span>= <span class="keyword">stripeIdx </span>* codec.<span class="keyword">stripeLength </span>* <span class="keyword">blockSize;</span><br><span class="line"></span><span class="label">for</span> (int i = <span class="number">0</span><span class="comment">; i &lt; codec.stripeLength; i++) &#123;</span></span><br><span class="line">    long seekOffset = <span class="keyword">stripeStartOffset </span>+ i * <span class="keyword">blockSize;</span><br><span class="line"></span>    <span class="preprocessor">if</span> (seekOffset &lt; srcSize) &#123;</span><br><span class="line">      FSDataInputStream in = fs.open(srcFile, <span class="keyword">bufferSize);</span><br><span class="line"></span>      in.seek(seekOffset)<span class="comment">;</span></span><br><span class="line">      LOG.info(<span class="string">"Opening stream at "</span> + srcFile + <span class="string">":"</span> + seekOffset)<span class="comment">;</span></span><br><span class="line">      <span class="keyword">blocks[i] </span>= in<span class="comment">;</span></span><br><span class="line">      srcPaths[i] = srcFile<span class="comment">;</span></span><br><span class="line">      offsets[i] = seekOffset<span class="comment">;</span></span><br><span class="line">    &#125; <span class="preprocessor">else</span> &#123;</span><br><span class="line">      LOG.info(<span class="string">"Using zeros at offset "</span> + seekOffset)<span class="comment">;</span></span><br><span class="line">      // We have no src <span class="preprocessor">data</span> at this offset.</span><br><span class="line">      <span class="keyword">blocks[i] </span>= new RaidUtils.ZeroInputStream(</span><br><span class="line">                        seekOffset + <span class="keyword">blockSize);</span><br><span class="line"></span>      srcPaths[i] = null<span class="comment">;</span></span><br><span class="line">      offsets[i] = -<span class="number">1</span><span class="comment">;</span></span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">  return new <span class="keyword">StripeInputInfo(blocks, </span>srcPaths, offsets)<span class="comment">;</span></span><br></pre></td></tr></table></figure></p>
+<p>stripeIdx为传入的currentStripeIdx,文件Raid中stripeLength个输入流对应的文件只有一个,可见根据currentStripeIdx,stripeLength<br>和区块大小便能定位当前stripe文件中的开始偏移量,而一个stripe有stripeLength个Blocks,每个Block都能计算出一个开始偏移量,得到相应的流.<br>若文件剩余大小满足stripe需求,不需要填充0Block,则所有的输入流都为文件对应的流,srcPath也为文件,偏移量为相应的偏移量.<br>而如果需要填充0Block,则达到文件尾端后,剩余的输入流为ZeroInputStream,对应的srcPath为null,偏移量为-1.</p>
+<h3 id="DirectoryStripeReader获取下一个StripeInputInfo">DirectoryStripeReader获取下一个StripeInputInfo</h3><figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">int</span> startOffset = (<span class="keyword">int</span>)stripeIdx * codec.stripeLength;</span><br><span class="line"><span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; codec.stripeLength; i++) &#123;</span><br><span class="line">    <span class="keyword">if</span> (startOffset + i &lt; <span class="keyword">this</span>.stripeBlocks.size()) &#123;</span><br><span class="line">      BlockInfo bi = <span class="keyword">this</span>.stripeBlocks.<span class="keyword">get</span>(startOffset + i);</span><br><span class="line">      FileStatus curFile = lfs.<span class="keyword">get</span>(bi.fileIdx);</span><br><span class="line">      <span class="keyword">long</span> seekOffset = bi.blockId * curFile.getBlockSize();</span><br><span class="line">      Path srcFile = curFile.getPath();</span><br><span class="line">      FSDataInputStream <span class="keyword">in</span> = fs.open(srcFile, bufferSize);</span><br><span class="line">      <span class="keyword">in</span>.seek(seekOffset);</span><br><span class="line">      LOG.info(<span class="string">"Opening stream at "</span> + srcFile + <span class="string">":"</span> + seekOffset);</span><br><span class="line">      blocks[i] = <span class="keyword">in</span>;</span><br><span class="line">      srcPaths[i] = srcFile;</span><br><span class="line">      offsets[i] = seekOffset;</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">      LOG.info(<span class="string">"Using zeros at block "</span> + i);</span><br><span class="line">      <span class="comment">// We have no src data at this offset.</span></span><br><span class="line">      blocks[i] = <span class="keyword">new</span> RaidUtils.ZeroInputStream(parityBlockSize);</span><br><span class="line">      srcPaths[i] = <span class="keyword">null</span>;</span><br><span class="line">      offsets[i] = -<span class="number">1</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">return</span> <span class="keyword">new</span> StripeInputInfo(blocks, srcPaths, offsets);</span><br></pre></td></tr></table></figure>
+<p>这里与FileStripeReader不同的是,目录Raid的一个stripe可能跨越多个该目录下的文件,因此需要定位每一个输入流所属的文件.<br>构造过程中已经看到,成员<code>stripeBlocks</code>记录了目录下所有的区块和其对应的文件信息.<br><code>stripeIdx</code>为传入的<code>currentStripeIdx</code>,根据currentStripeIdx和stripeLength便可得到当前stripe在目录下的开始区块索引号<code>startOffset</code>.<br>有了stripe的开始区块索引号<code>startOffset</code>,便能得到stripe中第i个区块在目录下的区块索引号,若索引号没有超出stripeBlocks的大小<br>(即存在于目录下),我们便能通过stripeBlocks和lfs成员得知该区块所属的文件,进而得知在文件中的偏移量,并构建输入流对象.<br>而若当前stripe的第i个区块超出了stripeBlocks的大小,即不存在于目录下,需要填充0 Block,对应的输入流为<code>ZeroInputStream</code>,偏移量为-1,<br>文件路径为null,这与FileStreamReader一样.</p>
+<p>输入流构造完成,接着便是局部编码的过程,在while循环中可以重试3次:<br><figure class="highlight ruby"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">int <span class="keyword">retry</span> = <span class="number">3</span>;</span><br><span class="line"><span class="keyword">do</span> &#123;</span><br><span class="line">    <span class="keyword">redo</span> = <span class="keyword">false</span>;</span><br><span class="line">    <span class="keyword">retry</span> --;</span><br><span class="line">    ...</span><br><span class="line">    <span class="keyword">if</span> (<span class="keyword">redo</span>) &#123;</span><br><span class="line">      <span class="regexp">//</span> rebuild the inputs.</span><br><span class="line">      stripeInputInfo = sReader.getStripeInputs(currentStripeIdx);</span><br><span class="line">    &#125;</span><br><span class="line">&#125; <span class="keyword">while</span> (<span class="keyword">redo</span>);</span><br></pre></td></tr></table></figure></p>
+<p>其中<code>redo</code>在编码过程出错时,catch中如果retry还大于0,则重置为true,否则retry小于等于0,抛出异常.<br><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (retry &lt;= <span class="number">0</span>) &#123;</span><br><span class="line">    <span class="keyword">throw</span> e;</span><br><span class="line">&#125;</span><br><span class="line">redo = <span class="literal">true</span>;</span><br></pre></td></tr></table></figure></p>
+<p>另外,在catch中发现区块丢失等异常情况,要构建<code>CorruptBlockReconstructor</code>和Decoder进行修复,具体修复在后面<code>BlockIntegrityMonitor</code>中分析.</p>
+<p>那么,do while中间过程的具体的编码过程如下:<br><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">try</span> &#123;</span><br><span class="line">    blocks = stripeInputInfo.getInputs();</span><br><span class="line">    CRC32[] curCRCOuts = <span class="keyword">new</span> CRC32[codec.parityLength];</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (crcOuts != null) &#123;</span><br><span class="line">      <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; codec.parityLength; i++) &#123;</span><br><span class="line">        crcOuts[finishedParityBlockIdx + i] = curCRCOuts[i]</span><br><span class="line">            = <span class="keyword">new</span> CRC32();</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">// Create output streams to the temp files.</span></span><br><span class="line">    <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; codec.parityLength - <span class="number">1</span>; i++) &#123;</span><br><span class="line">      tmpOuts[i + <span class="number">1</span>] = <span class="keyword">new</span> FileOutputStream(tmpFiles[i]);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">// Call the implementation of encoding.</span></span><br><span class="line">    encodeStripe(blocks, blockSize, tmpOuts, curCRCOuts, reporter,<span class="literal">true</span>, errorLocations);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>即首先获取输入流数组blocks,如果支持ChecksumStore的话,crcOuts为<code>expectedPartialParityBlocks</code>个CRC32数组.<br>然后对之前创建的临时输出文件构建输出流对象,最终通过<code>encodeStripe</code>进行编码.  </p>
+<h2 id="encodeStripe">encodeStripe</h2><p>函数原型为:<br><figure class="highlight mathematica"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">void encodeStripe(<span class="keyword">InputStream</span>[] blocks,long blockSize,<span class="keyword">OutputStream</span>[] outs,CRC32[] crcOuts,Progressable reporter,</span><br><span class="line">    boolean computeSrcChecksum,<span class="keyword">List</span>&lt;<span class="keyword">Integer</span>&gt; errorLocations)</span><br></pre></td></tr></table></figure></p>
+<p><code>blocks</code>为stripeLength个输入流数组,<code>blockSize</code>为输入流中一个Block的大小,<code>outs</code>对应parityLength个输出流;<br><code>computeSrccChecksum</code>用于决定是否计算源文件区块的校验和.编码过程为true(通过encodeFileToStream调用),即对每一个源文件区块计算校验和<br>更新至Encoder的ChecksumStore和校验和本地目录中;而对校验文件的修复为false(通过recoverParityBlockToStream),不重新计算源文件区块校验和.<br><code>errorLocations</code>对应出错的位置,对应完成一个stripe的编码过程,将stripeLength个原Blocks编码成parityLength个校验Blocks.</p>
+<p>首先配置Encoder的writeBufs(输出缓冲),每个缓冲大小为<code>bufSize</code>,通过<code>raid.encoder.bufsize</code>配置.<br>如果bufSize大于Block大小,则为Block大小.小于Block大小时,如果不能被Block大小整除,则配置为Block大小的1/256,最小1KB,因为在后面可以看到,<br>每次取出bufSize,如果配置能被区块大小整除,则可以刚好取完,每次取出的长度一样:<br><figure class="highlight lisp"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">configureBuffers<span class="list">(<span class="keyword">blockSize</span>)</span><span class="comment">;</span></span><br></pre></td></tr></table></figure></p>
+<p>然后,对stripeLength个输入流构建一个ParallelStreamReader对象,并启动读取缓冲的线程(默认4个).<br><figure class="highlight armasm"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="label">int</span> <span class="keyword">boundedBufferCapacity </span>= <span class="number">1</span><span class="comment">;</span></span><br><span class="line"><span class="label">ParallelStreamReader</span> parallelReader = new ParallelStreamReader(</span><br><span class="line">      reporter, <span class="keyword">blocks, </span><span class="keyword">bufSize,</span><br><span class="line"></span>      parallelism, <span class="keyword">boundedBufferCapacity, </span><span class="keyword">blockSize, </span>computeSrcChecksum,</span><br><span class="line">      outs)<span class="comment">;</span></span><br><span class="line"><span class="label">parallelReader.start</span>()<span class="comment">;</span></span><br></pre></td></tr></table></figure></p>
+<p><code>ParallelStreamReader</code>启动多个线程(默认4)并行从stripeLength个输入流中读取数据,每次读取bufSize个字节的数据存入一个ReadResult对象中,将每次读取<br>结果(一个ReadResult)放入阻塞队列中,等待从中读取进行编码.因此最小的编码单元为bufSize,详细ParallelStreamReader分析见下.</p>
+<p>ParallelStreamReader构建完,并启动主线程后,开始编码过程:<br><figure class="highlight lisp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br></pre></td><td class="code"><pre><span class="line">for <span class="list">(<span class="keyword">long</span> encoded = <span class="number">0</span><span class="comment">; encoded &lt; blockSize; encoded += bufSize) &#123;</span></span><br><span class="line">    ParallelStreamReader.ReadResult readResult = null<span class="comment">;</span></span><br><span class="line">    try &#123;</span><br><span class="line">      readResult = parallelReader.getReadResult<span class="list">()</span><span class="comment">;</span></span><br><span class="line">    &#125; catch <span class="list">(<span class="keyword">InterruptedException</span> e)</span> &#123;</span><br><span class="line">      throw new IOException<span class="list">(<span class="string">"Interrupted while waiting for read result"</span>)</span><span class="comment">;</span></span><br><span class="line">    &#125;</span><br><span class="line">    // Cannot tolerate any IO errors.</span><br><span class="line">    IOException readEx = readResult.getException<span class="list">()</span><span class="comment">;</span></span><br><span class="line">    if <span class="list">(<span class="keyword">readEx</span> != null)</span> &#123;</span><br><span class="line">      if <span class="list">(<span class="keyword">errorLocations</span> != null)</span> &#123;</span><br><span class="line">        errorLocations.clear<span class="list">()</span><span class="comment">;</span></span><br><span class="line">        for <span class="list">(<span class="keyword">int</span> idx : readResult.getErrorIdx<span class="list">()</span>)</span> &#123;</span><br><span class="line">          errorLocations.add<span class="list">(<span class="keyword">idx</span>)</span><span class="comment">;</span></span><br><span class="line">        &#125;</span><br><span class="line">      &#125;</span><br><span class="line">      throw readEx<span class="comment">;</span></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    code.encodeBulk<span class="list">(<span class="keyword">readResult</span>.readBufs, writeBufs)</span><span class="comment">;</span></span><br><span class="line">    reporter.progress<span class="list">()</span><span class="comment">;</span></span><br><span class="line">    // Assume each byte is independently encoded</span><br><span class="line">    int toWrite = <span class="list">(<span class="keyword">int</span>)</span>Math.min<span class="list">(<span class="keyword">blockSize</span> - encoded, bufSize)</span><span class="comment">;</span></span><br><span class="line"></span><br><span class="line">    // Now that we have some data to write, send it to the temp files.</span><br><span class="line">    for <span class="list">(<span class="keyword">int</span> i = <span class="number">0</span><span class="comment">; i &lt; codec.parityLength; i++) &#123;</span></span><br><span class="line">      outs[i].write<span class="list">(<span class="keyword">writeBufs</span>[i], <span class="number">0</span>, toWrite)</span><span class="comment">;</span></span><br><span class="line">      if <span class="list">(<span class="keyword">crcOuts</span> != null <span class="keyword">&amp;&amp;</span> crcOuts[i] != null)</span> &#123;</span><br><span class="line">        crcOuts[i].update<span class="list">(<span class="keyword">writeBufs</span>[i], <span class="number">0</span>, toWrite)</span><span class="comment">;</span></span><br><span class="line">      &#125;</span><br><span class="line">      reporter.progress<span class="list">()</span><span class="comment">;</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span></span></span><br></pre></td></tr></table></figure></p>
+<p>以上循环对应的一个Stripe的实际编码过程,从循环看出每次编码bufSize个字节,这是因为从输入流中读取的数据保存在ReadResult<br>的成员属性readBufs中,它对应stripeLength个数组,每个数组存储bufSize个输入流的字节.<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">read</span>Result = parallelReader.getReadResult();</span><br></pre></td></tr></table></figure></p>
+<p>从阻塞队列中取出一个ReadResult,可能阻塞等待<code>ReadOperation</code>线程读取完成.<br>获取一个ReadResult后,通过Encoder的code成员(擦除码实现,配置)的encodeBulk完成对bufSize个字节的编码.<br><figure class="highlight css"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">code</span><span class="class">.encodeBulk</span>(<span class="tag">readResult</span><span class="class">.readBufs</span>, <span class="tag">writeBufs</span>);</span><br></pre></td></tr></table></figure></p>
+<p>将stripeLength个长度为bufSize的源数据编码成parityLength个长度为bufSize的校验数据,写到Encoder的writeBufs成员中.<br>最后将writeBufs成员中数据分别写到输入流outs中,且如果支持ChecksumStore,将编码结果更新至parityLength个CRC32对象中计算相应校验和.<br><figure class="highlight gcode"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">for <span class="comment">(int i = 0; i &lt; codec.parityLength; i++)</span> &#123;</span><br><span class="line">  outs[i].write<span class="comment">(writeBufs[i], 0, toWrite)</span>;</span><br><span class="line">  <span class="keyword">if</span> <span class="comment">(crcOuts != null &amp;&amp; crcOuts[i] != null)</span> &#123;</span><br><span class="line">    crcOuts[i].update<span class="comment">(writeBufs[i], 0, toWrite)</span>;</span><br><span class="line">  &#125;</span><br><span class="line">  reporter.progress<span class="comment">()</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>这样,循环结束便完成了一个stripe的编码.</p>
+<h2 id="函数调用链(从上到下为先后调用顺序):"><strong>函数调用链</strong>(从上到下为先后调用顺序):</h2><ul>
+<li><code>raidFiles</code>(info, filteredPaths);<br>处理当前PolicyInfo info的所有可Raid路径filteredPaths.</li>
+<li><code>doRaid</code>(conf, info, lec);<br>info的可Raid路径转换为EncodingCandidate列表lec,处理所有的EncodingCandidate.</li>
+<li><code>doRaid</code>(conf, ec, destPref, codec, statistics, RaidUtils.NULL_PROGRESSABLE, doSimulate, targetRepl, metaRepl);<br>处理一个EncodingCandidate—ec.<br><code>destPref</code>为codec配置<code>parity_dir</code>.<br><code>doSimulate</code>为policy的配置属性<code>simulate</code>,默认false,false时编码完成将更改源文件备份数.<br><code>targetRepl</code>为编码后源文件备份.<br><code>metaRepl</code>为编码文件备份.</li>
+<li><code>doFileRaid</code>(conf, ec, destPath, codec, statistics, reporter, doSimulate, targetRepl, metaRepl);<br>上面doRaid的文件Raid分支,对应目录Raid为doDirRaid,参数见上一个方法.</li>
+<li><code>generateParityFile</code>(conf, ec, targetRepl, reporter, srcFs, destPath, codec, locations.length, stat.getReplication(),<br>metaRepl, stat.getBlockSize(), null);<br>增加了更多的该EncodingCandidate对应的信息,用于判断是否完成path所有的编码.对应的还是一个EncodingCandidate的编码.</li>
+<li><code>encoder.encodeFile</code>(conf, inFs, outFs, outpath, (short)metaRepl, numStripes, blockSize, reporter, sReader, ec);<br>这里输出路径<code>outpath</code>不再是配置项<code>parity_dir</code>,而是最终的输出文件路径:<code>${parity_dir}/srcpath</code>.<br><code>sReader</code>可能对应<code>FileStreamReader</code>或<code>DirectoryStreamReader</code>.<br>该方法还是对应一个EncodingCandidate的编码,只不过基于原来EncodingCandidate的信息构建了StripeReader对象,用于获取源文件的输入流.</li>
+<li><p><code>encodeTmpParityFile</code>(jobConf, sReader, dfs, partialTmpParity, parityFile, tmpRepl, blockSize,<br>expectedPartialParityBlocks, expectedPartialParityFileSize, reporter)<br>对应一个StripeReader(即一个EncodingCandidate)的编码.<br><code>partialTmpParity</code>为该sReader输出路径,即一个局部校验文件,路径为:<br><code>/tmp/${parity_dir}/${jobID}/${partialParityName}/tmp/${currentStripeID}</code>.<br>其中<code>jobID</code>可通过<code>mapred.job.id</code>配置,默认为<code>localRaid</code>+当前时间(date).<br><code>partialParityName</code>为<code>partial_ + MD5Hash.digest(srcFile.toUri().getPath()) +
+&quot;_&quot; + ec.srcStat.getModificationTime() + &quot;_&quot; + ec.encodingUnit + &quot;_&quot; +ec.encodingId</code><br>即默认情况下,一个path对应一个局部临时校验目录,该目录下的<code>tmp</code>目录存储该path的所有局部校验文件,文件名为对应StripeReader的<br>currentStripeID,校验文件数目为path对应的EncodingCandidate数目.<br>当一个path的所有EncodingCandidate编码完成后,全部的局部校验文件位于tmp目录下,然后重命名为tmp目录的兄弟目录<code>final</code>,在final目录中<br>将所有局部校验文件追加到第一个局部校验文件尾部,形成完整的校验文件,然后重命名为encodeFile的输入参数outpath,即校验文件输出路径,<br>完成一个Path的Raid过程.  </p>
+<blockquote>
+<p>举例:<br>  一个文件Raid的文件,采用(10,4)rs编码,若该文件有40个Blocks,且encodingUnit采用默认配置1.<br>  则一个EncodingCandidate以及一个StripeReader都只对应一个stripe即管理10个Block,因此该文件对应4个EncodingCandidate和StripeReader,<br>  则<code>tmp</code>录下应该有4个局部校验文件,文件名分别为0~3,通过encodeTmpParityFile生成(编码时先输出到另一个临时文件,局部编码完成后重命名).<br>  当所有4个局部校验文件都产生后(encodeTmpParityFile一次调用产生一个文件,finishAllPartialEncoding方法中等待期望的校验文件都产生,<br>  见上分析),tmp目录重命名为final(状态为isRenamed).<br>  然后在final中将1~3局部校验文件依次追加到0中,追加后的文件则为最终的校验(状态变为isConcated),最终将final的唯一一个文件重命名为校验文件<br>  (${parity-dir}/srcpath),完成path的编码过程.<br>  而对应设置encodingUnit为2时,tmp目录下应该只有2个局部校验文件(此时一个EncodingCandidate和StripeReader管理两个stripe(20个Block),<br>  encodeTmpParityFile编码两个stripe的区块),文件名分别为0,2(不是1),按上述步骤经过重命名—追加—重命名完成编码过程.</p>
+</blockquote>
+</li>
+<li><p><code>encodeFileToStream</code>(sReader, blockSize, out, crcOuts, reporter);<br>通过从StripeReader中依次读取encodingUnit个stripe完成编码过程.<br>out为另一个临时文件对应的输出流,位置<br><code>/tmp/${parity_dir}/${jobID}/currentStripeID+random</code><br>先将编码结果存在这一临时输出流中,sReader所有数据编码完成后,重命名为tmp目录下对应的currentStripeID文件,完成局部校验文件的生成.</p>
+</li>
+<li><code>encodeStripe</code>(blocks, blockSize, tmpOuts, curCRCOuts, reporter, true, errorLocations);<br>对应一个stripe的编码过程,即StripeReader将执行encodingUnit次.<br><code>blocks</code>stripe个区块对应的输入流.<br><code>tmpOuts</code>第一个输出流为encodeFileToStream构建的临时文件流,剩余的parityLength-1个输出流为临时文件(parity_i)输出流.<br>函数通过构建ParallelStreamReader,创建多个线程并行读取数据到阻塞队列中,然后从阻塞队列取数据进行编码.  </li>
+<li><code>code.encodeBulk</code>(readResult.readBufs, writeBufs);<br>最终的最小编码单元,编码bufSize个字节的数据.<br>对应codec配置的擦除码实现,上一级函数中通过ParallelStreamReader并行读取,每次读取bufSize个字节的数据存放在一个ReadResult中,该函数<br>便是处理一个ReadResult的数据.编码结果存在Encoder的缓冲writeBufs中,每次bufSize个字节的数据编码完成,写到输出流tmpOuts中.</li>
+</ul>
+<h2 id="一段话总结(以下说的路径可能为文件或目录)"><strong>一段话总结</strong>(以下说的路径可能为文件或目录)</h2><p>TriggerMonitor执行完所有文件Raid操作后,默认每隔10s读取一次policy文件.如果policy文件自从上次重新加载后修改过,且当前时间从修改后过去了5s<br>,则重新加载policy文件.  </p>
+<p>加载后,对每个policy,如果配置的路径需要重新读取进行Raid(条件见具体分析),则对与存在fileListPath元素的policy通过readFileList读取可Raid<br>的路径列表,否则对于存在srcPath的policy,通过selectFiles读取可Raid的路径列表(是否可Raid见具体分析).<br>读取完可Raid的路径后,通过raidFiles对当前policy所有可Raid路径进行Raid.</p>
+<p>Raid过程,对于每一个路径,首先根据路径的Blocks数,这里假设为nums,和codec的配置以及encodingUnit的配置创建n个EncodingCandidate.<br><code>n=ceil(nums/stripeLength/encodingUnit)</code><br>即一个路径最少对应一个EncodingCandidate,只要其Blocks数大于2,一个路径拥有一个encodingID,所有其拥有的EncodingCandidate共享.  </p>
+<p>接着对于路径的每一个EncodingCandidate,执行编码操作.  </p>
+<p>path的编码输出路径为”${parity_dir}/path”.不过因为一个path可能对应多个EncodingCandidate,先在临时目录下进行局部编码,临时目录路径为:<br><code>/tmp/${parity_dir}/${jobID}/${partialParityName}/tmp</code>  </p>
+<p>每个EncodingCandidate在该目录下编码生成一个<code>局部校验文件</code>,文件名为EncodingCandidate相关的StripeID,所有<code>n</code>个局部校验文件都生成后,将tmp<br>目录重命名为兄弟目录final,在final目录中将所有的局部校验文件连接成一个文件,然后重命名为最终的输出路径,即完成编码过程.<br>而其实每一个局部校验文件都是先在另外一个临时目录下编码生成,然后在重命名为tmp目录下的文件.</p>
+<p>而对于局部校验文件的生成,一个EncodingCandidate会创建相应的文件或目录StripeReader,即FileStripeReader或DirectoryStripeReader,<br>用于创建相应的输入流读取数据.一个EncodingCandidate或StripeReader对应encodingUnit个stripe,一个stripe的编码操作在函数<code>encodeStripe</code><br>中完成.  </p>
+<p>每一个Stripe创建一个ParallelStripeReader,在其中创建多个线程从stripeLength个输入流中并行读取数据,每次读取bufSize个字节的数据<br>存放在一个ReadResult对象中,stripeLength个输入流数据对应的所有ReadResult存放在阻塞队列中,依次从阻塞队列中取出ReadResult进行编码,<br>最终最小的编码函数对应于:<br><figure class="highlight css"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">code</span><span class="class">.encodeBulk</span>(<span class="tag">readResult</span><span class="class">.readBufs</span>, <span class="tag">writeBufs</span>);</span><br></pre></td></tr></table></figure></p>
+<p>为具体的擦除码实现,可继承ErasureCode完成相应的编码函数实现其他不同于rs xor的编码方式.</p>
+</span>
+      
+    </div>
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/Hadoop-0-20/" rel="tag">#Hadoop-0.20</a>
+          
+            <a href="/tags/RaidNode/" rel="tag">#RaidNode</a>
+          
+        </div>
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/辅助类/" rel="next" title="RaidNode源码阅读---辅助类">
+                <i class="fa fa-chevron-left"></i> RaidNode源码阅读---辅助类
+              </a>
+            
+          </div>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/CorruptMonitor/" rel="prev" title="RaidNode源码阅读---损坏区块修复CorruptMonitor(LocalBlockIntegerityMonitor)">
+                RaidNode源码阅读---损坏区块修复CorruptMonitor(LocalBlockIntegerityMonitor) <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </article>
+
+
+
+    <div class="post-spread">
+      
+        <!-- JiaThis Button BEGIN -->
+<div class="jiathis_style">
+  <a class="jiathis_button_tsina"></a>
+  <a class="jiathis_button_tqq"></a>
+  <a class="jiathis_button_weixin"></a>
+  <a class="jiathis_button_cqq"></a>
+  <a class="jiathis_button_douban"></a>
+  <a class="jiathis_button_renren"></a>
+  <a class="jiathis_button_qzone"></a>
+  <a class="jiathis_button_kaixin001"></a>
+  <a class="jiathis_button_copy"></a>
+  <a href="http://www.jiathis.com/share" class="jiathis jiathis_txt jiathis_separator jtico jtico_jiathis" target="_blank"></a>
+  <a class="jiathis_counter_style"></a>
+</div>
+<script type="text/javascript" >
+  var jiathis_config={
+    hideMore:false
+  }
+</script>
+<script type="text/javascript" src="http://v3.jiathis.com/code/jia.js" charset="utf-8"></script>
+<!-- JiaThis Button END -->
+
+      
+    </div>
+  </div>
+
+
+        </div>
+
+        
+
+
+        
+  <div class="comments" id="comments">
+    
+      <div class="ds-thread" data-thread-key="raidFiles/"
+           data-title="RaidNode源码阅读---RaidNode编码过程下篇编码操作(LocalRaidNode)" data-url="http://xiao-yun.github.io/raidFiles/">
+      </div>
+    
+  </div>
+
+
+      </div>
+
+      
+        
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap" >
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel ">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+          <img class="site-author-image" src="/images/hero.jpg" alt="xiaoyun" itemprop="image"/>
+          <p class="site-author-name" itemprop="name">xiaoyun</p>
+        </div>
+        <p class="site-description motion-element" itemprop="description">学习笔记，网上资源摘要等</p>
+        <nav class="site-state motion-element">
+          <div class="site-state-item site-state-posts">
+            <a href="/archives">
+              <span class="site-state-item-count">7</span>
+              <span class="site-state-item-name">日志</span>
+            </a>
+          </div>
+
+          <div class="site-state-item site-state-categories">
+            <a href="/categories">
+              <span class="site-state-item-count">4</span>
+              <span class="site-state-item-name">分类</span>
+              </a>
+          </div>
+
+          <div class="site-state-item site-state-tags">
+            <a href="/tags">
+              <span class="site-state-item-count">3</span>
+              <span class="site-state-item-name">标签</span>
+              </a>
+          </div>
+
+        </nav>
+
+        
+
+        <div class="links-of-author motion-element">
+          
+            
+              <span class="links-of-author-item">
+                <a href="https://github.com/xiao-yun" target="_blank">
+                  
+                    <i class="fa fa-globe"></i> github
+                  
+                </a>
+              </span>
+            
+          
+        </div>
+
+        
+        
+
+        <div class="links-of-author motion-element">
+          
+        </div>
+
+      </section>
+
+      
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc-indicator-top post-toc-indicator">
+            <i class="fa fa-angle-double-up"></i>
+          </div>
+          <div class="post-toc">
+            
+              
+            
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#doFileRaid"><span class="nav-number">1.</span> <span class="nav-text">doFileRaid</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#doDirRaid"><span class="nav-number">2.</span> <span class="nav-text">doDirRaid</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#generateParityFile"><span class="nav-number">3.</span> <span class="nav-text">generateParityFile</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#文件Raid创建FileStripeReader"><span class="nav-number">4.</span> <span class="nav-text">文件Raid创建FileStripeReader</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#目录Raid创建DirectoryStripeReader"><span class="nav-number">5.</span> <span class="nav-text">目录Raid创建DirectoryStripeReader</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#encodeFile"><span class="nav-number">6.</span> <span class="nav-text">encodeFile</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#encodeTmpParityFile"><span class="nav-number">7.</span> <span class="nav-text">encodeTmpParityFile</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#encodeFileToStream"><span class="nav-number">8.</span> <span class="nav-text">encodeFileToStream</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#FileStripeReader获取下一个StripeInputInfo"><span class="nav-number">8.1.</span> <span class="nav-text">FileStripeReader获取下一个StripeInputInfo</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#DirectoryStripeReader获取下一个StripeInputInfo"><span class="nav-number">8.2.</span> <span class="nav-text">DirectoryStripeReader获取下一个StripeInputInfo</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#encodeStripe"><span class="nav-number">9.</span> <span class="nav-text">encodeStripe</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#函数调用链(从上到下为先后调用顺序):"><span class="nav-number">10.</span> <span class="nav-text">函数调用链(从上到下为先后调用顺序):</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#一段话总结(以下说的路径可能为文件或目录)"><span class="nav-number">11.</span> <span class="nav-text">一段话总结(以下说的路径可能为文件或目录)</span></a></li></ol></div>
+            
+          </div>
+          <div class="post-toc-indicator-bottom post-toc-indicator">
+            <i class="fa fa-angle-double-down"></i>
+          </div>
+        </section>
+      
+
+    </div>
+  </aside>
+
+
+      
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright" >
+  
+  &copy; 
+  <span itemprop="copyrightYear">2015</span>
+  <span class="with-love">
+    <i class="icon-next-heart fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">xiaoyun</span>
+</div>
+
+<div class="powered-by">
+  由 <a class="theme-link" href="http://hexo.io">Hexo</a> 强力驱动
+</div>
+
+<div class="theme-info">
+  主题 -
+  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
+    NexT.Mist
+  </a>
+</div>
+
+
+
+      </div>
+    </footer>
+
+    <div class="back-to-top"></div>
+  </div>
+
+  <script type="text/javascript" src="/vendors/jquery/index.js?v=2.1.3"></script>
+
+  
+  
+
+  
+    
+
+  
+    
+  
+
+  <script type="text/javascript">
+    var duoshuoQuery = {short_name:"xiaoyuncom"};
+    (function() {
+      var ds = document.createElement('script');
+      ds.type = 'text/javascript';ds.async = true;
+      ds.id = 'duoshuo-script';
+      ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+      ds.charset = 'UTF-8';
+      (document.getElementsByTagName('head')[0]
+      || document.getElementsByTagName('body')[0]).appendChild(ds);
+    })();
+  </script>
+    
+     
+
+
+    
+  
+
+  
+  <script type="text/javascript" src="/vendors/fancybox/source/jquery.fancybox.pack.js"></script>
+  <script type="text/javascript" src="/js/fancy-box.js?v=0.4.5.2"></script>
+
+
+  <script type="text/javascript" src="/js/helpers.js?v=0.4.5.2"></script>
+  <script type="text/javascript" src="/vendors/velocity/velocity.min.js"></script>
+<script type="text/javascript" src="/vendors/velocity/velocity.ui.min.js"></script>
+
+<script type="text/javascript" src="/js/motion.js?v=0.4.5.2" id="motion.global"></script>
+
+
+  <script type="text/javascript" src="/vendors/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  <script type="text/javascript" src="/vendors/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  
+<script type="text/javascript" src="/js/bootstrap.scrollspy.js?v=0.4.5.2" id="bootstrap.scrollspy.custom"></script>
+
+
+<script type="text/javascript" id="sidebar.toc.highlight">
+  $(document).ready(function () {
+    var tocSelector = '.post-toc';
+    var $tocSelector = $(tocSelector);
+    var activeCurrentSelector = '.active-current';
+
+    $tocSelector
+      .on('activate.bs.scrollspy', function () {
+        var $currentActiveElement = $(tocSelector + ' .active').last();
+
+        removeCurrentActiveClass();
+        $currentActiveElement.addClass('active-current');
+
+        $tocSelector[0].scrollTop = $currentActiveElement.position().top;
+      })
+      .on('clear.bs.scrollspy', function () {
+        removeCurrentActiveClass();
+      });
+
+    function removeCurrentActiveClass () {
+      $(tocSelector + ' ' + activeCurrentSelector)
+        .removeClass(activeCurrentSelector.substring(1));
+    }
+
+    function processTOC () {
+      getTOCMaxHeight();
+      toggleTOCOverflowIndicators();
+    }
+
+    function getTOCMaxHeight () {
+      var height = $('.sidebar').height() -
+                   $tocSelector.position().top -
+                   $('.post-toc-indicator-bottom').height();
+
+      $tocSelector.css('height', height);
+
+      return height;
+    }
+
+    function toggleTOCOverflowIndicators () {
+      tocOverflowIndicator(
+        '.post-toc-indicator-top',
+        $tocSelector.scrollTop() > 0 ? 'show' : 'hide'
+      );
+
+      tocOverflowIndicator(
+        '.post-toc-indicator-bottom',
+        $tocSelector.scrollTop() >= $tocSelector.find('ol').height() - $tocSelector.height() ? 'hide' : 'show'
+      )
+    }
+
+    $(document).on('sidebar.motion.complete', function () {
+      processTOC();
+    });
+
+    $('body').scrollspy({ target: tocSelector });
+    $(window).on('resize', function () {
+      if ( $('.sidebar').hasClass('sidebar-active') ) {
+        processTOC();
+      }
+    });
+
+    onScroll($tocSelector);
+
+    function onScroll (element) {
+      element.on('mousewheel DOMMouseScroll', function (event) {
+          var oe = event.originalEvent;
+          var delta = oe.wheelDelta || -oe.detail;
+
+          this.scrollTop += ( delta < 0 ? 1 : -1 ) * 30;
+          event.preventDefault();
+
+          toggleTOCOverflowIndicators();
+      });
+    }
+
+    function tocOverflowIndicator (indicator, action) {
+      var $indicator = $(indicator);
+      var opacity = action === 'show' ? 1 : 0;
+      $indicator.velocity ?
+        $indicator.velocity('stop').velocity({
+          opacity: opacity
+        }, { duration: 100 }) :
+        $indicator.stop().animate({
+          opacity: opacity
+        }, 100);
+    }
+
+  });
+</script>
+
+<script type="text/javascript" id="sidebar.nav">
+  $(document).ready(function () {
+    var html = $('html');
+    var TAB_ANIMATE_DURATION = 200;
+    var hasVelocity = $.isFunction(html.velocity);
+
+    $('.sidebar-nav li').on('click', function () {
+      var item = $(this);
+      var activeTabClassName = 'sidebar-nav-active';
+      var activePanelClassName = 'sidebar-panel-active';
+      if (item.hasClass(activeTabClassName)) {
+        return;
+      }
+
+      var currentTarget = $('.' + activePanelClassName);
+      var target = $('.' + item.data('target'));
+
+      hasVelocity ?
+        currentTarget.velocity('transition.slideUpOut', TAB_ANIMATE_DURATION, function () {
+          target
+            .velocity('stop')
+            .velocity('transition.slideDownIn', TAB_ANIMATE_DURATION)
+            .addClass(activePanelClassName);
+        }) :
+        currentTarget.animate({ opacity: 0 }, TAB_ANIMATE_DURATION, function () {
+          currentTarget.hide();
+          target
+            .stop()
+            .css({'opacity': 0, 'display': 'block'})
+            .animate({ opacity: 1 }, TAB_ANIMATE_DURATION, function () {
+              currentTarget.removeClass(activePanelClassName);
+              target.addClass(activePanelClassName);
+            });
+        });
+
+      item.siblings().removeClass(activeTabClassName);
+      item.addClass(activeTabClassName);
+    });
+
+    $('.post-toc a').on('click', function (e) {
+      e.preventDefault();
+      var targetSelector = escapeSelector(this.getAttribute('href'));
+      var offset = $(targetSelector).offset().top;
+      hasVelocity ?
+        html.velocity('stop').velocity('scroll', {
+          offset: offset  + 'px',
+          mobileHA: false
+        }) :
+        $('html, body').stop().animate({
+          scrollTop: offset
+        }, 500);
+    });
+
+    // Expand sidebar on post detail page by default, when post has a toc.
+    motionMiddleWares.sidebar = function () {
+      var $tocContent = $('.post-toc-content');
+      if (CONFIG.sidebar === 'post') {
+        if ($tocContent.length > 0 && $tocContent.html().trim().length > 0) {
+          displaySidebar();
+        }
+      }
+    };
+  });
+</script>
+
+
+
+  <script type="text/javascript" src="/js/bootstrap.js"></script>
+
+  
+  
+
+  
+  
+
+</body>
+</html>

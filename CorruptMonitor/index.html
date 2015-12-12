@@ -1,0 +1,871 @@
+<!doctype html>
+<html class="theme-next   use-motion ">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+  <link href="/vendors/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css"/>
+
+
+
+
+  <link href="//fonts.googleapis.com/css?family=Lato:300,400,700,400italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+
+
+
+<link href="/vendors/font-awesome/css/font-awesome.min.css?v=4.4.0" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=0.4.5.2" rel="stylesheet" type="text/css" />
+
+
+  <meta name="keywords" content="Hadoop-0.20,RaidNode," />
+
+
+
+
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=0.4.5.2" />
+
+
+
+
+
+
+<meta name="description" content="Hadoop版本:hadoop-20-master
+
+LocalBlockIntegrityMonitor没有提供丢失区块修复功能,损坏区块的修复类就是LocalBlockIngerityMonitor,参见辅助类.LocalBlockIntegrityMonitor主线程:1234while (running) &amp;#123;    try &amp;#123;      LOG.info(&quot;LocalB">
+<meta property="og:type" content="article">
+<meta property="og:title" content="RaidNode源码阅读---损坏区块修复CorruptMonitor(LocalBlockIntegerityMonitor)">
+<meta property="og:url" content="http://xiao-yun.github.io/CorruptMonitor/index.html">
+<meta property="og:site_name" content="xiaoyun">
+<meta property="og:description" content="Hadoop版本:hadoop-20-master
+
+LocalBlockIntegrityMonitor没有提供丢失区块修复功能,损坏区块的修复类就是LocalBlockIngerityMonitor,参见辅助类.LocalBlockIntegrityMonitor主线程:1234while (running) &amp;#123;    try &amp;#123;      LOG.info(&quot;LocalB">
+<meta property="og:updated_time" content="2015-12-12T08:43:27.060Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="RaidNode源码阅读---损坏区块修复CorruptMonitor(LocalBlockIntegerityMonitor)">
+<meta name="twitter:description" content="Hadoop版本:hadoop-20-master
+
+LocalBlockIntegrityMonitor没有提供丢失区块修复功能,损坏区块的修复类就是LocalBlockIngerityMonitor,参见辅助类.LocalBlockIntegrityMonitor主线程:1234while (running) &amp;#123;    try &amp;#123;      LOG.info(&quot;LocalB">
+
+
+
+<script type="text/javascript" id="hexo.configuration">
+  var CONFIG = {
+    scheme: 'Mist',
+    sidebar: 'hide',
+    motion: true
+  };
+</script>
+
+  <title> RaidNode源码阅读---损坏区块修复CorruptMonitor(LocalBlockIntegerityMonitor) | xiaoyun </title>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  <!--[if lte IE 8]>
+  <div style=' clear: both; height: 59px; padding:0 0 0 15px; position: relative;margin:0 auto;'>
+    <a href="http://windows.microsoft.com/en-US/internet-explorer/products/ie/home?ocid=ie6_countdown_bannercode">
+      <img src="http://7u2nvr.com1.z0.glb.clouddn.com/picouterie.jpg" border="0" height="42" width="820"
+           alt="You are using an outdated browser. For a faster, safer browsing experience, upgrade for free today or use other browser ,like chrome firefox safari."
+           style='margin-left:auto;margin-right:auto;display: block;'/>
+    </a>
+  </div>
+<![endif]-->
+  
+
+
+
+  <script type="text/javascript">
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "//hm.baidu.com/hm.js?caeb4129c91d1e6fb3d562d35fedef0d";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+  <div class="container one-column page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-meta ">
+  
+
+  <div class="custom-logo-site-title">
+    <a href="/"  class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <span class="site-title">xiaoyun</span>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+  <p class="site-subtitle"></p>
+</div>
+
+<div class="site-nav-toggle">
+  <button>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+  </button>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu menu-left">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-home fa-fw"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives" rel="section">
+            
+              <i class="menu-item-icon fa fa-archive fa-fw"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories" rel="section">
+            
+              <i class="menu-item-icon fa fa-th fa-fw"></i> <br />
+            
+            分类
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+              <i class="menu-item-icon fa fa-tags fa-fw"></i> <br />
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about" rel="section">
+            
+              <i class="menu-item-icon fa fa-user fa-fw"></i> <br />
+            
+            关于
+          </a>
+        </li>
+      
+
+      
+      
+    </ul>
+  
+
+  
+    <div class="site-search">
+      
+  
+  <form class="site-search-form">
+    <input type="text" id="st-search-input" class="st-search-input st-default-search-input" />
+  </form>
+
+
+<script type="text/javascript">
+  (function(w,d,t,u,n,s,e){w['SwiftypeObject']=n;w[n]=w[n]||function(){
+    (w[n].q=w[n].q||[]).push(arguments);};s=d.createElement(t);
+    e=d.getElementsByTagName(t)[0];s.async=1;s.src=u;e.parentNode.insertBefore(s,e);
+  })(window,document,'script','//s.swiftypecdn.com/install/v2/st.js','_st');
+
+  _st('install', 'Nq1MdxGEF4xQgzakv9MC','2.0.0');
+</script>
+
+
+
+    </div>
+  
+</nav>
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div id="content" class="content">
+          
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                RaidNode源码阅读---损坏区块修复CorruptMonitor(LocalBlockIntegerityMonitor)
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            发表于
+            <time itemprop="dateCreated" datetime="2015-12-12T16:43:27+08:00" content="2015-12-12">
+              2015-12-12
+            </time>
+          </span>
+
+          
+            <span class="post-category" >
+              &nbsp; | &nbsp; 分类于
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Hadoop-0-20/" itemprop="url" rel="index">
+                    <span itemprop="name">Hadoop-0.20</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Hadoop-0-20/RaidNode/" itemprop="url" rel="index">
+                    <span itemprop="name">RaidNode</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Hadoop-0-20/RaidNode/源码阅读/" itemprop="url" rel="index">
+                    <span itemprop="name">源码阅读</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Hadoop-0-20/RaidNode/源码阅读/RaidNode源码阅读/" itemprop="url" rel="index">
+                    <span itemprop="name">RaidNode源码阅读</span>
+                  </a>
+                </span>
+
+                
+                
+
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                &nbsp; | &nbsp;
+                <a href="/CorruptMonitor/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="CorruptMonitor/" itemprop="commentsCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+
+        </div>
+      </header>
+    
+
+
+    <div class="post-body">
+
+      
+      
+
+      
+        <span itemprop="articleBody"><blockquote>
+<p>Hadoop版本:<a href="https://github.com/facebookarchive/hadoop-20" title="facebook hadoop" target="_blank" rel="external">hadoop-20-master</a></p>
+</blockquote>
+<p><code>LocalBlockIntegrityMonitor</code>没有提供丢失区块修复功能,损坏区块的修复类就是LocalBlockIngerityMonitor,参见<a href="辅助类.md">辅助类</a>.<br>LocalBlockIntegrityMonitor主线程:<br><figure class="highlight applescript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">while</span> (<span class="property">running</span>) &#123;</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">      LOG.info(<span class="string">"LocalBlockFixer continuing to run..."</span>);</span><br><span class="line">      doFix();</span><br></pre></td></tr></table></figure></p>
+<p>执行修复的入口为<code>doFix</code>函数.</p>
+<h2 id="doFix">doFix</h2><p>同样的,每次执行操作之前先休眠一段时间,时间为配置项<code>raid.blockfix.interval</code>,缺省5s.<br>然后,通过文件系统获取损坏的文件列表,列表中不包含回收站(.Trash目录).得到列表后过滤掉不能重构的源文件(不是校验文件且对应校验文件不存在,不能重构)<br><figure class="highlight nimrod"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">List</span>&lt;<span class="type">String</span>&gt; corruptFiles = getCorruptFiles();</span><br><span class="line"><span class="type">FileSystem</span> parityFs = new <span class="type">Path</span>(<span class="string">"/"</span>).getFileSystem(getConf());</span><br><span class="line">filterUnreconstructableSourceFiles(parityFs, corruptFiles.<span class="keyword">iterator</span>());</span><br></pre></td></tr></table></figure></p>
+<p>过滤后,如果没有损坏文件,继续循环,否则排序损坏文件列表:<br><figure class="highlight actionscript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (corruptFiles.isEmpty()) &#123;</span><br><span class="line">    <span class="comment">// If there are no corrupt files, retry after some time.</span></span><br><span class="line">    <span class="keyword">continue</span>;</span><br><span class="line">&#125;</span><br><span class="line">helper.sortLostFiles(corruptFiles);</span><br></pre></td></tr></table></figure></p>
+<p><code>helper</code>为<code>BlockReconstructor.CorruptBlockReconstructor</code>类型成员,负责损坏区块的修复,sortLostFiles依据的比较器如下:<br><figure class="highlight processing"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line">Comparator&lt;<span class="keyword">String</span>&gt; comp = <span class="keyword">new</span> Comparator&lt;<span class="keyword">String</span>&gt;() &#123;</span><br><span class="line">  <span class="keyword">public</span> <span class="built_in">int</span> compare(<span class="keyword">String</span> p1, <span class="keyword">String</span> p2) &#123;</span><br><span class="line">    Codec c1 = <span class="keyword">null</span>;</span><br><span class="line">    Codec c2 = <span class="keyword">null</span>;</span><br><span class="line">    <span class="keyword">for</span> (Codec codec : Codec.getCodecs()) &#123;</span><br><span class="line">      <span class="keyword">if</span> (isParityFile(p1, codec)) &#123;</span><br><span class="line">        c1 = codec;</span><br><span class="line">      &#125; <span class="keyword">else</span> <span class="keyword">if</span> (isParityFile(p2, codec)) &#123;</span><br><span class="line">        c2 = codec;</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> (c1 == <span class="keyword">null</span> &amp;&amp; c2 == <span class="keyword">null</span>) &#123;</span><br><span class="line">      <span class="keyword">return</span> <span class="number">0</span>; <span class="comment">// both are source files</span></span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> (c1 == <span class="keyword">null</span> &amp;&amp; c2 != <span class="keyword">null</span>) &#123;</span><br><span class="line">      <span class="keyword">return</span> -<span class="number">1</span>; <span class="comment">// only p1 is a source file</span></span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> (c2 == <span class="keyword">null</span> &amp;&amp; c1 != <span class="keyword">null</span>) &#123;</span><br><span class="line">      <span class="keyword">return</span> <span class="number">1</span>; <span class="comment">// only p2 is a source file</span></span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> c2.priority - c1.priority; <span class="comment">// descending order</span></span><br><span class="line">  &#125;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure></p>
+<p>即源文件排在前面先编码且源文件之间保证原来的插入顺序,校验文件在源文件后面,且校验文件之间对应的Codec优先级高的在前面.<br>排序后,对每一个损坏文件通过<code>reconstructFile</code>进行修复:<br><figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">for</span> (String srcPathStr: corruptFiles) &#123;</span><br><span class="line">    <span class="keyword">if</span> (!running) <span class="keyword">break</span>;</span><br><span class="line">    <span class="keyword">long</span> recoveryTime = -<span class="number">1</span>;</span><br><span class="line">    Path srcPath = <span class="keyword">new</span> Path(srcPathStr);</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">      boolean <span class="keyword">fixed</span> = helper.reconstructFile(srcPath, <span class="keyword">null</span>);</span><br><span class="line">      <span class="keyword">if</span> (<span class="keyword">fixed</span>) &#123;</span><br><span class="line">        incrFilesFixed();</span><br><span class="line">        recoveryTime = System.currentTimeMillis() - detectionTime;</span><br><span class="line">        lastSuccessfulFixTime = System.currentTimeMillis();</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    ...</span><br></pre></td></tr></table></figure></p>
+<h2 id="reconstructFile">reconstructFile</h2><p>方法原型如下:<br><figure class="highlight stylus"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">boolean <span class="function"><span class="title">reconstructFile</span><span class="params">(Path srcPath, Context context)</span></span></span><br></pre></td></tr></table></figure></p>
+<p>针对srcPath为不同文件类型以及是否支持StripeStore有不同的方式进行修复:<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br></pre></td><td class="code"><pre><span class="line">srcStat = fs.getFileStatus(srcPath);</span><br><span class="line"><span class="keyword">if</span> (RaidNode.isParityHarPartFile(srcPath)) &#123;</span><br><span class="line">    <span class="function"><span class="keyword">return</span> <span class="title">processParityHarPartFile</span><span class="params">(srcPath, progress)</span></span>;</span><br><span class="line">&#125;<span class="comment">//损坏文件为校验文件,且已经打包成har文件</span></span><br><span class="line"></span><br><span class="line"><span class="comment">// Reconstruct parity file</span></span><br><span class="line"><span class="keyword">for</span> (Codec codec : Codec.getCodecs()) &#123;</span><br><span class="line">  <span class="keyword">if</span> (isParityFile(srcPath, codec)) &#123;</span><br><span class="line">    Decoder decoder = <span class="keyword">new</span> Decoder(getConf(), codec);</span><br><span class="line">    decoder.connectToStore(srcPath);</span><br><span class="line">    <span class="function"><span class="keyword">return</span> <span class="title">processParityFile</span><span class="params">(srcPath, decoder, context)</span></span>;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;<span class="comment">//损坏文件为校验文件,没有打包成har文件</span></span><br><span class="line"></span><br><span class="line"><span class="comment">// Reconstruct source file without connecting to stripe store </span></span><br><span class="line"><span class="keyword">for</span> (Codec codec : Codec.getCodecs()) &#123;</span><br><span class="line">  ParityFilePair ppair = ParityFilePair.getParityFile(</span><br><span class="line">      codec, srcStat, getConf());</span><br><span class="line">  <span class="keyword">if</span> (ppair != <span class="keyword">null</span>) &#123;</span><br><span class="line">    Decoder decoder = <span class="keyword">new</span> Decoder(getConf(), codec);</span><br><span class="line">    decoder.connectToStore(srcPath);</span><br><span class="line">    <span class="function"><span class="keyword">return</span> <span class="title">processFile</span><span class="params">(srcPath, ppair, decoder, <span class="keyword">false</span>, context)</span></span>;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;<span class="comment">//损坏文件为源文件,首先不通过StripeStore进行修复</span></span><br><span class="line"></span><br><span class="line"><span class="comment">// Reconstruct source file through stripe store</span></span><br><span class="line"><span class="keyword">for</span> (Codec codec : Codec.getCodecs()) &#123;</span><br><span class="line">  <span class="keyword">if</span> (!codec.isDirRaid) &#123;</span><br><span class="line">    <span class="keyword">continue</span>;</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">try</span> &#123;</span><br><span class="line">    Decoder decoder = <span class="keyword">new</span> Decoder(getConf(), codec);</span><br><span class="line">    decoder.connectToStore(srcPath);</span><br><span class="line">    <span class="keyword">if</span> (processFile(srcPath, <span class="keyword">null</span>, decoder, <span class="keyword">true</span>, context)) &#123;</span><br><span class="line">      <span class="keyword">return</span> <span class="keyword">true</span>;</span><br><span class="line">    &#125;</span><br><span class="line">  &#125; <span class="keyword">catch</span> (Exception ex) &#123;</span><br><span class="line">    LogUtils.logRaidReconstructionMetrics(LOGRESULTS.FAILURE, <span class="number">0</span>,</span><br><span class="line">        codec, srcPath, -<span class="number">1</span>, LOGTYPES.OFFLINE_RECONSTRUCTION_USE_STRIPE,</span><br><span class="line">        fs, ex, context);</span><br><span class="line">  &#125;</span><br><span class="line">&#125;<span class="comment">//损坏文件为源文件,对应目录Raid,尝试使用StripeStore进行修复</span></span><br></pre></td></tr></table></figure></p>
+<h3 id="Decoder">Decoder</h3><p>源文件和非har文件中的校验文件的修复都通过Decoder,构造:<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="title">Decoder</span><span class="params">(Configuration conf, Codec codec)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">this</span>.conf = conf;</span><br><span class="line">    <span class="keyword">this</span>.parallelism = conf.getInt(<span class="string">"raid.encoder.parallelism"</span>, DEFAULT_PARALLELISM);</span><br><span class="line">    <span class="keyword">this</span>.codec = codec;</span><br><span class="line">    <span class="keyword">this</span>.code = codec.createErasureCode(conf);</span><br><span class="line">    <span class="keyword">this</span>.rand = <span class="keyword">new</span> Random();</span><br><span class="line">    <span class="keyword">this</span>.maxBufSize = conf.getInt(DECODING_MAX_BUFFER_SIZE_KEY, </span><br><span class="line">        DEFAULT_MAX_BUFFER_SIZE);</span><br><span class="line">    <span class="keyword">this</span>.bufSize = conf.getInt(<span class="string">"raid.decoder.bufsize"</span>, maxBufSize);</span><br><span class="line">    <span class="keyword">this</span>.writeBufs = <span class="keyword">new</span> <span class="keyword">byte</span>[codec.parityLength][];</span><br><span class="line">    <span class="keyword">this</span>.readBufs = <span class="keyword">new</span> <span class="keyword">byte</span>[codec.parityLength + codec.stripeLength][];</span><br><span class="line">    </span><br><span class="line">    parallelCode = <span class="keyword">new</span> ErasureCode[parallelism];</span><br><span class="line">    <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; parallelism; i++) &#123;</span><br><span class="line">      parallelCode[i] = codec.createErasureCode(conf);</span><br><span class="line">    &#125;</span><br><span class="line">    allocateBuffers();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>与编码过程的Encoder类似,<code>parallelism</code>定义了读取输入流线程的个数,不过还定义了参与编码的ErasureCode的个数.<br><code>maxBufSize</code>和<code>bufSize</code>与Encoder作用类似,不过配置项对应<code>raid.decoder.max.buffer.size</code>和<code>raid.decoder.bufSize</code>.<br>除此之外,相比较Encoder多了<code>readBufs</code>,对应parityLength+stripeLength个输入流,而Encoder中输入流缓冲数据保存在ParallelStripReader的阻塞队列<br>中.还多了<code>parallelCode</code>成员,用于并行解码,作用在后面解码过程中可以看到.  </p>
+<p>构造了Decoder对象后,调用<code>connectToStore</code>相应ChecksumStore,StripeStore创建初始化并验证合理性.<br>读取本地校验存储目录(LocalChecksumStore)和本地Stripe存储目录(LocalStripeStore)下的文件初始化ChecksumStore和StripeStore,体现在<br>编码过程后将计算的校验和以及Stripe信息更新至Encoder的ChecksumStore和StripeStore的同时,会写到相应文件,这样构造Decoder时便同步了以前的<br>校验和和Stripe信息.</p>
+<p>对于源文件和不在har文件中的校验文件,构造了Decoder对象以及相应存储器后,通过不同的方法解码.</p>
+<h2 id="校验文件processParityFile解码">校验文件processParityFile解码</h2><p>方法原型如下:<br><figure class="highlight stylus"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">boolean <span class="function"><span class="title">processParityFile</span><span class="params">(Path parityPath, Decoder decoder, Context context)</span></span></span><br></pre></td></tr></table></figure></p>
+<p><code>parityPath</code>为要修复的校验文件,<code>decoder</code>为解码器,<code>context</code>在LocalBlockIntegrityMonitor中为null,用于MapReduce任务.<br>校验文件修复需要依靠源文件,因此首先获得对应的源文件路径,并检查源文件是否存在,不存在时无法修复,直接返回false:<br><figure class="highlight autoit"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">DistributedFileSystem parityFs = getDFS(parityPath)<span class="comment">;</span></span><br><span class="line">Path srcPath = RaidUtils.sourcePathFromParityPath(parityPath, parityFs)<span class="comment">;</span></span><br><span class="line"><span class="keyword">if</span> (srcPath == <span class="literal">null</span>) &#123;</span><br><span class="line">  <span class="built_in">LOG</span>.warn(<span class="string">"Could not get regular file corresponding to parity file "</span> +  </span><br><span class="line">      parityPath + <span class="string">", ignoring..."</span>)<span class="comment">;</span></span><br><span class="line">  <span class="keyword">return</span> <span class="literal">false</span><span class="comment">;</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>然后检查源文件和校验文件的修改时间是否一致,不一致的不进行修复,返回false:<br><figure class="highlight autoit"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (srcStat.getModificationTime() != parityStat.getModificationTime()) &#123;</span><br><span class="line">  <span class="built_in">LOG</span>.warn(<span class="string">"Mismatching timestamp for "</span> + srcPath + <span class="string">" and "</span> + parityPath + </span><br><span class="line">      <span class="string">", ignoring..."</span>)<span class="comment">;</span></span><br><span class="line">  <span class="keyword">return</span> <span class="literal">false</span><span class="comment">;</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>接着获取校验文件内的损坏区块,若损坏区块数为0,不需要修复,直接返回false<br><figure class="highlight lasso"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">List</span>&lt;LocatedBlockWithMetaInfo&gt; lostBlocks = lostBlocksInFile(parityFs, uriPath, parityStat);<span class="comment">//读取损坏文件中损坏的区块</span></span><br><span class="line"><span class="keyword">if</span> (lostBlocks<span class="built_in">.</span>size() == <span class="number">0</span>) &#123;</span><br><span class="line">  <span class="keyword">LOG</span><span class="built_in">.</span>warn(<span class="string">"Couldn't find any lost blocks in parity file "</span> + parityPath + </span><br><span class="line">      <span class="string">", ignoring..."</span>);</span><br><span class="line">  <span class="keyword">return</span> <span class="literal">false</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p><code>lostBlocksInFile</code>根据不同的<code>BlockReconstructor</code>有不同的实现,LocalBlockIntegrityMonitor对应的为<code>helper</code>成员,通过文件系统Client<br>获取文件对应所有Blocks信息,读取每一个Block对应的corrupt属性来判断是否损坏.<br>若校验文件中存在损坏的区块,则循环对每一个损坏的区块进行修复:<br><figure class="highlight armasm"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="label">List</span>&lt;<span class="keyword">Block&gt; </span><span class="keyword">blocksLostChecksum </span>= new ArrayList&lt;<span class="keyword">Block&gt;();</span><br><span class="line"></span><span class="label">List</span>&lt;<span class="keyword">Block&gt; </span><span class="keyword">blocksLostStripe </span>= new ArrayList&lt;<span class="keyword">Block&gt;();</span><br><span class="line"></span><span class="label">for</span> (LocatedBlockWithMetaInfo lb: lostBlocks) &#123; //对每一个丢失的区块进行修复</span><br><span class="line">  <span class="keyword">Block </span>lostBlock = lb.getBlock()<span class="comment">;</span></span><br><span class="line">  long lostBlockOffset = lb.getStartOffset()<span class="comment">;</span></span><br><span class="line">  LOG.info(<span class="string">"Found lost block "</span> + lostBlock +</span><br><span class="line">      <span class="string">", offset "</span> + lostBlockOffset)<span class="comment">;</span></span><br><span class="line">  ...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>checkLostBlocks(blocksLostChecksum, blocksLostStripe, parityPath, decoder.codec);<br>对每一个损坏的区块,如果存在ChecksumStore判断是否丢失了校验和,通过<code>abortReconstruction</code>判断,目前对文件Raid的rs码和xor码允许丢失校验和,<br>即此时仍然允许进行修复.函数返回true表示区块对应校验和丢失,不能修复,加入到<code>blocksLostChecksum</code>列表中.<br><figure class="highlight gradle"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//从Decoder的ChecksumStore中读取区块丢失区块对应校验和，ChecksumStore在Decoder创建后构造，读取本地目录下的文件初始化</span></span><br><span class="line"><span class="keyword">Long</span> oldCRC = decoder.retrieveChecksum(lostBlock, parityPath, lostBlockOffset, parityFs, context);</span><br><span class="line"><span class="keyword">if</span> (abortReconstruction(oldCRC, decoder)) &#123;</span><br><span class="line">    blocksLostChecksum.add(lostBlock);</span><br><span class="line">    <span class="keyword">continue</span>;</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">private</span> <span class="keyword">boolean</span> abortReconstruction(<span class="keyword">Long</span> oldCRC, Decoder decoder) &#123;</span><br><span class="line"><span class="comment">// If current codec is simulated file-level raid,</span></span><br><span class="line"><span class="comment">// We assume we only have XOR and RS</span></span><br><span class="line"><span class="comment">// it's allowed to lose checksums</span></span><br><span class="line"><span class="keyword">return</span> oldCRC == <span class="keyword">null</span> &amp;&amp; decoder.checksumStore != <span class="keyword">null</span> &amp;&amp; </span><br><span class="line">    (decoder.codec.isDirRaid ||</span><br><span class="line">    !decoder.codec.simulateBlockFix ||</span><br><span class="line">     decoder.requiredChecksumVerification);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>而若存在StripeStore,则如果对应的StripeInfo不存在,加入到<code>blocksLostStripe</code>中,不予修复.<br><figure class="highlight processing"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//从Decoder的StripeStore中读取StripeInfo，StripeStore在Decoder创建后构造，读取本地目录下的文件初始化</span></span><br><span class="line">StripeInfo si = decoder.retrieveStripe(lostBlock,srcPath, lostBlockOffset, srcFs, context, <span class="keyword">false</span>);</span><br><span class="line"><span class="keyword">if</span> (si == <span class="keyword">null</span> &amp;&amp; decoder.stripeStore != <span class="keyword">null</span>) &#123;</span><br><span class="line">    blocksLostStripe.<span class="built_in">add</span>(lostBlock);</span><br><span class="line">    <span class="keyword">continue</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>对于能修复的区块,创建以”区块名.tmp”为名字的临时文件<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">File <span class="built_in">local</span>BlockFile = File.createTempFile(lostBlock.getBlockName(), <span class="string">".tmp"</span>);</span><br><span class="line"><span class="built_in">local</span>BlockFile.deleteOnExit();</span><br></pre></td></tr></table></figure></p>
+<p>然后通过<code>recoverParityBlockToFile</code>将修复的区块数据写到该临时文件中,并验证之前该区块的校验和和修复后区块校验和是否相同<br><figure class="highlight stata"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">CRC32 <span class="keyword">crc</span> = decoder.recoverParityBlockToFile(srcFs, srcStat, parityFs,</span><br><span class="line">        parityPath, blockSize, lostBlockOffset, localBlockFile, si,context);</span><br><span class="line">        </span><br><span class="line"><span class="keyword">if</span> (<span class="keyword">crc</span> != null &amp;&amp; oldCRC != null &amp;&amp; <span class="keyword">crc</span>.getValue() != oldCRC) &#123;</span><br><span class="line">  <span class="comment">// checksum doesn't match, it's dangerous to send it</span></span><br><span class="line">  IOException ioe = new IOException(<span class="string">"Block "</span> + lostBlock.<span class="keyword">toString</span>()</span><br><span class="line">      + <span class="string">" new checksum "</span> + <span class="keyword">crc</span>.getValue()</span><br><span class="line">      + <span class="string">" doesn't match the old one "</span> + oldCRC);</span><br><span class="line">  LogUtils.logRaidReconstructionMetrics(LOGRESULTS.FAILURE, 0,</span><br><span class="line">      decoder.codec, parityPath, lostBlockOffset,</span><br><span class="line">      LOGTYPES.OFFLINE_RECONSTRUCTION_CHECKSUM_VERIFICATION,</span><br><span class="line">      parityFs, ioe, context);</span><br><span class="line">  throw ioe;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>最终将临时文件重新发送到文件系统中<br><figure class="highlight lisp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">computeMetadataAndSendReconstructedBlock<span class="list">(</span><br><span class="line">        <span class="keyword">localBlockFile</span>, lostBlock, blockSize, lb.getLocations<span class="list">()</span>,</span><br><span class="line">        lb.getDataProtocolVersion<span class="list">()</span>, lb.getNamespaceID<span class="list">()</span>,progress)</span><span class="comment">;</span></span><br></pre></td></tr></table></figure></p>
+<p><code>recoverParityBlockToFile</code>中,只是创建临时文件的输出流,然后通过<code>fixErasedBlock</code>进行修复</p>
+<h2 id="源文件processFile解码">源文件processFile解码</h2><p>源文件修复流程和校验文件类似,区别在于源文件可能所属文件Raid或目录Raid,因此一个Stripe可能跨越多个文件,需要通过构建相应StripeReader或通过<br>StripeInfo进行修复.<br><code>processFile</code>中前面处理方式一样,读取文件的损坏区块后,对每一个区块进行校验和和Stripe的检查,检查通过后,源文件修复有两种方式,使用StripeStore<br>或构建StripeReader<br><figure class="highlight armasm"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="label">if</span> (fromStripeStore) &#123;</span><br><span class="line">  crc = decoder.recoverBlockToFileFromStripeInfo(srcFs, srcPath,</span><br><span class="line">      lostBlock, localBlockFile, <span class="keyword">blockSize,</span><br><span class="line"></span>      lostBlockOffset, <span class="keyword">blockContentsSize, </span>si, context)<span class="comment">;</span></span><br><span class="line">&#125; <span class="preprocessor">else</span> &#123;</span><br><span class="line">  crc = decoder.recoverBlockToFile(srcFs, srcStat,parityPair.getFileSystem(),</span><br><span class="line">                parityPair.getPath(), <span class="keyword">blockSize, </span>lostBlockOffset, localBlockFile,</span><br><span class="line">                <span class="keyword">blockContentsSize, </span>si, context)<span class="comment">;</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>而由上面reconstructFile修复流程来看,只有最后一种对目录Raid的修复才使用StripeStore修复.  </p>
+<p><code>recoverBlockToFile</code>和<code>recoverParityBlockToFile</code>一样,简单的构造临时文件的流,调用<code>fixErasedBlock</code>进行修复,只是参数有点不同,其中的<br><code>fixSource</code>在这里为true,而recoverParityBlockToFile为false.  </p>
+<p>而<code>recoverBlockToFileFromStripeInfo</code>简单的构造临时文件流,调用<code>fixErasedBlockImpl</code>,其中传入该方法的<code>recoverFromStripeStore</code>为true,<br>且<code>lostBlock</code>参数为损坏区块.</p>
+<p>修复完后,同样的将临时文件发送给文件系统.  </p>
+<h2 id="fixErasedBlock">fixErasedBlock</h2><p>方法原型:<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">CRC32 fixErasedBlock(</span><br><span class="line">      FileSystem srcFs, FileStatus srcStat, FileSystem parityFs, Path parityFile,</span><br><span class="line">      <span class="keyword">boolean</span> fixSource, <span class="keyword">long</span> blockSize, <span class="keyword">long</span> errorOffset, <span class="keyword">long</span> limit, <span class="keyword">boolean</span> partial,</span><br><span class="line">      OutputStream out, StripeInfo si, Context context, <span class="keyword">boolean</span> skipVerify)</span><br><span class="line">      <span class="keyword">throws</span> IOException, InterruptedException</span><br></pre></td></tr></table></figure></p>
+<p>由上分析,修复校验区块<code>fixSource</code>为false,修复源文件区块时<code>fixSource</code>为true.<br><code>errorOffset</code>为损坏区块在文件中的偏移量<br><code>limit</code>为要修复的大小<br><code>partial</code>是否进行局部修复,即从一个Block的非开始部分开始修复,只修复Block的一部分数据,一般来讲不支持<br><code>out</code>修复数据输出流<br><code>si</code>损坏区块所在的Stripe信息<br><code>skipVerify</code>,codec的<code>simulateBlockFix</code>为true时,使用原来的编码方式修复,用于确定是否跳过验证老的编码方式修复所得的校验和和新的编码方式<br>所得校验和一致,一般为false,即需验证  </p>
+<p>fixErasedBlock中如果codec的simulateBlockFix为true,则使用老的编码方式进行修复<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (<span class="keyword">this</span>.codec.simulateBlockFix) &#123;</span><br><span class="line">    String oldId = getOldCodeId(srcStat);</span><br><span class="line">    ...</span><br><span class="line">    Decoder decoder = (oldId.equals(<span class="string">"xor"</span>))? <span class="keyword">new</span> XORDecoder(conf): <span class="keyword">new</span> ReedSolomonDecoder(conf);</span><br><span class="line">    ...</span><br><span class="line">    CRC32 oldCRC = (skipVerify &amp;&amp; checksumStore == <span class="keyword">null</span>)? <span class="keyword">null</span>: <span class="keyword">new</span> CRC32();</span><br><span class="line">    <span class="keyword">long</span> oldLen = decoder.fixErasedBlockImpl(srcFs, srcFile, parityFs,</span><br><span class="line">                    parityFile, fixSource, blockSize, errorOffset, limit, partial, out,</span><br><span class="line">                    context, oldCRC, si, <span class="keyword">false</span>, <span class="keyword">null</span>);</span><br></pre></td></tr></table></figure></p>
+<p>并且在skipVerify为false时,使用上面创建的Decoder对象进行修复<br><figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (!skipVerify) &#123;</span><br><span class="line">        newCRC = <span class="keyword">new</span> CRC32();</span><br><span class="line">        newLen = <span class="keyword">this</span>.fixErasedBlockImpl(srcFs, srcFile, parityFs,</span><br><span class="line">            parityFile, fixSource, blockSize, errorOffset, limit, <span class="keyword">partial</span>, <span class="keyword">null</span>,</span><br><span class="line">            context, newCRC, <span class="keyword">null</span>, <span class="keyword">false</span>, <span class="keyword">null</span>);</span><br><span class="line">      &#125;</span><br></pre></td></tr></table></figure></p>
+<p>并且将老的修复方式得到的校验和和新的修复方式得到的校验和进行比较验证:<br><figure class="highlight sml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (!skipVerify) &#123;</span><br><span class="line">    <span class="keyword">if</span> (newCRC.getValue<span class="literal">()</span> != oldCRC.getValue<span class="literal">()</span> ||</span><br><span class="line">        newLen != oldLen) &#123;</span><br><span class="line">        ...</span><br></pre></td></tr></table></figure></p>
+<p>从上可以看出,simulateBlockFix时,老的方式进行修复时,传入输出流out,同时需要验证时,新方式进行修复传入的输出流为null,即修复的区块数据不写到<br>实际输出流中,只是获得其校验和和长度,进行验证而已,真正工作的时老的编码方式.  </p>
+<p>而simulateBlockFix为false时,直接使用创建的Decoder对象进行修复<br><figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">else</span> &#123;</span><br><span class="line">  CRC32 crc = <span class="keyword">null</span>;</span><br><span class="line">  <span class="keyword">if</span> (checksumStore != <span class="keyword">null</span>) &#123;</span><br><span class="line">    crc = <span class="keyword">new</span> CRC32();</span><br><span class="line">  &#125;</span><br><span class="line">  fixErasedBlockImpl(srcFs, srcFile, parityFs, parityFile, fixSource, blockSize,</span><br><span class="line">                     errorOffset, limit, <span class="keyword">partial</span>, <span class="keyword">out</span>, context, crc, si, <span class="keyword">false</span>, <span class="keyword">null</span>);</span><br><span class="line">  <span class="keyword">return</span> crc;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>这里不知道simulateBlockFix使用新旧两种方式进行修复的意义,不过最终都使用<code>fixErasedBlockImpl</code>进行区块修复.  </p>
+<h2 id="fixErasedBlockImpl">fixErasedBlockImpl</h2><p>先看以上三种不同的调用方式:<br><figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//recoverBlockToFileFromStripeInfo,通过StripeStore源文件的修复</span></span><br><span class="line">fixErasedBlockImpl(srcFs, srcPath, srcFs, <span class="keyword">null</span>, <span class="keyword">true</span>, blockSize,</span><br><span class="line">                        lostBlockOffset, limit, <span class="keyword">false</span>, <span class="keyword">out</span>, context, crc, si, <span class="keyword">true</span>, lostBlock);</span><br><span class="line"><span class="comment">//recoverBlockToFile,即不通过StripeStore的源文件修复,其中fixSource为true</span></span><br><span class="line">fixErasedBlockImpl(srcFs, srcFile, parityFs, parityFile, fixSource, blockSize,</span><br><span class="line">                     errorOffset, limit, <span class="keyword">partial</span>, <span class="keyword">out</span>, context, crc, si, <span class="keyword">false</span>, <span class="keyword">null</span>);</span><br><span class="line"><span class="comment">//校验文件的修复,fixSource为false</span></span><br><span class="line">fixErasedBlockImpl(srcFs, srcFile, parityFs, parityFile, fixSource, blockSize,</span><br><span class="line">                     errorOffset, limit, <span class="keyword">partial</span>, <span class="keyword">out</span>, context, crc, si, <span class="keyword">false</span>, <span class="keyword">null</span>);</span><br></pre></td></tr></table></figure></p>
+<p><code>fixErasedBlockImpl</code>方法原型<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">long</span> fixErasedBlockImpl(FileSystem srcFs, Path srcFile, FileSystem parityFs,</span><br><span class="line">      Path parityFile, <span class="keyword">boolean</span> fixSource, <span class="keyword">long</span> blockSize, <span class="keyword">long</span> errorOffset,</span><br><span class="line">      <span class="keyword">long</span> limit, <span class="keyword">boolean</span> partial, OutputStream out, Context context,</span><br><span class="line">      CRC32 crc, StripeInfo si, <span class="keyword">boolean</span> recoverFromStripeStore, Block lostBlock)</span><br><span class="line">          <span class="keyword">throws</span> IOException</span><br></pre></td></tr></table></figure></p>
+<p>即对于源文件区块的修复和校验文件区块的修复来说,主要不同在于<code>fixSource</code>参数,而通过StripeStore进行源文件区块的修复时,<code>recoverFromStripeStore</code><br>为true,以及最后的<code>lostBlock</code>存在.而这三种方式主要的不同点在于获取损坏区块所属Stripe,以及用于修复的输入流的方式不同.  </p>
+<p>首先,获取区块在Stripe中对应的位置,一个Stripe中校验区块的索引号在前,源区块的索引号在后.<br><figure class="highlight nginx"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="title">if</span> (recoverFromStripeStore) &#123;</span><br><span class="line">  <span class="title">erasedLocationToFix</span> = si.getBlockIdxInStripe(lostBlock);</span><br><span class="line">&#125; <span class="title">else</span> if (fixSource) &#123;</span><br><span class="line">  <span class="title">lp</span> = StripeReader.getBlockLocation(codec, srcFs,</span><br><span class="line">      srcFile, blockIdx, conf);</span><br><span class="line">  <span class="title">erasedLocationToFix</span> = codec.parityLength + lp.getBlockIdxInStripe(); </span><br><span class="line">&#125; <span class="title">else</span> &#123;</span><br><span class="line">  <span class="title">lp</span> = StripeReader.getParityBlockLocation(codec, blockIdx);</span><br><span class="line">  <span class="title">erasedLocationToFix</span> = lp.getBlockIdxInStripe();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如果从StripeStore中修复,则直接根据传入的<code>lostBlock</code>以及对应所在的StripeInfo获取该区块在Stripe的索引.这个只需简单的在si中查找与lostBlock<br>相匹配的区块即可.<br>否则如果不通过StripeStore对源区块进行修复,则通过StripeReader的静态方法<code>getBlockLocation</code>获取<code>LocationPair</code>对象,一个LocationPair<br>管理了区块所在的Stripe索引以及在该Stripe中的区块索引.<br><figure class="highlight armasm"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="label">if</span> (codec.isDirRaid) &#123;//若为目录Raid，遍历目录下的文件列表，直到srcFile中损坏区块，统计损坏区块相对于目录的区块索引</span><br><span class="line">  Path parentPath = srcFile.getParent()<span class="comment">;</span></span><br><span class="line">  <span class="preprocessor">if</span> (lfs == null) &#123;</span><br><span class="line">    lfs = RaidNode.listDirectoryRaidFileStatus(conf, srcFs, parentPath)<span class="comment">;</span></span><br><span class="line">  &#125;</span><br><span class="line">  <span class="preprocessor">if</span> (lfs == null) &#123;</span><br><span class="line">    throw new IOException(<span class="string">"Couldn't list files under "</span> + parentPath)<span class="comment">;</span></span><br><span class="line">  &#125;</span><br><span class="line">  int <span class="keyword">blockNum </span>= <span class="number">0</span><span class="comment">;</span></span><br><span class="line">  Path qSrcFile = srcFs.makeQualified(srcFile)<span class="comment">;</span></span><br><span class="line">  for (FileStatus fsStat: lfs) &#123;</span><br><span class="line">    <span class="preprocessor">if</span> (!fsStat.getPath().equals(qSrcFile)) &#123;</span><br><span class="line">      <span class="keyword">blockNum </span>+= RaidNode.getNumBlocks(fsStat)<span class="comment">;</span></span><br><span class="line">    &#125; <span class="preprocessor">else</span> &#123;</span><br><span class="line">      <span class="keyword">blockNum </span>+= <span class="keyword">blockIdxInFile;</span><br><span class="line"></span>      <span class="keyword">break;</span><br><span class="line"></span>    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">blockIdx </span>= <span class="keyword">blockNum;//损坏区块相对于目录的区块索引</span><br><span class="line"></span>&#125;</span><br><span class="line">//文件Raid相对于文件的区块索引则直接为<span class="keyword">blockIdxInFile</span><br><span class="line"></span><span class="keyword">stripeIdx </span>= <span class="keyword">blockIdx </span>/ codec.<span class="keyword">stripeLength;</span><br><span class="line"></span><span class="keyword">blockIdxInStripe </span>= <span class="keyword">blockIdx </span>% codec.<span class="keyword">stripeLength; </span></span><br><span class="line"><span class="label">return</span> new LocationPair(<span class="keyword">stripeIdx, </span><span class="keyword">blockIdxInStripe, </span>lfs)<span class="comment">;</span></span><br></pre></td></tr></table></figure></p>
+<p>如果codec为目录Raid，则需遍历<code>srcFile</code>所在父目录下的文件列表，直到遍历到srcFile,计算区块数为总区块索引，便能得到对应的Stripe索引和在Stripe中的区块索引<br>而如果codec为文件Raid的话，则偏移量所得的区块索引便是总区块索引，得到对应的Stripe索引和Stripe中区块索引.  </p>
+<p>而如果是对校验区块的修复，因为校验文件只能是一个，所以偏移量所得的区块索引为总区块索引，直接得到对应的Stripe索引和在Stripe中的区块索引.  </p>
+<p>得到了在损坏区块对应的Stripe以及在Stripe中的位置后，添加到需要修复的位置集合<code>erasedLocations</code>中<br><figure class="highlight lasso"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">List</span>&lt;<span class="built_in">Integer</span>&gt; erasedLocations = <span class="literal">new</span> ArrayList&lt;<span class="built_in">Integer</span>&gt;();</span><br><span class="line"><span class="comment">// Start off with one erased location.</span></span><br><span class="line">erasedLocations<span class="built_in">.</span>add(erasedLocationToFix);</span><br><span class="line"><span class="built_in">Set</span>&lt;<span class="built_in">Integer</span>&gt; locationsToNotRead = <span class="literal">new</span> HashSet&lt;<span class="built_in">Integer</span>&gt;();</span><br></pre></td></tr></table></figure></p>
+<p><code>locationsToNotRead</code>为修复区块时不需要读取的数据块位置.<br>如果支持区块的局部修复，计算区块的开始偏移量，一般来讲不支持局部修复，只能修复整个区块<br><figure class="highlight nginx"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="title">if</span> (partial) &#123;</span><br><span class="line">  <span class="title">startOffsetInBlock</span> = <span class="built_in">error</span>Offset % blockSize;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>然后，便是解码修复过程，在实际解码之前要创建相应的输入流以及ParallelStreamReader对象，并行从输入流中读取数据<br><figure class="highlight processing"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (parallelReader == <span class="keyword">null</span>) &#123;</span><br><span class="line">    <span class="keyword">long</span> offsetInBlock = written + startOffsetInBlock;</span><br><span class="line">    <span class="keyword">if</span> (recoverFromStripeStore) &#123;<span class="comment">//通过StripStore修复区块的，直接使用StripeInfo获取对应输入流</span></span><br><span class="line">      inputs = StripeReader.buildInputsFromStripeInfo((DistributedFileSystem)srcFs, </span><br><span class="line">          srcStat, codec, si, offsetInBlock, </span><br><span class="line">          limit, erasedLocations, locationsToNotRead, code);</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;<span class="comment">//不使用StripeStore修复，构建相应StripeReader读取输入流</span></span><br><span class="line">      StripeReader sReader = StripeReader.getStripeReader(codec,</span><br><span class="line">        conf, blockSize, srcFs, lp.getStripeIdx(), srcStat);</span><br><span class="line">      inputs = sReader.buildInputs(srcFs, srcFile,</span><br><span class="line">        srcStat, parityFs, parityFile, parityStat,</span><br><span class="line">        lp.getStripeIdx(), offsetInBlock, erasedLocations,</span><br><span class="line">        locationsToNotRead, code);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="built_in">int</span> i = <span class="number">0</span>;</span><br><span class="line">    <span class="keyword">for</span> (<span class="built_in">int</span> location : locationsToNotRead) &#123;</span><br><span class="line">      locationsToFix[i] = location;</span><br><span class="line">      i++;</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">assert</span>(parallelReader == <span class="keyword">null</span>);</span><br><span class="line">    <span class="comment">//获取输入流后，构建ParallelStreamReader并行读取输入流中数据</span></span><br><span class="line">    parallelReader = <span class="keyword">new</span> ParallelStreamReader(reporter, inputs, </span><br><span class="line">      (<span class="built_in">int</span>)Math.<span class="built_in">min</span>(bufSize, limit),</span><br><span class="line">      parallelism, boundedBufferCapacity,</span><br><span class="line">      Math.<span class="built_in">min</span>(limit, blockSize));</span><br><span class="line">    parallelReader.start();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>与编码过程一样，创建ParallelStreamReader需要获取指定的输入流。而对不同的修复方式，获取输入流的方式不同。  </p>
+<h3 id="获取输入流以及构建ParallelStreamReader对象">获取输入流以及构建ParallelStreamReader对象</h3><h4 id="使用StripeStore修复，输入流">使用StripeStore修复，输入流</h4><p>使用StripeStore修复源文件区块，通过StripeReader的静态方法<code>buildInputsFromStripeInfo</code>获取一个Stripe的输入流。<br>buildInputsFromStripeInfo如下：<br><figure class="highlight vbnet"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> InputStream[] buildInputsFromStripeInfo(</span><br><span class="line">      DistributedFileSystem srcFs, FileStatus srcStat, Codec codec,StripeInfo si, <span class="built_in">long</span> offsetInBlock, </span><br><span class="line">      <span class="built_in">long</span> limit, List&lt;<span class="built_in">Integer</span>&gt; erasedLocations, <span class="keyword">Set</span>&lt;<span class="built_in">Integer</span>&gt; locationsToNotRead, ErasureCode code</span><br><span class="line">      ) throws IOException</span><br></pre></td></tr></table></figure></p>
+<p>返回的输入流个数为stripe中区块的数目，即stripeLength+parityLength.<br><figure class="highlight accesslog"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">InputStream<span class="string">[]</span> inputs = new InputStream<span class="string">[codec.stripeLength + codec.parityLength]</span>;</span><br></pre></td></tr></table></figure></p>
+<p>首先，根据损坏区块的位置<code>erasedLocations</code>获取修复损坏区块应该读取的区块索引<br><figure class="highlight processing"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line">locationsToNotRead.<span class="built_in">clear</span>();</span><br><span class="line">List&lt;Integer&gt; locationsToRead = code.locationsToReadForDecode(erasedLocations);</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> List&lt;Integer&gt; locationsToReadForDecode(List&lt;Integer&gt; erasedLocations) <span class="keyword">throws</span> TooManyErasedLocations &#123;</span><br><span class="line">    List&lt;Integer&gt; locationsToRead = <span class="keyword">new</span> ArrayList&lt;Integer&gt;(stripeSize());</span><br><span class="line">    <span class="built_in">int</span> limit = stripeSize() + paritySize();</span><br><span class="line">    <span class="comment">// Loop through all possible locations in the stripe.</span></span><br><span class="line">    <span class="keyword">for</span> (<span class="built_in">int</span> loc = limit - <span class="number">1</span>; loc &gt;= <span class="number">0</span>; loc--) &#123;</span><br><span class="line">      <span class="comment">// Is the location good.</span></span><br><span class="line">      <span class="keyword">if</span> (erasedLocations.indexOf(loc) == -<span class="number">1</span>) &#123;</span><br><span class="line">        locationsToRead.<span class="built_in">add</span>(loc);</span><br><span class="line">        <span class="keyword">if</span> (stripeSize() == locationsToRead.<span class="built_in">size</span>()) &#123;</span><br><span class="line">          <span class="keyword">break</span>;</span><br><span class="line">        &#125;</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;<span class="comment">//优先读取源区块进行修复</span></span><br><span class="line">    <span class="comment">// If we are are not able to fill up the locationsToRead list,</span></span><br><span class="line">    <span class="comment">// we did not find enough good locations. Throw TooManyErasedLocations.</span></span><br><span class="line">    <span class="keyword">if</span> (locationsToRead.<span class="built_in">size</span>() != stripeSize()) &#123;</span><br><span class="line">      <span class="keyword">String</span> locationsStr = <span class="string">""</span>;</span><br><span class="line">      <span class="keyword">for</span> (Integer erasedLocation : erasedLocations) &#123;</span><br><span class="line">        locationsStr += <span class="string">" "</span> + erasedLocation;</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="keyword">throw</span> <span class="keyword">new</span> TooManyErasedLocations(<span class="string">"Locations "</span> + locationsStr);</span><br><span class="line">    &#125;<span class="comment">//能同时容忍parityLength个区块损坏，超出时不能进行修复，抛出TooManyErasedLocations异常</span></span><br><span class="line">    <span class="keyword">return</span> locationsToRead;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>参与解码的区块数为stripeLength，即为需要读取区块数目。<br>StripeStore中校验区块索引号在前，源区块索引在后，即0～parityLength-1对应校验区块号，parityLength～stripeLength+parityLength-1对应源区块号。<br>因此，上述的查找过程，优先使用源区块对损坏区块进行修复。  </p>
+<p>获取了应该读取区块索引后，对StripeInfo中每一个位置，如果其不应该参与到修复过程中，则对应的流为ZeroInputStream。<br><figure class="highlight lasso"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">boolean</span> isErased = (erasedLocations<span class="built_in">.</span>indexOf(i) != -<span class="number">1</span>);</span><br><span class="line"><span class="built_in">boolean</span> shouldRead = (locationsToRead<span class="built_in">.</span>indexOf(i) != -<span class="number">1</span>);</span><br><span class="line"></span><br><span class="line">InputStream stm = <span class="built_in">null</span>;</span><br><span class="line"><span class="keyword">if</span> (isErased <span class="subst">||</span> <span class="subst">!</span>shouldRead) &#123;</span><br><span class="line">    <span class="keyword">if</span> (isErased) &#123;</span><br><span class="line">      <span class="keyword">LOG</span><span class="built_in">.</span>info(<span class="string">"Location "</span> + i + <span class="string">" is erased, using zeros"</span>);</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">      <span class="keyword">LOG</span><span class="built_in">.</span>info(<span class="string">"Location "</span> + i + <span class="string">" need not be read, using zeros"</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    locationsToNotRead<span class="built_in">.</span>add(i);</span><br><span class="line">    stm = <span class="literal">new</span> RaidUtils<span class="built_in">.</span>ZeroInputStream(limit);<span class="comment">//不需要参与解码的为零输入流</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>否则，获取需要读取区块索引在Stripe中对应区块的输入流<br><figure class="highlight processing"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">else</span> &#123;</span><br><span class="line">    <span class="keyword">long</span> blockId;</span><br><span class="line">    <span class="comment">//获取Stripe中第i个区块对应的区块ID</span></span><br><span class="line">    <span class="keyword">if</span> (i &lt; codec.parityLength) &#123;</span><br><span class="line">      blockId = si.parityBlocks.<span class="built_in">get</span>(i).getBlockId();</span><br><span class="line">    &#125; <span class="keyword">else</span> <span class="keyword">if</span> ((i - codec.parityLength) &lt; si.srcBlocks.<span class="built_in">size</span>()) &#123;</span><br><span class="line">      blockId = si.srcBlocks.<span class="built_in">get</span>(i - codec.parityLength).getBlockId();</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">      LOG.info(<span class="string">"Using zeros for location "</span> + i);</span><br><span class="line">      inputs[i] = <span class="keyword">new</span> RaidUtils.ZeroInputStream(limit);</span><br><span class="line">      <span class="keyword">continue</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">//通过Client获取指定区块ID的区块信息</span></span><br><span class="line">    LocatedBlockWithFileName lb = </span><br><span class="line">        srcFs.getClient().getBlockInfo(blockId);</span><br><span class="line">    <span class="comment">//区块不存在，抛出异常，在catch中将该区块添加至erasedLocations中，并重新读取Stripe输入流</span></span><br><span class="line">    <span class="keyword">if</span> (lb == <span class="keyword">null</span>) &#123;</span><br><span class="line">      <span class="keyword">throw</span> <span class="keyword">new</span> BlockMissingException(<span class="keyword">String</span>.valueOf(blockId), </span><br><span class="line">        <span class="string">"Location "</span> + i + <span class="string">" can not be found. Block id: "</span> + blockId, <span class="number">0</span>);</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">      Path filePath = <span class="keyword">new</span> Path(lb.getFileName());</span><br><span class="line">      FileStatus stat = srcFs.getFileStatus(filePath);</span><br><span class="line">      <span class="keyword">long</span> blockSize = stat.getBlockSize();</span><br><span class="line">      <span class="comment">//一般不会出现这种情况，局部修复一般不支持，即通常来说offsetInBlock为0</span></span><br><span class="line">      <span class="keyword">if</span> (offsetInBlock &gt; blockSize) &#123;</span><br><span class="line">        stm = <span class="keyword">new</span> RaidUtils.ZeroInputStream(limit);<span class="comment">//偏移量错误，使用零输入流</span></span><br><span class="line">      &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        <span class="keyword">if</span> (srcFs.exists(filePath)) &#123;</span><br><span class="line">          <span class="keyword">long</span> startOffset = getBlockIdInFile(srcFs, filePath, blockId) * blockSize;<span class="comment">//获取区块在文件中开始偏移量</span></span><br><span class="line">          <span class="keyword">long</span> offset = startOffset + offsetInBlock;<span class="comment">//区块在文件中实际偏移量，一般等于开始偏移量</span></span><br><span class="line">          LOG.info(<span class="string">"Opening "</span> + lb.getFileName() + <span class="string">":"</span> + offset +</span><br><span class="line">              <span class="string">" for location "</span> + i);</span><br><span class="line">          FSDataInputStream is = srcFs.<span class="built_in">open</span>(filePath);</span><br><span class="line">          is.seek(offset);</span><br><span class="line">          stm = is;<span class="comment">//获取偏移量对应的输入流</span></span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;<span class="comment">//文件不存在，添加至locationsToNotRead，使用零输入流</span></span><br><span class="line">          LOG.info(<span class="string">"Location "</span> + i + <span class="string">", File "</span> + lb.getFileName() + </span><br><span class="line">              <span class="string">" does not exist, using zeros"</span>);</span><br><span class="line">          locationsToNotRead.<span class="built_in">add</span>(i);</span><br><span class="line">          stm = <span class="keyword">new</span> RaidUtils.ZeroInputStream(limit);</span><br><span class="line">        &#125;</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>因此，对于Stripe中第i个区块，通过parityBlocks或srcBlocks成员获取其区块ID，然后通过Client获取该ID的区块信息，存在时打开区块所在文件的输入流，<br>定位到指定偏移量后即为第i个区块的输入流。  </p>
+<h4 id="不使用StripeStore修复，输入流">不使用StripeStore修复，输入流</h4><p>不使用StripeStore修复时，没有损坏区块所在的Stripe信息，需要通过路径构建StripeReader，在StripeReader中获得对应的Stripe信息。<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//构建源文件的StripeReader，校验文件修复时也是其对应的源文件</span></span><br><span class="line">StripeReader sReader = StripeReader.getStripeReader(codec, conf, blockSize, srcFs, lp.getStripeIdx(), srcStat);</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> <span class="function">StripeReader <span class="title">getStripeReader</span><span class="params">(Codec codec, Configuration conf, </span><br><span class="line">  <span class="keyword">long</span> blockSize, FileSystem fs, <span class="keyword">long</span> stripeIdx, FileStatus srcStat)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (codec.isDirRaid) &#123;</span><br><span class="line">      Path srcDir = srcStat.isDir()? srcStat.getPath():</span><br><span class="line">        srcStat.getPath().getParent();</span><br><span class="line">      <span class="keyword">return</span> <span class="keyword">new</span> DirectoryStripeReader(conf, codec, fs, stripeIdx, -<span class="number">1</span>L, srcDir,</span><br><span class="line">          RaidNode.listDirectoryRaidFileStatus(conf, fs, srcDir)); </span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">      <span class="keyword">return</span> <span class="keyword">new</span> FileStripeReader(conf, blockSize, codec, fs, stripeIdx, -<span class="number">1</span>L, </span><br><span class="line">          srcStat.getPath(), srcStat.getLen());</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>构建StripeReader后，获取输入流<br><figure class="highlight armasm"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="label">inputs</span> = sReader.<span class="keyword">buildInputs(srcFs, </span>srcFile, srcStat, parityFs, parityFile, parityStat,</span><br><span class="line">                lp.getStripeIdx(), offsetInBlock, erasedLocations, locationsToNotRead, <span class="preprocessor">code</span>)<span class="comment">;</span></span><br></pre></td></tr></table></figure></p>
+<p>与StripeStore方式构建输入流类似，输入流数目为stripeLength+parityLength，若第i个区块不需要参与解码修复过程，则直接为零输入流。<br>否则通过相应StripeReader的<code>buildOneInputs</code>构建第i个参与解码修复的输入流,buildOneInputs在StripeReader类中为抽象方法，具体FileStripeReader<br>和DirectoryStripeReader有不同的实现</p>
+<ul>
+<li>FileStripeReader实现<figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> InputStream buildOneInput(</span><br><span class="line">  <span class="keyword">int</span> locationIndex, <span class="keyword">long</span> offsetInBlock,</span><br><span class="line">  FileSystem srcFs, Path srcFile, FileStatus srcStat,</span><br><span class="line">  FileSystem parityFs, Path parityFile, FileStatus parityStat</span><br><span class="line">  ) <span class="keyword">throws</span> IOException</span><br></pre></td></tr></table></figure>
+</li>
+</ul>
+<p><code>locationIndex</code>即输入参数i，对应stripe中第i个区块，i小于parityLength时为校验区块，否则为源区块<br>通过当前StripeReader的currentStripeIdx和parityLength便能得知当前Stripe的开始区块偏移量，再根据i便能定位在文件中的区块偏移量<br>对应的i小于parityLength时，该区块为校验文件<code>parityFile</code>中的第<code>stripeStartIdx*parityLength+i</code>个区块，加上区块偏移量<code>offsetInBlock</code><br>便得到了区块所属输入流在文件的偏移量。<br>而同样的，i大于stripeLength时，区块为源文件<code>srcFile</code>中第<code>stripeStartIdx*StripeLength+(i-parityLength)</code>个区块，同样的得到区块输入流<br>在源文件中的偏移量。<br><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (locationIndex &lt; codec.parityLength) &#123;</span><br><span class="line">  <span class="comment">// we should use srcfile's block size because parity file could be hared</span></span><br><span class="line">  <span class="comment">//定位区块在校验文件中的偏移量，(stripeStartIdx*parityLength+locationIndex)*blockSize+offsetInBlock,然后创建校验文件的输入流</span></span><br><span class="line">  <span class="comment">//定位到偏移位置</span></span><br><span class="line">  <span class="keyword">return</span> <span class="keyword">this</span>.getParityFileInput(locationIndex, parityFile, parityFs, parityStat, offsetInBlock, blockSize);</span><br><span class="line">&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">   <span class="comment">//输入流的构建原理和校验文件类似，不过源文件中一个Stripe对应stripeLength个区块，且locationIndex-parityLength才是stripe中区块偏移量</span></span><br><span class="line">  <span class="comment">// Dealing with a src file here.</span></span><br><span class="line">  <span class="keyword">int</span> blockIdxInStripe = locationIndex - codec.parityLength;</span><br><span class="line">  <span class="keyword">int</span> blockIdx = (<span class="keyword">int</span>)(codec.stripeLength * stripeStartIdx + blockIdxInStripe);</span><br><span class="line">  <span class="comment">//这里用的stripeStartIdx，对于encodingUnit为1的情况没问题，如果大于1呢，感觉最好用currentStripeIdx，参见DirectoryStripeReader的实现</span></span><br><span class="line">  <span class="keyword">long</span> offset = blockSize * blockIdx + offsetInBlock;</span><br><span class="line">  <span class="keyword">if</span> (offset &gt;= srcStat.getLen()) &#123;<span class="comment">//对应编码时的零区块填充，同样的构建ZeroInputStream</span></span><br><span class="line">    LOG.info(<span class="string">"Using zeros for "</span> + srcFile + <span class="string">":"</span> + offset +</span><br><span class="line">      <span class="string">" for location "</span> + locationIndex);</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">new</span> RaidUtils.ZeroInputStream(blockSize * (blockIdx + <span class="number">1</span>));</span><br><span class="line">  &#125; <span class="keyword">else</span> &#123;<span class="comment">//对应的文件偏移量存在，构建文件输入流</span></span><br><span class="line">    LOG.info(<span class="string">"Opening "</span> + srcFile + <span class="string">":"</span> + offset +</span><br><span class="line">             <span class="string">" for location "</span> + locationIndex);</span><br><span class="line">    FSDataInputStream s = fs.open(</span><br><span class="line">        srcFile, conf.getInt(<span class="string">"io.file.buffer.size"</span>, <span class="number">64</span> * <span class="number">1024</span>));</span><br><span class="line">    s.seek(offset);</span><br><span class="line">    <span class="keyword">return</span> s;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>可见，知道了源文件<code>srcFile</code>和校验文件<code>parityFile</code>以及损坏区块所在的Stripe索引后很容易根据参与编码的区块索引创建输入流  </p>
+<ul>
+<li>DirectoryStripeReader<br>DirectoryStripeReader实现和FileStripeReader类似，尤其是对校验文件输入流的构建，就是基类StripeReader中的方法，完全一样，因为不管文件<br>Raid还是目录Raid，其校验文件只有一个。<br>而对于源文件区块的输入流构建，需要通过DirectoryStripeReader的<code>stripeBlocks</code>来获得该区块对应的文件，之后定位到文件中的偏移量处。  </li>
+</ul>
+<p>先回顾下DirectoryStripeReader的<code>stripeBlocks</code>成员，它维护了叶子目录下所有的区块信息,是一个ArrayList列表，元素为<code>BlockInfo</code>。<br>每一个BlockInfo维护了区块在文件中区块索引以及对应文件索引信息。<br>例如，假设叶子目录下有两个文件，每个文件5个Blocks，那么stripeBlocks中便有10个元素，依次为：<br>(0,0),(0,1),(0,2),(0,3),(0,4),(1,0),(1,1),(1,2),(1,3),(1,4)<br>这里我们用(fileIndex,blockIndex)的方式来表示一个BlockInfo，即文件索引和文件中区块索引。<br>那么我们如果要取得目录下第i个区块对应的文件信息，则stripeBlocks.get(i)便可直接获得该目录下第i个区块的BlockInfo，然后便能获得区块对应的<br>文件索引，通过目录下的文件列表获得对应的文件。<br><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">else</span> &#123;</span><br><span class="line">    <span class="comment">// Dealing with a src file here.</span></span><br><span class="line">    <span class="keyword">int</span> blockIdxInStripe = locationIndex - codec.parityLength;</span><br><span class="line">    <span class="keyword">int</span> curBlockIdx = (<span class="keyword">int</span>)currentStripeIdx * codec.stripeLength + blockIdxInStripe;</span><br><span class="line">    <span class="keyword">if</span> (curBlockIdx &gt;= <span class="keyword">this</span>.stripeBlocks.size()) &#123;</span><br><span class="line">        <span class="comment">//目录下的区块索引超出了stripeBlocks的大小，对应最后一个stripe的零区块填充</span></span><br><span class="line">        LOG.info(<span class="string">"Using zeros because we reach the end of the stripe"</span>);</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">new</span> RaidUtils.ZeroInputStream(blockSize * (curBlockIdx + <span class="number">1</span>));</span><br><span class="line">    &#125;</span><br><span class="line">    BlockInfo bi = <span class="keyword">this</span>.stripeBlocks.get(curBlockIdx);</span><br><span class="line">    FileStatus fstat = lfs.get(bi.fileIdx);</span><br><span class="line">    <span class="keyword">long</span> offset = fstat.getBlockSize() * bi.blockId +</span><br><span class="line">      offsetInBlock;</span><br><span class="line">    <span class="keyword">if</span> (offset &gt;= fstat.getLen()) &#123;<span class="comment">//应该不太会出现，偏移量超出文件长度的话区块对应的文件应该为另一个文件了</span></span><br><span class="line">        LOG.info(<span class="string">"Using zeros for "</span> + fstat.getPath() + <span class="string">":"</span> + offset +</span><br><span class="line">          <span class="string">" for location "</span> + locationIndex);</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">new</span> RaidUtils.ZeroInputStream(blockSize * (curBlockIdx + <span class="number">1</span>));</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;<span class="comment">//文件数据，创建实际文件输入流</span></span><br><span class="line">    LOG.info(<span class="string">"Opening "</span> + fstat.getPath() + <span class="string">":"</span> + offset +</span><br><span class="line">             <span class="string">" for location "</span> + locationIndex);</span><br><span class="line">    FSDataInputStream s = fs.open(fstat.getPath(), conf.getInt(<span class="string">"io.file.buffer.size"</span>, <span class="number">64</span> * <span class="number">1024</span>));</span><br><span class="line">    s.seek(offset);</span><br><span class="line">    <span class="keyword">return</span> s;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<h4 id="创建ParalleStreamReader">创建ParalleStreamReader</h4><p>输入流构建完后，便创建ParallelStreamReader,如下<br><figure class="highlight processing"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">assert</span>(parallelReader == <span class="keyword">null</span>);</span><br><span class="line">parallelReader = <span class="keyword">new</span> ParallelStreamReader(reporter, inputs, (<span class="built_in">int</span>)Math.<span class="built_in">min</span>(bufSize, limit),</span><br><span class="line">  parallelism, boundedBufferCapacity,Math.<span class="built_in">min</span>(limit, blockSize));</span><br><span class="line">parallelReader.start();</span><br></pre></td></tr></table></figure></p>
+<p>这里和编码过程类似，区别在于编码过程传入的输入流<code>inputs</code>长度为stripeLength，即参与编码的源区块输入流。而这里传入的<code>inputs</code>长度为<br>stripeLength+parityLength，其中最多stripeLength个输入流为参与解码修复的有效数据流，其他的为ZeroInputStream。<br>另外，Decoder的<code>boundedBufferCapacity</code>为2。<br>具体过程见<a href="../ParallelStreamReader">ParallelStreamReader</a></p>
+<p>ParallelStreamReader开始工作后，便可从阻塞队列中读取数据进行实际的解码操作了<br>通过ParallelStreamReader读取数据进行修复，每次最多修复bufSize字节数据<br><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//locationsToNotRead数目至少为parityLength个，可能大于parityLength(对应区块虽然参与解码，对应编码时为零区块填充，解码时不需要读取)</span></span><br><span class="line"><span class="keyword">for</span> (<span class="keyword">int</span> location : locationsToNotRead) &#123;</span><br><span class="line">  locationsToFix[i] = location;</span><br><span class="line">  i++;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">for</span> (written = <span class="number">0</span>; written &lt; limit; ) &#123;</span><br><span class="line">    <span class="comment">//这里对应上面的ParalleStreamReader的构建过程，ParallelStreamReader构建完后，启动线程读取数据至缓冲区</span></span><br><span class="line">    ...</span><br><span class="line">    <span class="comment">//获取一个bufSize大小的缓冲区</span></span><br><span class="line">    ParallelStreamReader.ReadResult readResult = readFromInputs(erasedLocations, limit, reporter, parallelReader);</span><br><span class="line">    <span class="keyword">long</span> startDecoding = System.currentTimeMillis();</span><br><span class="line">    <span class="keyword">int</span> toWrite = (<span class="keyword">int</span>)Math.min((<span class="keyword">long</span>)bufSize, limit - written);</span><br><span class="line">    <span class="comment">//解码过程</span></span><br><span class="line">    doParallelDecoding(toWrite, readResult, parallelCode, locationsToFix);</span><br><span class="line">    decodingTime += (System.currentTimeMillis() - startDecoding);</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; locationsToFix.length; i++) &#123;</span><br><span class="line">        <span class="keyword">if</span> (locationsToFix[i] == erasedLocationToFix) &#123;</span><br><span class="line">          <span class="keyword">if</span> (out != null)<span class="comment">//对应的位置为要修复的位置，输出流存在时，写到输出流中</span></span><br><span class="line">            out.write(writeBufs[i], <span class="number">0</span>, toWrite);</span><br><span class="line">          <span class="keyword">if</span> (crc != null) &#123;<span class="comment">//相应更新校验和</span></span><br><span class="line">            crc.update(writeBufs[i], <span class="number">0</span>, toWrite);</span><br><span class="line">          &#125;</span><br><span class="line">          written += toWrite;</span><br><span class="line">          <span class="keyword">break</span>;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，从ParalleStreamReader中取出bufSize大小的缓冲块ReadResult，这个ReadResult和编码过程一样。然后通过<code>doParallelDecoding</code>进行解码，<br>将readResult中的数据解码至Decoder的writeBufs中，其中<code>locationsToFix</code>为Stripe中不需要读取的区块位置，locationsToFix的长度不小于parityLength。  </p>
+<p>一个ReadResult对应的数据解码完成后，将对应的erasedLocationToFix对应的位置解码数据写到输出流中，并在需要计算校验和时更新至相应CRC32对象中。  </p>
+<h3 id="并行解码doParalleDecoding">并行解码doParalleDecoding</h3><p>方法原型如下<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> doParallelDecoding(<span class="keyword">int</span> toWrite, </span><br><span class="line">      ParallelStreamReader.ReadResult readResult,</span><br><span class="line">      ErasureCode[] parallelCode,<span class="keyword">int</span>[] locationsToFix)</span><br><span class="line">      <span class="keyword">throws</span> IOException</span><br></pre></td></tr></table></figure></p>
+<p><code>toWrite</code>为该方法一次解码的字节数，一般来说为bufSize(blockSize为bufSize整数倍)<br><code>parallelCode</code>数目为<code>raid.encoder.parallelism</code>个(默认4),并行解码<br><code>locationsToFix</code>为那些不参与解码的区块索引<br>方法中，创建<code>parallelism</code>个解码线程，每个线程最多负责”toWrite/parallelism”个字节数据的解码操作，启动线程后等待线程解码完成<br><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">int</span> partSize = (<span class="keyword">int</span>) Math.<span class="built_in">ceil</span>(toWrite * <span class="number">1.0</span> / parallelism);<span class="comment">//每个线程最多分到的字节数</span></span><br><span class="line"><span class="comment">// parallel decoding</span></span><br><span class="line"><span class="keyword">try</span> &#123;</span><br><span class="line">  Thread[] workers = <span class="keyword">new</span> Thread[parallelism];<span class="comment">//parallelism个解码线程</span></span><br><span class="line">  <span class="keyword">int</span> start = <span class="number">0</span>;</span><br><span class="line">  <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; parallelism; i++) &#123;</span><br><span class="line">    <span class="keyword">int</span> count = Math.min(toWrite - start, partSize);</span><br><span class="line">    workers[i] = <span class="keyword">new</span> Thread(<span class="keyword">new</span> DecodeOp(</span><br><span class="line">          readResult.readBufs, writeBufs, start, count,</span><br><span class="line">          locationsToFix, parallelCode[i]));</span><br><span class="line">    workers[i].start();</span><br><span class="line">    start += count;</span><br><span class="line">  &#125;</span><br><span class="line">  </span><br><span class="line">  <span class="comment">// wait for all threads</span></span><br><span class="line">  <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; parallelism; i++) &#123;</span><br><span class="line">    workers[i].join();</span><br><span class="line">    workers[i] = null;</span><br><span class="line">  &#125;</span><br></pre></td></tr></table></figure></p>
+<p>解码线程为DecodeOp类<br><figure class="highlight axapta"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">DecodeOp(<span class="keyword">byte</span>[][] readBufs, <span class="keyword">byte</span>[][] writeBufs,</span><br><span class="line">         <span class="keyword">int</span> startIdx, <span class="keyword">int</span> <span class="keyword">count</span>, <span class="keyword">int</span>[] erasedLocations, </span><br><span class="line">         ErasureCode code) &#123;</span><br><span class="line">  <span class="keyword">this</span>.readBufs = readBufs;</span><br><span class="line">  <span class="keyword">this</span>.writeBufs = writeBufs;</span><br><span class="line">  <span class="keyword">this</span>.startIdx = startIdx;</span><br><span class="line">  <span class="keyword">this</span>.<span class="keyword">count</span> = <span class="keyword">count</span>;</span><br><span class="line">  <span class="keyword">this</span>.erasedLocations = erasedLocations;</span><br><span class="line">  <span class="keyword">this</span>.code = code;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p><code>readBufs</code>为ReadResult中的readBufs即bufSize大小的输入缓冲<br><code>writeBufs</code>为Decoder的writeBufs，parallelism个线程共享，每个线程写入的位置不一样，不需要同步<br><code>startIdx</code>是相对于ReadResult的偏移量而不是区块的偏移量<br><code>run</code>函数如下<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">void</span> <span class="title">run</span><span class="params">()</span> </span>&#123;</span><br><span class="line">  <span class="keyword">try</span> &#123;</span><br><span class="line">    code.decodeBulk(readBufs, writeBufs, erasedLocations, startIdx, count);</span><br><span class="line">  &#125; <span class="keyword">catch</span> (IOException e) &#123;</span><br><span class="line">    LOG.<span class="keyword">error</span>(<span class="string">"Encountered Exception in DecodeBulk: "</span>, e);</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p><code>decodeBulk</code>即为ErasureCode的实现<br>参数<code>readBufs</code>是大小为bufSize的区块局部缓冲，二维数组，第一维大小为stripeLength+parityLength<br><code>writeBufs</code>解码输出缓冲，二维数组，第一维大小为parityLength<br><code>erasedLocations</code>为不参与解码操作的stripe中区块索引号<br><code>startIdx</code>为局部缓冲中的偏移量<br><code>count</code>为该函数从偏移量开始需处理的大小  </p>
+<p>相应实现ErasureCode如<code>ReedSolomonCode</code>和<code>XORCode</code>,完成具体解码功能，也可以继承ErasureCode实现该函数，完成其他编码方式的解码操作。  </p>
+<h2 id="小结">小结</h2><p>总结一下，对不同区块的修复以及不同的修复方式，本文分析了对校验文件区块的修复，对源文件区块的修复，以及通过StripeStore对目录Raid的源文件区块<br>修复过程(没分析har文件中的校验文件区块修复，因为还涉及到HarMonitor)。  </p>
+<p>从三种不同的方式的解码过程来看，主要在于通过指定损坏区块获取其所属的stripe以及在stripe中的区块偏移方式不同，以及构建输入流的方式不同。  </p>
+<p>通过StripeStore进行修复的，因为直接使用StripeInfo，包含了所属stripe的所有区块信息，便能很容易的定位损坏区块在stripe中的区块偏移。<br>同时在构建输入流时，也能通过Client很方便的获取Block所属的文件，再根据偏移量就能创建相应输入流。  </p>
+<p>而不使用StripeStore的修复，要构建相应的StripeReader(校验文件通过路径得到源文件路径)。通过StripeReader来计算所属的stripe索引以及在stripe中的区块索引。<br>构建输入流时，对于文件Raid区块的修复，不管是校验区块输入流还是源文件区块输入流，因为只有一个文件，输入流构建不成问题，通过文件中偏移量<br>将流定位到区块在文件中的位置。<br>而对于目录Raid区块的修复，校验文件区块输入流因为只有一个文件，很容易构建。而源文件区块的输入流需要定位其所属的文件，这个便通过DirectoryStripeReader<br>完成，因为其维护了目录下所有的BlockInfo，即区块和文件的对应关系，这样便能找到区块对应的文件，通过区块在文件中偏移量便能构建所需输入流。</p>
+<p>输入流构建完，通过ParallelStreamReader并行读取输入流数据到阻塞队列中，才能够阻塞队列中读取局部缓冲进行解码。<br>解码过程与编码过程还略有不同，使用并行解码，默认使用4个线程对一个ReadResult的局部缓冲解码，每个线程处理bufSize/4个字节的数据。  </p>
+<p>最终解码方法为ErasureCode的<code>decodeBulk</code>方法，可继承ErasureCode重写该方法实现其他的解码方式。</p>
+</span>
+      
+    </div>
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/Hadoop-0-20/" rel="tag">#Hadoop-0.20</a>
+          
+            <a href="/tags/RaidNode/" rel="tag">#RaidNode</a>
+          
+        </div>
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/raidFiles/" rel="next" title="RaidNode源码阅读---RaidNode编码过程下篇编码操作(LocalRaidNode)">
+                <i class="fa fa-chevron-left"></i> RaidNode源码阅读---RaidNode编码过程下篇编码操作(LocalRaidNode)
+              </a>
+            
+          </div>
+
+          <div class="post-nav-prev post-nav-item">
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </article>
+
+
+
+    <div class="post-spread">
+      
+        <!-- JiaThis Button BEGIN -->
+<div class="jiathis_style">
+  <a class="jiathis_button_tsina"></a>
+  <a class="jiathis_button_tqq"></a>
+  <a class="jiathis_button_weixin"></a>
+  <a class="jiathis_button_cqq"></a>
+  <a class="jiathis_button_douban"></a>
+  <a class="jiathis_button_renren"></a>
+  <a class="jiathis_button_qzone"></a>
+  <a class="jiathis_button_kaixin001"></a>
+  <a class="jiathis_button_copy"></a>
+  <a href="http://www.jiathis.com/share" class="jiathis jiathis_txt jiathis_separator jtico jtico_jiathis" target="_blank"></a>
+  <a class="jiathis_counter_style"></a>
+</div>
+<script type="text/javascript" >
+  var jiathis_config={
+    hideMore:false
+  }
+</script>
+<script type="text/javascript" src="http://v3.jiathis.com/code/jia.js" charset="utf-8"></script>
+<!-- JiaThis Button END -->
+
+      
+    </div>
+  </div>
+
+
+        </div>
+
+        
+
+
+        
+  <div class="comments" id="comments">
+    
+      <div class="ds-thread" data-thread-key="CorruptMonitor/"
+           data-title="RaidNode源码阅读---损坏区块修复CorruptMonitor(LocalBlockIntegerityMonitor)" data-url="http://xiao-yun.github.io/CorruptMonitor/">
+      </div>
+    
+  </div>
+
+
+      </div>
+
+      
+        
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap" >
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel ">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+          <img class="site-author-image" src="/images/hero.jpg" alt="xiaoyun" itemprop="image"/>
+          <p class="site-author-name" itemprop="name">xiaoyun</p>
+        </div>
+        <p class="site-description motion-element" itemprop="description">学习笔记，网上资源摘要等</p>
+        <nav class="site-state motion-element">
+          <div class="site-state-item site-state-posts">
+            <a href="/archives">
+              <span class="site-state-item-count">7</span>
+              <span class="site-state-item-name">日志</span>
+            </a>
+          </div>
+
+          <div class="site-state-item site-state-categories">
+            <a href="/categories">
+              <span class="site-state-item-count">4</span>
+              <span class="site-state-item-name">分类</span>
+              </a>
+          </div>
+
+          <div class="site-state-item site-state-tags">
+            <a href="/tags">
+              <span class="site-state-item-count">3</span>
+              <span class="site-state-item-name">标签</span>
+              </a>
+          </div>
+
+        </nav>
+
+        
+
+        <div class="links-of-author motion-element">
+          
+            
+              <span class="links-of-author-item">
+                <a href="https://github.com/xiao-yun" target="_blank">
+                  
+                    <i class="fa fa-globe"></i> github
+                  
+                </a>
+              </span>
+            
+          
+        </div>
+
+        
+        
+
+        <div class="links-of-author motion-element">
+          
+        </div>
+
+      </section>
+
+      
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc-indicator-top post-toc-indicator">
+            <i class="fa fa-angle-double-up"></i>
+          </div>
+          <div class="post-toc">
+            
+              
+            
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#doFix"><span class="nav-number">1.</span> <span class="nav-text">doFix</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#reconstructFile"><span class="nav-number">2.</span> <span class="nav-text">reconstructFile</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Decoder"><span class="nav-number">2.1.</span> <span class="nav-text">Decoder</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#校验文件processParityFile解码"><span class="nav-number">3.</span> <span class="nav-text">校验文件processParityFile解码</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#源文件processFile解码"><span class="nav-number">4.</span> <span class="nav-text">源文件processFile解码</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#fixErasedBlock"><span class="nav-number">5.</span> <span class="nav-text">fixErasedBlock</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#fixErasedBlockImpl"><span class="nav-number">6.</span> <span class="nav-text">fixErasedBlockImpl</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#获取输入流以及构建ParallelStreamReader对象"><span class="nav-number">6.1.</span> <span class="nav-text">获取输入流以及构建ParallelStreamReader对象</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#使用StripeStore修复，输入流"><span class="nav-number">6.1.1.</span> <span class="nav-text">使用StripeStore修复，输入流</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#不使用StripeStore修复，输入流"><span class="nav-number">6.1.2.</span> <span class="nav-text">不使用StripeStore修复，输入流</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#创建ParalleStreamReader"><span class="nav-number">6.1.3.</span> <span class="nav-text">创建ParalleStreamReader</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#并行解码doParalleDecoding"><span class="nav-number">6.2.</span> <span class="nav-text">并行解码doParalleDecoding</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#小结"><span class="nav-number">7.</span> <span class="nav-text">小结</span></a></li></ol></div>
+            
+          </div>
+          <div class="post-toc-indicator-bottom post-toc-indicator">
+            <i class="fa fa-angle-double-down"></i>
+          </div>
+        </section>
+      
+
+    </div>
+  </aside>
+
+
+      
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright" >
+  
+  &copy; 
+  <span itemprop="copyrightYear">2015</span>
+  <span class="with-love">
+    <i class="icon-next-heart fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">xiaoyun</span>
+</div>
+
+<div class="powered-by">
+  由 <a class="theme-link" href="http://hexo.io">Hexo</a> 强力驱动
+</div>
+
+<div class="theme-info">
+  主题 -
+  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
+    NexT.Mist
+  </a>
+</div>
+
+
+
+      </div>
+    </footer>
+
+    <div class="back-to-top"></div>
+  </div>
+
+  <script type="text/javascript" src="/vendors/jquery/index.js?v=2.1.3"></script>
+
+  
+  
+
+  
+    
+
+  
+    
+  
+
+  <script type="text/javascript">
+    var duoshuoQuery = {short_name:"xiaoyuncom"};
+    (function() {
+      var ds = document.createElement('script');
+      ds.type = 'text/javascript';ds.async = true;
+      ds.id = 'duoshuo-script';
+      ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+      ds.charset = 'UTF-8';
+      (document.getElementsByTagName('head')[0]
+      || document.getElementsByTagName('body')[0]).appendChild(ds);
+    })();
+  </script>
+    
+     
+
+
+    
+  
+
+  
+  <script type="text/javascript" src="/vendors/fancybox/source/jquery.fancybox.pack.js"></script>
+  <script type="text/javascript" src="/js/fancy-box.js?v=0.4.5.2"></script>
+
+
+  <script type="text/javascript" src="/js/helpers.js?v=0.4.5.2"></script>
+  <script type="text/javascript" src="/vendors/velocity/velocity.min.js"></script>
+<script type="text/javascript" src="/vendors/velocity/velocity.ui.min.js"></script>
+
+<script type="text/javascript" src="/js/motion.js?v=0.4.5.2" id="motion.global"></script>
+
+
+  <script type="text/javascript" src="/vendors/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  <script type="text/javascript" src="/vendors/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  
+<script type="text/javascript" src="/js/bootstrap.scrollspy.js?v=0.4.5.2" id="bootstrap.scrollspy.custom"></script>
+
+
+<script type="text/javascript" id="sidebar.toc.highlight">
+  $(document).ready(function () {
+    var tocSelector = '.post-toc';
+    var $tocSelector = $(tocSelector);
+    var activeCurrentSelector = '.active-current';
+
+    $tocSelector
+      .on('activate.bs.scrollspy', function () {
+        var $currentActiveElement = $(tocSelector + ' .active').last();
+
+        removeCurrentActiveClass();
+        $currentActiveElement.addClass('active-current');
+
+        $tocSelector[0].scrollTop = $currentActiveElement.position().top;
+      })
+      .on('clear.bs.scrollspy', function () {
+        removeCurrentActiveClass();
+      });
+
+    function removeCurrentActiveClass () {
+      $(tocSelector + ' ' + activeCurrentSelector)
+        .removeClass(activeCurrentSelector.substring(1));
+    }
+
+    function processTOC () {
+      getTOCMaxHeight();
+      toggleTOCOverflowIndicators();
+    }
+
+    function getTOCMaxHeight () {
+      var height = $('.sidebar').height() -
+                   $tocSelector.position().top -
+                   $('.post-toc-indicator-bottom').height();
+
+      $tocSelector.css('height', height);
+
+      return height;
+    }
+
+    function toggleTOCOverflowIndicators () {
+      tocOverflowIndicator(
+        '.post-toc-indicator-top',
+        $tocSelector.scrollTop() > 0 ? 'show' : 'hide'
+      );
+
+      tocOverflowIndicator(
+        '.post-toc-indicator-bottom',
+        $tocSelector.scrollTop() >= $tocSelector.find('ol').height() - $tocSelector.height() ? 'hide' : 'show'
+      )
+    }
+
+    $(document).on('sidebar.motion.complete', function () {
+      processTOC();
+    });
+
+    $('body').scrollspy({ target: tocSelector });
+    $(window).on('resize', function () {
+      if ( $('.sidebar').hasClass('sidebar-active') ) {
+        processTOC();
+      }
+    });
+
+    onScroll($tocSelector);
+
+    function onScroll (element) {
+      element.on('mousewheel DOMMouseScroll', function (event) {
+          var oe = event.originalEvent;
+          var delta = oe.wheelDelta || -oe.detail;
+
+          this.scrollTop += ( delta < 0 ? 1 : -1 ) * 30;
+          event.preventDefault();
+
+          toggleTOCOverflowIndicators();
+      });
+    }
+
+    function tocOverflowIndicator (indicator, action) {
+      var $indicator = $(indicator);
+      var opacity = action === 'show' ? 1 : 0;
+      $indicator.velocity ?
+        $indicator.velocity('stop').velocity({
+          opacity: opacity
+        }, { duration: 100 }) :
+        $indicator.stop().animate({
+          opacity: opacity
+        }, 100);
+    }
+
+  });
+</script>
+
+<script type="text/javascript" id="sidebar.nav">
+  $(document).ready(function () {
+    var html = $('html');
+    var TAB_ANIMATE_DURATION = 200;
+    var hasVelocity = $.isFunction(html.velocity);
+
+    $('.sidebar-nav li').on('click', function () {
+      var item = $(this);
+      var activeTabClassName = 'sidebar-nav-active';
+      var activePanelClassName = 'sidebar-panel-active';
+      if (item.hasClass(activeTabClassName)) {
+        return;
+      }
+
+      var currentTarget = $('.' + activePanelClassName);
+      var target = $('.' + item.data('target'));
+
+      hasVelocity ?
+        currentTarget.velocity('transition.slideUpOut', TAB_ANIMATE_DURATION, function () {
+          target
+            .velocity('stop')
+            .velocity('transition.slideDownIn', TAB_ANIMATE_DURATION)
+            .addClass(activePanelClassName);
+        }) :
+        currentTarget.animate({ opacity: 0 }, TAB_ANIMATE_DURATION, function () {
+          currentTarget.hide();
+          target
+            .stop()
+            .css({'opacity': 0, 'display': 'block'})
+            .animate({ opacity: 1 }, TAB_ANIMATE_DURATION, function () {
+              currentTarget.removeClass(activePanelClassName);
+              target.addClass(activePanelClassName);
+            });
+        });
+
+      item.siblings().removeClass(activeTabClassName);
+      item.addClass(activeTabClassName);
+    });
+
+    $('.post-toc a').on('click', function (e) {
+      e.preventDefault();
+      var targetSelector = escapeSelector(this.getAttribute('href'));
+      var offset = $(targetSelector).offset().top;
+      hasVelocity ?
+        html.velocity('stop').velocity('scroll', {
+          offset: offset  + 'px',
+          mobileHA: false
+        }) :
+        $('html, body').stop().animate({
+          scrollTop: offset
+        }, 500);
+    });
+
+    // Expand sidebar on post detail page by default, when post has a toc.
+    motionMiddleWares.sidebar = function () {
+      var $tocContent = $('.post-toc-content');
+      if (CONFIG.sidebar === 'post') {
+        if ($tocContent.length > 0 && $tocContent.html().trim().length > 0) {
+          displaySidebar();
+        }
+      }
+    };
+  });
+</script>
+
+
+
+  <script type="text/javascript" src="/js/bootstrap.js"></script>
+
+  
+  
+
+  
+  
+
+</body>
+</html>

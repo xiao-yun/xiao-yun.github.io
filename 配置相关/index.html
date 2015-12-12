@@ -1,0 +1,1297 @@
+<!doctype html>
+<html class="theme-next   use-motion ">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+  <link href="/vendors/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css"/>
+
+
+
+
+  <link href="//fonts.googleapis.com/css?family=Lato:300,400,700,400italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+
+
+
+<link href="/vendors/font-awesome/css/font-awesome.min.css?v=4.4.0" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=0.4.5.2" rel="stylesheet" type="text/css" />
+
+
+  <meta name="keywords" content="Hadoop-0.20,RaidNode,配置," />
+
+
+
+
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=0.4.5.2" />
+
+
+
+
+
+
+<meta name="description" content="Hadoop版本:hadoop-20-master
+
+源码阅读配置记录
+RaidNode
+
+
+属性
+缺省值
+说明
+
+
+
+
+raid.classname
+DistRaidNode
+RaidNode实现类,默认DistRaidNode在createRaidNode中读取conf设置
+
+
+fs.raidnode.startup
+-regular
+
+
+
+raid.server.address
+localh">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Hadoop配置相关---RaidNode">
+<meta property="og:url" content="http://xiao-yun.github.io/配置相关/index.html">
+<meta property="og:site_name" content="xiaoyun">
+<meta property="og:description" content="Hadoop版本:hadoop-20-master
+
+源码阅读配置记录
+RaidNode
+
+
+属性
+缺省值
+说明
+
+
+
+
+raid.classname
+DistRaidNode
+RaidNode实现类,默认DistRaidNode在createRaidNode中读取conf设置
+
+
+fs.raidnode.startup
+-regular
+
+
+
+raid.server.address
+localh">
+<meta property="og:updated_time" content="2015-12-11T07:08:32.149Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Hadoop配置相关---RaidNode">
+<meta name="twitter:description" content="Hadoop版本:hadoop-20-master
+
+源码阅读配置记录
+RaidNode
+
+
+属性
+缺省值
+说明
+
+
+
+
+raid.classname
+DistRaidNode
+RaidNode实现类,默认DistRaidNode在createRaidNode中读取conf设置
+
+
+fs.raidnode.startup
+-regular
+
+
+
+raid.server.address
+localh">
+
+
+
+<script type="text/javascript" id="hexo.configuration">
+  var CONFIG = {
+    scheme: 'Mist',
+    sidebar: 'hide',
+    motion: true
+  };
+</script>
+
+  <title> Hadoop配置相关---RaidNode | xiaoyun </title>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  <!--[if lte IE 8]>
+  <div style=' clear: both; height: 59px; padding:0 0 0 15px; position: relative;margin:0 auto;'>
+    <a href="http://windows.microsoft.com/en-US/internet-explorer/products/ie/home?ocid=ie6_countdown_bannercode">
+      <img src="http://7u2nvr.com1.z0.glb.clouddn.com/picouterie.jpg" border="0" height="42" width="820"
+           alt="You are using an outdated browser. For a faster, safer browsing experience, upgrade for free today or use other browser ,like chrome firefox safari."
+           style='margin-left:auto;margin-right:auto;display: block;'/>
+    </a>
+  </div>
+<![endif]-->
+  
+
+
+
+  <script type="text/javascript">
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "//hm.baidu.com/hm.js?caeb4129c91d1e6fb3d562d35fedef0d";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+  <div class="container one-column page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-meta ">
+  
+
+  <div class="custom-logo-site-title">
+    <a href="/"  class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <span class="site-title">xiaoyun</span>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+  <p class="site-subtitle"></p>
+</div>
+
+<div class="site-nav-toggle">
+  <button>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+  </button>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu menu-left">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-home fa-fw"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives" rel="section">
+            
+              <i class="menu-item-icon fa fa-archive fa-fw"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories" rel="section">
+            
+              <i class="menu-item-icon fa fa-th fa-fw"></i> <br />
+            
+            分类
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+              <i class="menu-item-icon fa fa-tags fa-fw"></i> <br />
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about" rel="section">
+            
+              <i class="menu-item-icon fa fa-user fa-fw"></i> <br />
+            
+            关于
+          </a>
+        </li>
+      
+
+      
+      
+    </ul>
+  
+
+  
+    <div class="site-search">
+      
+  
+  <form class="site-search-form">
+    <input type="text" id="st-search-input" class="st-search-input st-default-search-input" />
+  </form>
+
+
+<script type="text/javascript">
+  (function(w,d,t,u,n,s,e){w['SwiftypeObject']=n;w[n]=w[n]||function(){
+    (w[n].q=w[n].q||[]).push(arguments);};s=d.createElement(t);
+    e=d.getElementsByTagName(t)[0];s.async=1;s.src=u;e.parentNode.insertBefore(s,e);
+  })(window,document,'script','//s.swiftypecdn.com/install/v2/st.js','_st');
+
+  _st('install', 'Nq1MdxGEF4xQgzakv9MC','2.0.0');
+</script>
+
+
+
+    </div>
+  
+</nav>
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div id="content" class="content">
+          
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                Hadoop配置相关---RaidNode
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            发表于
+            <time itemprop="dateCreated" datetime="2015-12-11T15:08:32+08:00" content="2015-12-11">
+              2015-12-11
+            </time>
+          </span>
+
+          
+            <span class="post-category" >
+              &nbsp; | &nbsp; 分类于
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Hadoop-0-20/" itemprop="url" rel="index">
+                    <span itemprop="name">Hadoop-0.20</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Hadoop-0-20/RaidNode/" itemprop="url" rel="index">
+                    <span itemprop="name">RaidNode</span>
+                  </a>
+                </span>
+
+                
+                
+
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                &nbsp; | &nbsp;
+                <a href="/配置相关/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="配置相关/" itemprop="commentsCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+
+        </div>
+      </header>
+    
+
+
+    <div class="post-body">
+
+      
+      
+
+      
+        <span itemprop="articleBody"><blockquote>
+<p>Hadoop版本:<a href="https://github.com/facebookarchive/hadoop-20" title="facebook hadoop" target="_blank" rel="external">hadoop-20-master</a></p>
+</blockquote>
+<h2 id="源码阅读配置记录">源码阅读配置记录</h2><hr>
+<h3 id="RaidNode">RaidNode</h3><table>
+<thead>
+<tr>
+<th style="text-align:center">属性</th>
+<th style="text-align:center">缺省值</th>
+<th style="text-align:center">说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">raid.classname</td>
+<td style="text-align:center">DistRaidNode</td>
+<td style="text-align:center">RaidNode实现类,默认DistRaidNode在createRaidNode中读取conf设置</td>
+</tr>
+<tr>
+<td style="text-align:center">fs.raidnode.startup</td>
+<td style="text-align:center">-regular</td>
+<td style="text-align:center"></td>
+</tr>
+<tr>
+<td style="text-align:center">raid.server.address</td>
+<td style="text-align:center">localhost:60000</td>
+<td style="text-align:center">RaidNode RPC服务地址</td>
+</tr>
+<tr>
+<td style="text-align:center">fs.raidnode.handler.count</td>
+<td style="text-align:center">10</td>
+<td style="text-align:center">RaidNode RPC服务handler线程数目</td>
+</tr>
+<tr>
+<td style="text-align:center">raid.mapreduce.upload.classes</td>
+<td style="text-align:center">无</td>
+<td style="text-align:center">设置tmpjars</td>
+</tr>
+<tr>
+<td style="text-align:center">mapred.raid.http.address</td>
+<td style="text-align:center">localhost:50091</td>
+<td style="text-align:center">raid http服务器地址</td>
+</tr>
+<tr>
+<td style="text-align:center">hdfs.raid.stripe.encoding</td>
+<td style="text-align:center">1</td>
+<td style="text-align:center">一个EncodingCandidate对应的编码单元(一个编码单元stripeLength个源Block)</td>
+</tr>
+<tr>
+<td style="text-align:center">hdfs.raid.min.filesize</td>
+<td style="text-align:center">10*1000(10KB)</td>
+<td style="text-align:center">RaidNode统计目录状态(listDirectoryRaidFileStatus)时最小文件大小,小于此值不参与目录Raid</td>
+</tr>
+<tr>
+<td style="text-align:center">hdfs.raid.parity.initial.repl</td>
+<td style="text-align:center">3</td>
+<td style="text-align:center"></td>
+<td></td>
+</tr>
+<tr>
+<td style="text-align:center">mapred.job.id</td>
+<td style="text-align:center">无</td>
+<td style="text-align:center">Raid操作的job id,临时目录</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h3 id="Encoder">Encoder</h3><table>
+<thead>
+<tr>
+<th style="text-align:center">属性</th>
+<th style="text-align:center">缺省值</th>
+<th style="text-align:center">说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">raid.encoder.max.buffer.size</td>
+<td style="text-align:center">1024*1024(1MB)</td>
+<td style="text-align:center"></td>
+</tr>
+<tr>
+<td style="text-align:center">hdfs.raid.checksum.store.required</td>
+<td style="text-align:center">false</td>
+<td style="text-align:center">是否必须配置ChecksumStore</td>
+</tr>
+<tr>
+<td style="text-align:center">raid.encoder.retry.count.partial.encoding</td>
+<td style="text-align:center">3</td>
+<td style="text-align:center">文件局部编码失败重试次数</td>
+</tr>
+<tr>
+<td style="text-align:center">raid.encoder.bufsize</td>
+<td style="text-align:center">最大buffer大小1MB</td>
+<td style="text-align:center">一次从Block中读取并编码数据的大小,如果大于Block大小,则为Block大小.小于Block大小时,如果不能被Block大小整除,则配置为Block大小的1/256,最小1KB</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h3 id="Decoder">Decoder</h3><table>
+<thead>
+<tr>
+<th style="text-align:center">属性</th>
+<th style="text-align:center">缺省值</th>
+<th style="text-align:center">说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">raid.decoder.max.buffer.size</td>
+<td style="text-align:center">1024*1024(1MB)</td>
+</tr>
+</tbody>
+</table>
+<p>raid.decoder.max.buffer.size|最大buffer大小1MB|一次从Block中读取并编码数据的大小,如果大于Block大小,则为Block大小.小于Block大小时,如果不能被Block大小整除,则配置为Block大小的1/256,最小1KB|</p>
+<hr>
+<h3 id="ConfigManager">ConfigManager</h3><table>
+<thead>
+<tr>
+<th style="text-align:center">属性</th>
+<th style="text-align:center">缺省值</th>
+<th style="text-align:center">说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">raid.config.file</td>
+<td style="text-align:center">raid.xml</td>
+<td style="text-align:center">Raid配置文件,相应类:ConfigManager,对应策略类:PolicyInfo</td>
+</tr>
+<tr>
+<td style="text-align:center">raid.config.reload</td>
+<td style="text-align:center">true</td>
+<td style="text-align:center">Raid配置文件是否可重新加载</td>
+</tr>
+<tr>
+<td style="text-align:center">raid.config.reload.interval</td>
+<td style="text-align:center">10*1000(10s)</td>
+<td style="text-align:center">配置文件重新加载周期,成员属性reloadInterval</td>
+</tr>
+<tr>
+<td style="text-align:center">raid.policy.rescan.interval</td>
+<td style="text-align:center">3600*1000(1h)</td>
+<td style="text-align:center">Raid策略文件加载周期,成员属性periodicity</td>
+</tr>
+<tr>
+<td style="text-align:center">raid.mod.time.period</td>
+<td style="text-align:center">24小时</td>
+<td style="text-align:center">启动日志信息modTimePeriod,成员属性modTimePeriod</td>
+</tr>
+<tr>
+<td style="text-align:center">raid.har.partfile.size</td>
+<td style="text-align:center">4*1024*1024*1024(4G)</td>
+<td style="text-align:center"></td>
+</tr>
+<tr>
+<td style="text-align:center">raid.distraid.max.jobs</td>
+<td style="text-align:center">10</td>
+<td style="text-align:center">一个policy最多可运行的job数目,成员属性maxJobsPerPolicy</td>
+</tr>
+<tr>
+<td style="text-align:center">raid.distraid.max.files</td>
+<td style="text-align:center">5000</td>
+<td style="text-align:center">通过fileListPath设置Raid文件,文件Raid一个job(一次Raid操作)支持最大的文件数目,成员maxFilesPerJob</td>
+</tr>
+<tr>
+<td style="text-align:center">hdfs.raid.dir.raid.block.limit</td>
+<td style="text-align:center">5000</td>
+<td style="text-align:center">通过fileListPath设置Raid文件时,目录Raid一个job(一次Raid操作)支持最大的区块数目,成员maxBlocksPerDirRaidJob</td>
+</tr>
+<tr>
+<td style="text-align:center">raid.read.reconstruction.metrics.url</td>
+<td style="text-align:center">“”</td>
+<td style="text-align:center"></td>
+</tr>
+<tr>
+<td style="text-align:center">RELOAD_WAIT</td>
+<td style="text-align:center">5000(5s)</td>
+<td style="text-align:center">ConfigManager成员,配置文件修改经5s才会重新加载</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h3 id="Codec">Codec</h3><table>
+<thead>
+<tr>
+<th style="text-align:center">属性</th>
+<th style="text-align:center">缺省值</th>
+<th style="text-align:center">说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">raid.encoder.parallelism</td>
+<td style="text-align:center">4</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h3 id="CheckSumStore">CheckSumStore</h3><table>
+<thead>
+<tr>
+<th style="text-align:center">属性</th>
+<th style="text-align:center">缺省值</th>
+<th style="text-align:center">说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">hdfs.raid.checksum.store.class</td>
+<td style="text-align:center">null</td>
+<td style="text-align:center">对应类:ChecksumStore子类,存在创建实例,initialize函数初始化</td>
+</tr>
+<tr>
+<td style="text-align:center">hdfs.raid.local.checksum.dir</td>
+<td style="text-align:center">“”</td>
+<td style="text-align:center">LocalCheckSumStore对应本地存储目录</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h3 id="StripeStore">StripeStore</h3><table>
+<thead>
+<tr>
+<th style="text-align:center">属性</th>
+<th style="text-align:center">缺省值</th>
+<th style="text-align:center">说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">hdfs.raid.stripe.store.class</td>
+<td style="text-align:center">null</td>
+<td style="text-align:center">对应类:StripeStore子类,存在创建实例,initialize函数初始化</td>
+</tr>
+<tr>
+<td style="text-align:center">hdfs.raid.local.stripe.dir</td>
+<td style="text-align:center">无</td>
+<td style="text-align:center">LocalStripeStore中storeDirName</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h3 id="BlockIntegrityMonitor">BlockIntegrityMonitor</h3><table>
+<thead>
+<tr>
+<th style="text-align:center">属性</th>
+<th style="text-align:center">缺省值</th>
+<th style="text-align:center">说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">raid.blockfix.classname</td>
+<td style="text-align:center">DistBlockIntegrityMonitor</td>
+<td style="text-align:center">RaidNode启动时createBlockIntegrityMonitor读取配置</td>
+</tr>
+<tr>
+<td style="text-align:center">raid.blockreconstruction.corrupt.disable</td>
+<td style="text-align:center">false</td>
+<td style="text-align:center">是否禁用损坏区块的修复</td>
+</tr>
+<tr>
+<td style="text-align:center">raid.blockreconstruction.decommissioning.disable</td>
+<td style="text-align:center">true</td>
+<td style="text-align:center">是否禁用丢失区块修复</td>
+</tr>
+<tr>
+<td style="text-align:center">raid.corruptfile.counter.disable</td>
+<td style="text-align:center">false</td>
+<td style="text-align:center">是否禁用损坏区块计数器</td>
+</tr>
+<tr>
+<td style="text-align:center">raid.blockfix.interval</td>
+<td style="text-align:center">5*1000(5s)</td>
+<td style="text-align:center">每次修复线程执行dofix时休眠时间,对应成员属性blockCheckInterval</td>
+</tr>
+<tr>
+<td style="text-align:center">raid.corruptfilecount.interval</td>
+<td style="text-align:center">600*1000(10m)</td>
+<td style="text-align:center">检查丢失区块的间隔,对应成员属性corruptFileCountInterval</td>
+</tr>
+<tr>
+<td style="text-align:center">raid.blockfix.noraid.replication</td>
+<td style="text-align:center">3</td>
+<td style="text-align:center">对应成员属性notRaidedReplication</td>
+</tr>
+<tr>
+<td style="text-align:center">raid.monitor.seconds</td>
+<td style="text-align:center">“18000,86400,604800”(5h,1d,1w)</td>
+<td style="text-align:center">“,”分割的s位单位的时间,对应成员属性monitorSeconds</td>
+</tr>
+<tr>
+<td style="text-align:center">raid.corruptfile.counter.dirs</td>
+<td style="text-align:center">“/“</td>
+<td style="text-align:center">字符串数组,损坏文件目录扫描根目录,对应成员属性monitorDirs</td>
+</tr>
+<tr>
+<td style="text-align:center">hdfs.raid.histogram.dividend</td>
+<td style="text-align:center">1000</td>
+<td style="text-align:center"></td>
+</tr>
+<tr>
+<td style="text-align:center">raid.histogram.length</td>
+<td style="text-align:center">20</td>
+<td style="text-align:center"></td>
+</tr>
+<tr>
+<td style="text-align:center">raid.histogram.percents</td>
+<td style="text-align:center">“0,50,95,99,100”</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h3 id="TriggerMonitor">TriggerMonitor</h3><table>
+<thead>
+<tr>
+<th style="text-align:center">属性</th>
+<th style="text-align:center">缺省值</th>
+<th style="text-align:center">说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">hdfs.raid.trigger.monitor.sleep.time</td>
+<td style="text-align:center">10000(10s)</td>
+<td style="text-align:center">执行process过程的休眠间隔,即两次Raid操作之间的间隔</td>
+</tr>
+<tr>
+<td style="text-align:center">raid.directorytraversal.threads</td>
+<td style="text-align:center">4</td>
+<td style="text-align:center">一个policy中存在srcPath时,遍历srcPath所指路径可Raid文件的线程数</td>
+</tr>
+<tr>
+<td style="text-align:center">raid.directorytraversal.shuffle</td>
+<td style="text-align:center">true</td>
+<td style="text-align:center">是否打乱srcPath解析的路径的顺序</td>
+</tr>
+<tr>
+<td style="text-align:center">raid.exclude.patterns</td>
+<td style="text-align:center">无</td>
+<td style="text-align:center">不参与Raid的路径,默认包含”.Trash”路径</td>
+</tr>
+<tr>
+<td style="text-align:center">raid.infermtimefromname</td>
+<td style="text-align:center">true</td>
+<td style="text-align:center">从文件名推断修改时间(即文件名与修改时间相关联?)</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h3 id="UnderRedundantFilesProcessor">UnderRedundantFilesProcessor</h3><table>
+<thead>
+<tr>
+<th style="text-align:center">属性</th>
+<th style="text-align:center">缺省值</th>
+<th style="text-align:center">说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">hdfs.raid.under.redundant.files.processor.sleep.time</td>
+<td style="text-align:center">10000(10s)</td>
+<td style="text-align:center"></td>
+</tr>
+<tr>
+<td style="text-align:center">raid.under.redundant.files.processor.threads.num</td>
+<td style="text-align:center">5</td>
+<td style="text-align:center"></td>
+</tr>
+<tr>
+<td style="text-align:center">raid.increase.replication.batch.size</td>
+<td style="text-align:center">50</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h3 id="PlacementMonitor">PlacementMonitor</h3><table>
+<thead>
+<tr>
+<th style="text-align:center">属性</th>
+<th style="text-align:center">缺省值</th>
+<th style="text-align:center">说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">hdfs.raid.block.move.threads</td>
+<td style="text-align:center">10</td>
+<td style="text-align:center">移动线程数目</td>
+</tr>
+<tr>
+<td style="text-align:center">hdfs.raid.block.move.queue.length</td>
+<td style="text-align:center">30000</td>
+<td style="text-align:center">移动队列长度</td>
+</tr>
+<tr>
+<td style="text-align:center">hdfs.raid.block.move.min.replication</td>
+<td style="text-align:center">2</td>
+<td style="text-align:center">区块移动最小备份</td>
+</tr>
+<tr>
+<td style="text-align:center">hdfs.raid.block.move.simulate</td>
+<td style="text-align:center">true</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h3 id="PurgeMonitor">PurgeMonitor</h3><table>
+<thead>
+<tr>
+<th style="text-align:center">属性</th>
+<th style="text-align:center">缺省值</th>
+<th style="text-align:center">说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">raid.directorytraversal.shuffle</td>
+<td style="text-align:center">true</td>
+<td style="text-align:center">目录遍历时打乱顺序</td>
+</tr>
+<tr>
+<td style="text-align:center">raid.directorytraversal.threads</td>
+<td style="text-align:center">4</td>
+<td style="text-align:center">目录遍历线程</td>
+</tr>
+<tr>
+<td style="text-align:center">hdfs.raid.purge.monitor.sleep</td>
+<td style="text-align:center">10000(10s)</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h3 id="StatisticsCollector">StatisticsCollector</h3><table>
+<thead>
+<tr>
+<th style="text-align:center">属性</th>
+<th style="text-align:center">缺省值</th>
+<th style="text-align:center">说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">raid.directorytraversal.threads</td>
+<td style="text-align:center">4</td>
+<td style="text-align:center"></td>
+</tr>
+<tr>
+<td style="text-align:center">raid.statscollector.submit.raid.jobs</td>
+<td style="text-align:center">true</td>
+<td style="text-align:center"></td>
+</tr>
+<tr>
+<td style="text-align:center">raid.statscollector.update.period</td>
+<td style="text-align:center">20<em>60</em>1000(20m)</td>
+<td style="text-align:center">统计信息更新周期</td>
+</tr>
+<tr>
+<td style="text-align:center">fs.raid.statscollector.snapshotFile</td>
+<td style="text-align:center">无</td>
+<td style="text-align:center">快照文件名</td>
+</tr>
+</tbody>
+</table>
+</span>
+      
+    </div>
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/Hadoop-0-20/" rel="tag">#Hadoop-0.20</a>
+          
+            <a href="/tags/RaidNode/" rel="tag">#RaidNode</a>
+          
+            <a href="/tags/配置/" rel="tag">#配置</a>
+          
+        </div>
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/RaidNode启动/" rel="next" title="RaidNode源码阅读---RaidNode启动过程分析">
+                <i class="fa fa-chevron-left"></i> RaidNode源码阅读---RaidNode启动过程分析
+              </a>
+            
+          </div>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/辅助类/" rel="prev" title="RaidNode源码阅读---辅助类">
+                RaidNode源码阅读---辅助类 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </article>
+
+
+
+    <div class="post-spread">
+      
+        <!-- JiaThis Button BEGIN -->
+<div class="jiathis_style">
+  <a class="jiathis_button_tsina"></a>
+  <a class="jiathis_button_tqq"></a>
+  <a class="jiathis_button_weixin"></a>
+  <a class="jiathis_button_cqq"></a>
+  <a class="jiathis_button_douban"></a>
+  <a class="jiathis_button_renren"></a>
+  <a class="jiathis_button_qzone"></a>
+  <a class="jiathis_button_kaixin001"></a>
+  <a class="jiathis_button_copy"></a>
+  <a href="http://www.jiathis.com/share" class="jiathis jiathis_txt jiathis_separator jtico jtico_jiathis" target="_blank"></a>
+  <a class="jiathis_counter_style"></a>
+</div>
+<script type="text/javascript" >
+  var jiathis_config={
+    hideMore:false
+  }
+</script>
+<script type="text/javascript" src="http://v3.jiathis.com/code/jia.js" charset="utf-8"></script>
+<!-- JiaThis Button END -->
+
+      
+    </div>
+  </div>
+
+
+        </div>
+
+        
+
+
+        
+  <div class="comments" id="comments">
+    
+      <div class="ds-thread" data-thread-key="配置相关/"
+           data-title="Hadoop配置相关---RaidNode" data-url="http://xiao-yun.github.io/配置相关/">
+      </div>
+    
+  </div>
+
+
+      </div>
+
+      
+        
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap" >
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel ">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+          <img class="site-author-image" src="/images/hero.jpg" alt="xiaoyun" itemprop="image"/>
+          <p class="site-author-name" itemprop="name">xiaoyun</p>
+        </div>
+        <p class="site-description motion-element" itemprop="description">学习笔记，网上资源摘要等</p>
+        <nav class="site-state motion-element">
+          <div class="site-state-item site-state-posts">
+            <a href="/archives">
+              <span class="site-state-item-count">7</span>
+              <span class="site-state-item-name">日志</span>
+            </a>
+          </div>
+
+          <div class="site-state-item site-state-categories">
+            <a href="/categories">
+              <span class="site-state-item-count">4</span>
+              <span class="site-state-item-name">分类</span>
+              </a>
+          </div>
+
+          <div class="site-state-item site-state-tags">
+            <a href="/tags">
+              <span class="site-state-item-count">3</span>
+              <span class="site-state-item-name">标签</span>
+              </a>
+          </div>
+
+        </nav>
+
+        
+
+        <div class="links-of-author motion-element">
+          
+            
+              <span class="links-of-author-item">
+                <a href="https://github.com/xiao-yun" target="_blank">
+                  
+                    <i class="fa fa-globe"></i> github
+                  
+                </a>
+              </span>
+            
+          
+        </div>
+
+        
+        
+
+        <div class="links-of-author motion-element">
+          
+        </div>
+
+      </section>
+
+      
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc-indicator-top post-toc-indicator">
+            <i class="fa fa-angle-double-up"></i>
+          </div>
+          <div class="post-toc">
+            
+              
+            
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#源码阅读配置记录"><span class="nav-number">1.</span> <span class="nav-text">源码阅读配置记录</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#RaidNode"><span class="nav-number">1.1.</span> <span class="nav-text">RaidNode</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Encoder"><span class="nav-number">1.2.</span> <span class="nav-text">Encoder</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Decoder"><span class="nav-number">1.3.</span> <span class="nav-text">Decoder</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#ConfigManager"><span class="nav-number">1.4.</span> <span class="nav-text">ConfigManager</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Codec"><span class="nav-number">1.5.</span> <span class="nav-text">Codec</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#CheckSumStore"><span class="nav-number">1.6.</span> <span class="nav-text">CheckSumStore</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#StripeStore"><span class="nav-number">1.7.</span> <span class="nav-text">StripeStore</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#BlockIntegrityMonitor"><span class="nav-number">1.8.</span> <span class="nav-text">BlockIntegrityMonitor</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#TriggerMonitor"><span class="nav-number">1.9.</span> <span class="nav-text">TriggerMonitor</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#UnderRedundantFilesProcessor"><span class="nav-number">1.10.</span> <span class="nav-text">UnderRedundantFilesProcessor</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#PlacementMonitor"><span class="nav-number">1.11.</span> <span class="nav-text">PlacementMonitor</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#PurgeMonitor"><span class="nav-number">1.12.</span> <span class="nav-text">PurgeMonitor</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#StatisticsCollector"><span class="nav-number">1.13.</span> <span class="nav-text">StatisticsCollector</span></a></li></ol></li></ol></div>
+            
+          </div>
+          <div class="post-toc-indicator-bottom post-toc-indicator">
+            <i class="fa fa-angle-double-down"></i>
+          </div>
+        </section>
+      
+
+    </div>
+  </aside>
+
+
+      
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright" >
+  
+  &copy; 
+  <span itemprop="copyrightYear">2015</span>
+  <span class="with-love">
+    <i class="icon-next-heart fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">xiaoyun</span>
+</div>
+
+<div class="powered-by">
+  由 <a class="theme-link" href="http://hexo.io">Hexo</a> 强力驱动
+</div>
+
+<div class="theme-info">
+  主题 -
+  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
+    NexT.Mist
+  </a>
+</div>
+
+
+
+      </div>
+    </footer>
+
+    <div class="back-to-top"></div>
+  </div>
+
+  <script type="text/javascript" src="/vendors/jquery/index.js?v=2.1.3"></script>
+
+  
+  
+
+  
+    
+
+  
+    
+  
+
+  <script type="text/javascript">
+    var duoshuoQuery = {short_name:"xiaoyuncom"};
+    (function() {
+      var ds = document.createElement('script');
+      ds.type = 'text/javascript';ds.async = true;
+      ds.id = 'duoshuo-script';
+      ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+      ds.charset = 'UTF-8';
+      (document.getElementsByTagName('head')[0]
+      || document.getElementsByTagName('body')[0]).appendChild(ds);
+    })();
+  </script>
+    
+     
+
+
+    
+  
+
+  
+  <script type="text/javascript" src="/vendors/fancybox/source/jquery.fancybox.pack.js"></script>
+  <script type="text/javascript" src="/js/fancy-box.js?v=0.4.5.2"></script>
+
+
+  <script type="text/javascript" src="/js/helpers.js?v=0.4.5.2"></script>
+  <script type="text/javascript" src="/vendors/velocity/velocity.min.js"></script>
+<script type="text/javascript" src="/vendors/velocity/velocity.ui.min.js"></script>
+
+<script type="text/javascript" src="/js/motion.js?v=0.4.5.2" id="motion.global"></script>
+
+
+  <script type="text/javascript" src="/vendors/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  <script type="text/javascript" src="/vendors/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  
+<script type="text/javascript" src="/js/bootstrap.scrollspy.js?v=0.4.5.2" id="bootstrap.scrollspy.custom"></script>
+
+
+<script type="text/javascript" id="sidebar.toc.highlight">
+  $(document).ready(function () {
+    var tocSelector = '.post-toc';
+    var $tocSelector = $(tocSelector);
+    var activeCurrentSelector = '.active-current';
+
+    $tocSelector
+      .on('activate.bs.scrollspy', function () {
+        var $currentActiveElement = $(tocSelector + ' .active').last();
+
+        removeCurrentActiveClass();
+        $currentActiveElement.addClass('active-current');
+
+        $tocSelector[0].scrollTop = $currentActiveElement.position().top;
+      })
+      .on('clear.bs.scrollspy', function () {
+        removeCurrentActiveClass();
+      });
+
+    function removeCurrentActiveClass () {
+      $(tocSelector + ' ' + activeCurrentSelector)
+        .removeClass(activeCurrentSelector.substring(1));
+    }
+
+    function processTOC () {
+      getTOCMaxHeight();
+      toggleTOCOverflowIndicators();
+    }
+
+    function getTOCMaxHeight () {
+      var height = $('.sidebar').height() -
+                   $tocSelector.position().top -
+                   $('.post-toc-indicator-bottom').height();
+
+      $tocSelector.css('height', height);
+
+      return height;
+    }
+
+    function toggleTOCOverflowIndicators () {
+      tocOverflowIndicator(
+        '.post-toc-indicator-top',
+        $tocSelector.scrollTop() > 0 ? 'show' : 'hide'
+      );
+
+      tocOverflowIndicator(
+        '.post-toc-indicator-bottom',
+        $tocSelector.scrollTop() >= $tocSelector.find('ol').height() - $tocSelector.height() ? 'hide' : 'show'
+      )
+    }
+
+    $(document).on('sidebar.motion.complete', function () {
+      processTOC();
+    });
+
+    $('body').scrollspy({ target: tocSelector });
+    $(window).on('resize', function () {
+      if ( $('.sidebar').hasClass('sidebar-active') ) {
+        processTOC();
+      }
+    });
+
+    onScroll($tocSelector);
+
+    function onScroll (element) {
+      element.on('mousewheel DOMMouseScroll', function (event) {
+          var oe = event.originalEvent;
+          var delta = oe.wheelDelta || -oe.detail;
+
+          this.scrollTop += ( delta < 0 ? 1 : -1 ) * 30;
+          event.preventDefault();
+
+          toggleTOCOverflowIndicators();
+      });
+    }
+
+    function tocOverflowIndicator (indicator, action) {
+      var $indicator = $(indicator);
+      var opacity = action === 'show' ? 1 : 0;
+      $indicator.velocity ?
+        $indicator.velocity('stop').velocity({
+          opacity: opacity
+        }, { duration: 100 }) :
+        $indicator.stop().animate({
+          opacity: opacity
+        }, 100);
+    }
+
+  });
+</script>
+
+<script type="text/javascript" id="sidebar.nav">
+  $(document).ready(function () {
+    var html = $('html');
+    var TAB_ANIMATE_DURATION = 200;
+    var hasVelocity = $.isFunction(html.velocity);
+
+    $('.sidebar-nav li').on('click', function () {
+      var item = $(this);
+      var activeTabClassName = 'sidebar-nav-active';
+      var activePanelClassName = 'sidebar-panel-active';
+      if (item.hasClass(activeTabClassName)) {
+        return;
+      }
+
+      var currentTarget = $('.' + activePanelClassName);
+      var target = $('.' + item.data('target'));
+
+      hasVelocity ?
+        currentTarget.velocity('transition.slideUpOut', TAB_ANIMATE_DURATION, function () {
+          target
+            .velocity('stop')
+            .velocity('transition.slideDownIn', TAB_ANIMATE_DURATION)
+            .addClass(activePanelClassName);
+        }) :
+        currentTarget.animate({ opacity: 0 }, TAB_ANIMATE_DURATION, function () {
+          currentTarget.hide();
+          target
+            .stop()
+            .css({'opacity': 0, 'display': 'block'})
+            .animate({ opacity: 1 }, TAB_ANIMATE_DURATION, function () {
+              currentTarget.removeClass(activePanelClassName);
+              target.addClass(activePanelClassName);
+            });
+        });
+
+      item.siblings().removeClass(activeTabClassName);
+      item.addClass(activeTabClassName);
+    });
+
+    $('.post-toc a').on('click', function (e) {
+      e.preventDefault();
+      var targetSelector = escapeSelector(this.getAttribute('href'));
+      var offset = $(targetSelector).offset().top;
+      hasVelocity ?
+        html.velocity('stop').velocity('scroll', {
+          offset: offset  + 'px',
+          mobileHA: false
+        }) :
+        $('html, body').stop().animate({
+          scrollTop: offset
+        }, 500);
+    });
+
+    // Expand sidebar on post detail page by default, when post has a toc.
+    motionMiddleWares.sidebar = function () {
+      var $tocContent = $('.post-toc-content');
+      if (CONFIG.sidebar === 'post') {
+        if ($tocContent.length > 0 && $tocContent.html().trim().length > 0) {
+          displaySidebar();
+        }
+      }
+    };
+  });
+</script>
+
+
+
+  <script type="text/javascript" src="/js/bootstrap.js"></script>
+
+  
+  
+
+  
+  
+
+</body>
+</html>

@@ -1,0 +1,889 @@
+<!doctype html>
+<html class="theme-next   use-motion ">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+  <link href="/vendors/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css"/>
+
+
+
+
+  <link href="//fonts.googleapis.com/css?family=Lato:300,400,700,400italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+
+
+
+<link href="/vendors/font-awesome/css/font-awesome.min.css?v=4.4.0" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=0.4.5.2" rel="stylesheet" type="text/css" />
+
+
+  <meta name="keywords" content="Hadoop-0.20,RaidNode," />
+
+
+
+
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=0.4.5.2" />
+
+
+
+
+
+
+<meta name="description" content="Hadoop版本:hadoop-20-master
+
+
+start-raidnode.sh通过bin目录下的start-raidnode.sh启动,加载conf目录下的hadoop-env.sh,然后导出RaidNode相关选项(若有):1234if [ -f &quot;$&amp;#123;HADOOP_CONF_DIR&amp;#125;/hadoop-env.sh&quot; ]; then  . &quot;$&amp;#123;HADOO">
+<meta property="og:type" content="article">
+<meta property="og:title" content="RaidNode源码阅读---RaidNode启动过程分析">
+<meta property="og:url" content="http://xiao-yun.github.io/RaidNode启动/index.html">
+<meta property="og:site_name" content="xiaoyun">
+<meta property="og:description" content="Hadoop版本:hadoop-20-master
+
+
+start-raidnode.sh通过bin目录下的start-raidnode.sh启动,加载conf目录下的hadoop-env.sh,然后导出RaidNode相关选项(若有):1234if [ -f &quot;$&amp;#123;HADOOP_CONF_DIR&amp;#125;/hadoop-env.sh&quot; ]; then  . &quot;$&amp;#123;HADOO">
+<meta property="og:updated_time" content="2015-12-11T02:32:32.791Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="RaidNode源码阅读---RaidNode启动过程分析">
+<meta name="twitter:description" content="Hadoop版本:hadoop-20-master
+
+
+start-raidnode.sh通过bin目录下的start-raidnode.sh启动,加载conf目录下的hadoop-env.sh,然后导出RaidNode相关选项(若有):1234if [ -f &quot;$&amp;#123;HADOOP_CONF_DIR&amp;#125;/hadoop-env.sh&quot; ]; then  . &quot;$&amp;#123;HADOO">
+
+
+
+<script type="text/javascript" id="hexo.configuration">
+  var CONFIG = {
+    scheme: 'Mist',
+    sidebar: 'hide',
+    motion: true
+  };
+</script>
+
+  <title> RaidNode源码阅读---RaidNode启动过程分析 | xiaoyun </title>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  <!--[if lte IE 8]>
+  <div style=' clear: both; height: 59px; padding:0 0 0 15px; position: relative;margin:0 auto;'>
+    <a href="http://windows.microsoft.com/en-US/internet-explorer/products/ie/home?ocid=ie6_countdown_bannercode">
+      <img src="http://7u2nvr.com1.z0.glb.clouddn.com/picouterie.jpg" border="0" height="42" width="820"
+           alt="You are using an outdated browser. For a faster, safer browsing experience, upgrade for free today or use other browser ,like chrome firefox safari."
+           style='margin-left:auto;margin-right:auto;display: block;'/>
+    </a>
+  </div>
+<![endif]-->
+  
+
+
+
+  <script type="text/javascript">
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "//hm.baidu.com/hm.js?caeb4129c91d1e6fb3d562d35fedef0d";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+  <div class="container one-column page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-meta ">
+  
+
+  <div class="custom-logo-site-title">
+    <a href="/"  class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <span class="site-title">xiaoyun</span>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+  <p class="site-subtitle"></p>
+</div>
+
+<div class="site-nav-toggle">
+  <button>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+  </button>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu menu-left">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-home fa-fw"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives" rel="section">
+            
+              <i class="menu-item-icon fa fa-archive fa-fw"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories" rel="section">
+            
+              <i class="menu-item-icon fa fa-th fa-fw"></i> <br />
+            
+            分类
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+              <i class="menu-item-icon fa fa-tags fa-fw"></i> <br />
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about" rel="section">
+            
+              <i class="menu-item-icon fa fa-user fa-fw"></i> <br />
+            
+            关于
+          </a>
+        </li>
+      
+
+      
+      
+    </ul>
+  
+
+  
+    <div class="site-search">
+      
+  
+  <form class="site-search-form">
+    <input type="text" id="st-search-input" class="st-search-input st-default-search-input" />
+  </form>
+
+
+<script type="text/javascript">
+  (function(w,d,t,u,n,s,e){w['SwiftypeObject']=n;w[n]=w[n]||function(){
+    (w[n].q=w[n].q||[]).push(arguments);};s=d.createElement(t);
+    e=d.getElementsByTagName(t)[0];s.async=1;s.src=u;e.parentNode.insertBefore(s,e);
+  })(window,document,'script','//s.swiftypecdn.com/install/v2/st.js','_st');
+
+  _st('install', 'Nq1MdxGEF4xQgzakv9MC','2.0.0');
+</script>
+
+
+
+    </div>
+  
+</nav>
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div id="content" class="content">
+          
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                RaidNode源码阅读---RaidNode启动过程分析
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            发表于
+            <time itemprop="dateCreated" datetime="2015-12-11T10:32:32+08:00" content="2015-12-11">
+              2015-12-11
+            </time>
+          </span>
+
+          
+            <span class="post-category" >
+              &nbsp; | &nbsp; 分类于
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Hadoop-0-20/" itemprop="url" rel="index">
+                    <span itemprop="name">Hadoop-0.20</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Hadoop-0-20/RaidNode/" itemprop="url" rel="index">
+                    <span itemprop="name">RaidNode</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Hadoop-0-20/RaidNode/源码阅读/" itemprop="url" rel="index">
+                    <span itemprop="name">源码阅读</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Hadoop-0-20/RaidNode/源码阅读/RaidNode源码阅读/" itemprop="url" rel="index">
+                    <span itemprop="name">RaidNode源码阅读</span>
+                  </a>
+                </span>
+
+                
+                
+
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                &nbsp; | &nbsp;
+                <a href="/RaidNode启动/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="RaidNode启动/" itemprop="commentsCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+
+        </div>
+      </header>
+    
+
+
+    <div class="post-body">
+
+      
+      
+
+      
+        <span itemprop="articleBody"><blockquote>
+<p>Hadoop版本:<a href="https://github.com/facebookarchive/hadoop-20" title="facebook hadoop" target="_blank" rel="external">hadoop-20-master</a></p>
+</blockquote>
+<hr>
+<h1 id="start-raidnode-sh"><code>start-raidnode.sh</code></h1><p>通过bin目录下的<code>start-raidnode.sh</code>启动,加载conf目录下的<code>hadoop-env.sh</code>,然后导出RaidNode相关选项(若有):<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> [ <span class="operator">-f</span> <span class="string">"<span class="variable">$&#123;HADOOP_CONF_DIR&#125;</span>/hadoop-env.sh"</span> ]; <span class="keyword">then</span></span><br><span class="line">  . <span class="string">"<span class="variable">$&#123;HADOOP_CONF_DIR&#125;</span>/hadoop-env.sh"</span></span><br><span class="line"><span class="keyword">fi</span></span><br><span class="line"><span class="built_in">export</span> HADOOP_DAEMON_OPTS=<span class="variable">$HADOOP_RAIDNODE_OPTS</span></span><br></pre></td></tr></table></figure></p>
+<p>接着通过bin目录下的<code>hadoop-daemon.sh</code>启动raidnode:<br><figure class="highlight xquery"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="string">"$bin"</span>/hadoop-daemon.sh --config <span class="variable">$HADOOP</span>_CONF_DIR <span class="keyword">start</span> raidnode</span><br></pre></td></tr></table></figure></p>
+<hr>
+<h1 id="start-daemon-sh"><code>start-daemon.sh</code></h1><p><code>hadoop-daemon.sh</code>中,首先加载bin目录下的<code>hadoop-config.sh</code>和conf目录下的<code>hadoop-env.sh</code>(如果存在):<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">. <span class="string">"<span class="variable">$bin</span>"</span>/hadoop-config.sh</span><br><span class="line"><span class="keyword">if</span> [ <span class="operator">-f</span> <span class="string">"<span class="variable">$&#123;HADOOP_CONF_DIR&#125;</span>/hadoop-env.sh"</span> ]; <span class="keyword">then</span></span><br><span class="line">  . <span class="string">"<span class="variable">$&#123;HADOOP_CONF_DIR&#125;</span>/hadoop-env.sh"</span></span><br><span class="line"><span class="keyword">fi</span></span><br></pre></td></tr></table></figure></p>
+<p>接着检查当前用户名和${HADOOP_USERNAME}(hadoop-env.sh配置)是否一致,然后创建一些需要的目录(logs目录等),接着启动raidnode:<br><figure class="highlight xquery"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">cd <span class="string">"$HADOOP_HOME"</span></span><br><span class="line">nohup nice -n <span class="variable">$HADOOP</span>_NICENESS <span class="string">"$HADOOP_HOME"</span>/bin/hadoop --config <span class="variable">$HADOOP</span>_CONF_DIR <span class="variable">$command</span> <span class="string">"$@"</span> &gt; <span class="string">"$log"</span> <span class="number">2</span>&gt;&amp;<span class="number">1</span> &lt; /dev/null &amp;</span><br></pre></td></tr></table></figure></p>
+<p>nohup后台启动进程,通过$HADOOP_NICENESS设置进程的nice值(动态优先级),启动输出文件为日志文件,可见最终通过bin目录下的<code>hadoop</code>文件启动raidnode<br>,传入参数为<code>raidnode</code>.</p>
+<hr>
+<h1 id="hadoop"><code>hadoop</code></h1><p>该脚本为所有节点的启动脚本,根据传入的参数不同执行不同的行为,还包括一些文件系统的工具.<br><code>hadoop</code>脚本位于bin目录下,首先也加载bin目录下的<code>hadoop-config.sh</code>和conf目录下的<code>hadoop-env.sh</code>(如果存在),然后检查并设置$JAVA_HOME<br>和最大堆大小:<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">. <span class="string">"<span class="variable">$bin</span>"</span>/hadoop-config.sh</span><br><span class="line"><span class="keyword">if</span> [ <span class="operator">-f</span> <span class="string">"<span class="variable">$&#123;HADOOP_CONF_DIR&#125;</span>/hadoop-env.sh"</span> ]; <span class="keyword">then</span></span><br><span class="line">  . <span class="string">"<span class="variable">$&#123;HADOOP_CONF_DIR&#125;</span>/hadoop-env.sh"</span></span><br><span class="line"><span class="keyword">fi</span></span><br><span class="line"><span class="keyword">if</span> [ <span class="string">"<span class="variable">$JAVA_HOME</span>"</span> != <span class="string">""</span> ]; <span class="keyword">then</span></span><br><span class="line">  JAVA_HOME=<span class="variable">$JAVA_HOME</span></span><br><span class="line"><span class="keyword">fi</span></span><br><span class="line"><span class="keyword">if</span> [ <span class="string">"<span class="variable">$JAVA_HOME</span>"</span> = <span class="string">""</span> ]; <span class="keyword">then</span></span><br><span class="line">  <span class="built_in">echo</span> <span class="string">"Error: JAVA_HOME is not set."</span></span><br><span class="line">  <span class="built_in">exit</span> <span class="number">1</span></span><br><span class="line"><span class="keyword">fi</span></span><br><span class="line">JAVA=<span class="variable">$JAVA_HOME</span>/bin/java</span><br><span class="line">JAVA_HEAP_MAX=-Xmx1000m</span><br><span class="line"><span class="keyword">if</span> [ <span class="string">"<span class="variable">$HADOOP_HEAPSIZE</span>"</span> != <span class="string">""</span> ]; <span class="keyword">then</span></span><br><span class="line">  JAVA_HEAP_MAX=<span class="string">"-Xmx"</span><span class="string">"<span class="variable">$HADOOP_HEAPSIZE</span>"</span><span class="string">"m"</span></span><br><span class="line"><span class="keyword">fi</span></span><br></pre></td></tr></table></figure></p>
+<p>可见,启动时最大堆大小为1GB,通过<code>hadoop</code>脚本启动的节点最大堆都是1GB(包括raidnode,namenode等等).  </p>
+<h2 id="classpath设置">classpath设置</h2><p>接着便是设置启动节点时的classpath:<br><figure class="highlight crystal"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br></pre></td><td class="code"><pre><span class="line"><span class="constant">CLASSPATH</span>=<span class="string">"$&#123;HADOOP_CONF_DIR&#125;"</span></span><br><span class="line"><span class="constant">CLASSPATH</span>=<span class="variable">$&#123;</span><span class="constant">CLASSPATH</span>&#125;:<span class="variable">$HADOOP_CLASSPATH</span></span><br><span class="line"><span class="constant">CLASSPATH</span>=<span class="variable">$&#123;</span><span class="constant">CLASSPATH</span>&#125;:<span class="variable">$JAVA_HOME</span>/<span class="class"><span class="keyword">lib</span>/<span class="title">tools</span>.<span class="title">jar</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment"># for developers, add Hadoop classes to CLASSPATH</span></span><br><span class="line"><span class="keyword">if</span> [ -d <span class="string">"$HADOOP_HOME/build/classes"</span> ]; <span class="keyword">then</span></span><br><span class="line">  <span class="constant">CLASSPATH</span>=<span class="variable">$&#123;</span><span class="constant">CLASSPATH</span>&#125;:<span class="variable">$HADOOP_HOME</span>/build/classes</span><br><span class="line">fi</span><br><span class="line"><span class="keyword">if</span> [ -d <span class="string">"$HADOOP_HOME/build/webapps"</span> ]; <span class="keyword">then</span></span><br><span class="line">  <span class="constant">CLASSPATH</span>=<span class="variable">$&#123;</span><span class="constant">CLASSPATH</span>&#125;:<span class="variable">$HADOOP_HOME</span>/build</span><br><span class="line">fi</span><br><span class="line"><span class="keyword">if</span> [ -d <span class="string">"$HADOOP_HOME/build/test/classes"</span> ]; <span class="keyword">then</span></span><br><span class="line">  <span class="constant">CLASSPATH</span>=<span class="variable">$&#123;</span><span class="constant">CLASSPATH</span>&#125;:<span class="variable">$HADOOP_HOME</span>/build/test/classes</span><br><span class="line">fi</span><br><span class="line"><span class="keyword">if</span> [ -d <span class="string">"$HADOOP_HOME/build/tools"</span> ]; <span class="keyword">then</span></span><br><span class="line">  <span class="constant">CLASSPATH</span>=<span class="variable">$&#123;</span><span class="constant">CLASSPATH</span>&#125;:<span class="variable">$HADOOP_HOME</span>/build/tools</span><br><span class="line">fi</span><br><span class="line"><span class="keyword">if</span> [ -d <span class="string">"$HADOOP_HOME/build/contrib/highavailability/classes"</span> ]; <span class="keyword">then</span></span><br><span class="line">  <span class="constant">CLASSPATH</span>=<span class="variable">$&#123;</span><span class="constant">CLASSPATH</span>&#125;:<span class="variable">$HADOOP_HOME</span>/build/contrib/highavailability/classes</span><br><span class="line">fi</span><br><span class="line"></span><br><span class="line"><span class="comment"># so that filenames w/ spaces are handled correctly in loops below</span></span><br><span class="line"><span class="constant">IFS</span>=</span><br><span class="line"></span><br><span class="line"><span class="comment"># for releases, add core hadoop jar &amp; webapps to CLASSPATH</span></span><br><span class="line"><span class="keyword">if</span> [ -d <span class="string">"$HADOOP_HOME/webapps"</span> ]; <span class="keyword">then</span></span><br><span class="line">  <span class="constant">CLASSPATH</span>=<span class="variable">$&#123;</span><span class="constant">CLASSPATH</span>&#125;:<span class="variable">$HADOOP_HOME</span></span><br><span class="line">fi</span><br><span class="line"><span class="keyword">for</span> f in <span class="variable">$HADOOP_HOME</span>/hadoop-*-core.jar; <span class="keyword">do</span></span><br><span class="line">  <span class="constant">CLASSPATH</span>=<span class="variable">$&#123;</span><span class="constant">CLASSPATH</span>&#125;:<span class="variable">$f</span>;</span><br><span class="line">done</span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> [ -d <span class="string">"$HADOOP_HOME/build/ivy/lib/Hadoop/common"</span> ]; <span class="keyword">then</span></span><br><span class="line">  <span class="keyword">if</span> [ <span class="string">"$COMMAND"</span> = <span class="string">"hdfsnfsproxy"</span> ] ; <span class="keyword">then</span></span><br><span class="line">    <span class="keyword">for</span> f in <span class="variable">$HADOOP_HOME</span>/build/ivy/<span class="class"><span class="keyword">lib</span>/<span class="title">Hadoop</span>/<span class="title">common</span>/<span class="title">slf4j</span>*.<span class="title">jar</span>;</span> <span class="keyword">do</span></span><br><span class="line">      <span class="constant">CLASSPATH</span>=<span class="variable">$&#123;</span><span class="constant">CLASSPATH</span>&#125;:<span class="variable">$f</span>;</span><br><span class="line">    done</span><br><span class="line">    <span class="keyword">for</span> f in <span class="variable">$HADOOP_HOME</span>/build/ivy/<span class="class"><span class="keyword">lib</span>/<span class="title">Hadoop</span>/<span class="title">common</span>/<span class="title">zookeeper</span>*.<span class="title">jar</span>;</span> <span class="keyword">do</span></span><br><span class="line">      <span class="constant">CLASSPATH</span>=<span class="variable">$&#123;</span><span class="constant">CLASSPATH</span>&#125;:<span class="variable">$f</span>;</span><br><span class="line">    done</span><br><span class="line">    <span class="keyword">for</span> f in <span class="variable">$HADOOP_HOME</span>/build/ivy/<span class="class"><span class="keyword">lib</span>/<span class="title">Hadoop</span>/<span class="title">common</span>/<span class="title">guava</span>*.<span class="title">jar</span>;</span> <span class="keyword">do</span></span><br><span class="line">      <span class="constant">CLASSPATH</span>=<span class="variable">$&#123;</span><span class="constant">CLASSPATH</span>&#125;:<span class="variable">$f</span>;</span><br><span class="line">    done</span><br><span class="line">    <span class="keyword">for</span> f in <span class="variable">$HADOOP_HOME</span>/build/ivy/<span class="class"><span class="keyword">lib</span>/<span class="title">Hadoop</span>/<span class="title">common</span>/<span class="title">json</span>*.<span class="title">jar</span>;</span> <span class="keyword">do</span></span><br><span class="line">      <span class="constant">CLASSPATH</span>=<span class="variable">$&#123;</span><span class="constant">CLASSPATH</span>&#125;:<span class="variable">$f</span>;</span><br><span class="line">    done</span><br><span class="line">    <span class="keyword">for</span> f in <span class="variable">$HADOOP_HOME</span>/build/ivy/<span class="class"><span class="keyword">lib</span>/<span class="title">Hadoop</span>/<span class="title">common</span>/<span class="title">commons</span>*.<span class="title">jar</span>;</span> <span class="keyword">do</span></span><br><span class="line">      <span class="constant">CLASSPATH</span>=<span class="variable">$&#123;</span><span class="constant">CLASSPATH</span>&#125;:<span class="variable">$f</span>;</span><br><span class="line">    done</span><br><span class="line">    <span class="keyword">for</span> f in <span class="variable">$HADOOP_HOME</span>/build/ivy/<span class="class"><span class="keyword">lib</span>/<span class="title">Hadoop</span>/<span class="title">common</span>/<span class="title">log4j</span>*.<span class="title">jar</span>;</span> <span class="keyword">do</span></span><br><span class="line">      <span class="constant">CLASSPATH</span>=<span class="variable">$&#123;</span><span class="constant">CLASSPATH</span>&#125;:<span class="variable">$f</span>;</span><br><span class="line">    done</span><br><span class="line">    <span class="keyword">for</span> f in <span class="variable">$HADOOP_HOME</span>/build/ivy/<span class="class"><span class="keyword">lib</span>/<span class="title">Hadoop</span>/<span class="title">common</span>/<span class="title">hadoop</span>*.<span class="title">jar</span>;</span> <span class="keyword">do</span></span><br><span class="line">      <span class="constant">CLASSPATH</span>=<span class="variable">$&#123;</span><span class="constant">CLASSPATH</span>&#125;:<span class="variable">$f</span>;</span><br><span class="line">    done</span><br><span class="line">  <span class="keyword">else</span></span><br><span class="line">   <span class="keyword">for</span> f in <span class="variable">$HADOOP_HOME</span>/build/ivy/<span class="class"><span class="keyword">lib</span>/<span class="title">Hadoop</span>/<span class="title">common</span>/*.<span class="title">jar</span>;</span> <span class="keyword">do</span></span><br><span class="line">      <span class="constant">CLASSPATH</span>=<span class="variable">$&#123;</span><span class="constant">CLASSPATH</span>&#125;:<span class="variable">$f</span>;</span><br><span class="line">   done</span><br><span class="line">  fi</span><br><span class="line">fi</span><br><span class="line"></span><br><span class="line"><span class="keyword">for</span> f in <span class="variable">$HADOOP_HOME</span>/<span class="class"><span class="keyword">lib</span>/<span class="title">jsp</span>-2.1/*.<span class="title">jar</span>;</span> <span class="keyword">do</span></span><br><span class="line">  <span class="constant">CLASSPATH</span>=<span class="variable">$&#123;</span><span class="constant">CLASSPATH</span>&#125;:<span class="variable">$f</span>;</span><br><span class="line">done</span><br><span class="line">...</span><br></pre></td></tr></table></figure></p>
+<p>可见,启动节点时的classpath包括:</p>
+<ul>
+<li>conf目录</li>
+<li>${HADOOP_CLASSPATH}变量,在conf目录下的<code>hadoop-env.sh</code>中设置</li>
+<li>JAVA_HOME目录下<code>lib/tools.jar</code></li>
+<li>hadoop编译结果,编译结果存放在$HADOOP_HOME/build目录下,包括该目录下的:<ul>
+<li>classes,hadoop核心类的编译输出目录</li>
+<li>webapps,WEB服务编译输出目录,包括namenode,raidnode等WEB页面</li>
+<li>test/classes,所有测试类的输出目录</li>
+<li>tools,工具类的输出目录,具体见源码目录下的tools目录</li>
+<li>contrib/highavailability/classes,高可靠性相关类输出目录</li>
+</ul>
+</li>
+<li>$HADOOP_HOME目录下的webapps目录,即WEB编译输出部署目录</li>
+<li>$HADOOP_HOME目录下的hadoop-*-core.jar相关文件</li>
+<li>$HADOOP_HOME/build/ivy/lib/Hadoop/common目录下的所有jar文件,即通过ivy下载的三方依赖jar包,最终会拷贝到$HADOOP_HOME/lib目录下</li>
+<li>$HADOOP_HOME/lib/jsp-2.1/目录下的所有jar包  </li>
+</ul>
+<p>以上的classpath是所有节点启动时共用的,大概包括了${HADOOP_CLASSPATH}指定路径,hadoop源码编译的路径(包括core,tools,test,contrib编译输出)<br>和通过ivy下载的三方jar包以及相关的jar包.<br>对于raidnode来说,还包括自有的路径${CORONA_LIB_PATH}:<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">elif</span> [ <span class="string">"<span class="variable">$COMMAND</span>"</span> = <span class="string">"raidnode"</span> ] ; <span class="keyword">then</span></span><br><span class="line">CLASS=<span class="string">'org.apache.hadoop.raid.RaidNode'</span></span><br><span class="line">JMX_OPTS=<span class="variable">$HADOOP_JMX_RAIDNODE_OPTS</span></span><br><span class="line">HADOOP_OPTS=<span class="string">"<span class="variable">$HADOOP_OPTS</span> <span class="variable">$HADOOP_GC_LOG_OPTS</span>"</span></span><br><span class="line">CLASSPATH=<span class="variable">$&#123;CORONA_LIB_PATH&#125;</span>:<span class="variable">$&#123;CLASSPATH&#125;</span></span><br></pre></td></tr></table></figure></p>
+<p>当然,其他节点也各有自有的classpath.</p>
+<h2 id="Java参数启动">Java参数启动</h2><p>最后通过java启动raidnode:<br><figure class="highlight xquery"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">export CLASSPATH</span><br><span class="line">export JVM_PID=$$</span><br><span class="line">exec <span class="string">"$JAVA"</span> <span class="variable">$JAVA</span>_HEAP_MAX <span class="variable">$HADOOP</span>_OPTS <span class="variable">$JMX</span>_OPTS <span class="string">"-Dfb_hadoop_version=0.20"</span> <span class="variable">$CLASS</span> <span class="variable">$CMDLINE</span>_OPTS <span class="string">"$@"</span></span><br></pre></td></tr></table></figure></p>
+<p>CLASSPATH为之前设置的,$JAVA_HEAP_MAX设置1GB,$HADOOP_OPTS如下:<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">export</span> LD_LIBRARY_PATH=<span class="string">"<span class="variable">$JAVA_LIBRARY_PATH</span>"</span></span><br><span class="line"></span><br><span class="line">HADOOP_OPTS=<span class="string">"<span class="variable">$HADOOP_OPTS</span> <span class="variable">$HADOOP_DAEMON_OPTS</span>"</span></span><br><span class="line">HADOOP_OPTS=<span class="string">"<span class="variable">$HADOOP_OPTS</span> -Dhadoop.log.dir=<span class="variable">$HADOOP_LOG_DIR</span>"</span></span><br><span class="line">HADOOP_OPTS=<span class="string">"<span class="variable">$HADOOP_OPTS</span> -Dhadoop.log.file=<span class="variable">$HADOOP_LOGFILE</span>"</span></span><br><span class="line">HADOOP_OPTS=<span class="string">"<span class="variable">$HADOOP_OPTS</span> -Dhadoop.home.dir=<span class="variable">$HADOOP_HOME</span>"</span></span><br><span class="line">HADOOP_OPTS=<span class="string">"<span class="variable">$HADOOP_OPTS</span> -Dhadoop.id.str=<span class="variable">$HADOOP_IDENT_STRING</span>"</span></span><br><span class="line">HADOOP_OPTS=<span class="string">"<span class="variable">$HADOOP_OPTS</span> -Dhadoop.root.logger=<span class="variable">$&#123;HADOOP_ROOT_LOGGER:-INFO,console&#125;</span>"</span></span><br><span class="line">HADOOP_OPTS=<span class="string">"<span class="variable">$HADOOP_OPTS</span> -Dhadoop.application=<span class="variable">$&#123;HADOOP_APPLICATION:-default&#125;</span>"</span></span><br><span class="line">HADOOP_OPTS=<span class="string">"<span class="variable">$HADOOP_OPTS</span> -Dhadoop.installationid=<span class="variable">$&#123;CLUSTER_NAME:-default&#125;</span>"</span></span><br><span class="line"><span class="keyword">if</span> [ <span class="string">"x<span class="variable">$JAVA_LIBRARY_PATH</span>"</span> != <span class="string">"x"</span> ]; <span class="keyword">then</span></span><br><span class="line">  HADOOP_OPTS=<span class="string">"<span class="variable">$HADOOP_OPTS</span> -Djava.library.path=<span class="variable">$JAVA_LIBRARY_PATH</span>"</span></span><br><span class="line"><span class="keyword">fi</span></span><br><span class="line">HADOOP_OPTS=<span class="string">"<span class="variable">$HADOOP_OPTS</span> -Dhadoop.policy.file=<span class="variable">$HADOOP_POLICYFILE</span>"</span></span><br></pre></td></tr></table></figure></p>
+<p>包括了基本属性,其中的$JAVA_LIBRARY_PATH有待探索.<br>$CLASS为<code>org.apache.hadoop.raid.RaidNode</code>,$CMDLINE_OPTS不同的节点启动有不同的选项,raidnode没有,最终传入的参数<code>$@</code>为空.  </p>
+<hr>
+<h1 id="RaidNode主类执行">RaidNode主类执行</h1><p>通过运行<code>org.apache.hadoop.raid.RaidNode</code>,正式开始RaidNode的启动,该类的main函数如下:<br><figure class="highlight vbscript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">StringUtils.startupShutdownMessage(RaidNode.<span class="keyword">class</span>, argv, <span class="built_in">LOG</span>);</span><br><span class="line">RaidNode raid = createRaidNode(argv, <span class="literal">null</span>);</span><br><span class="line"><span class="keyword">if</span> (raid != <span class="literal">null</span>) &#123;</span><br><span class="line">    raid.<span class="built_in">join</span>();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>在createRaidNode(argv,null)中通过<code>RaidNode node = createRaidNode(conf);</code>创建RaidNode:<br><figure class="highlight oxygene"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">Class</span>&lt;?&gt; raidNodeClass = conf.getClass(RAIDNODE_CLASSNAME_KEY, DistRaidNode.<span class="keyword">class</span>);</span><br><span class="line"><span class="keyword">if</span> (!RaidNode.<span class="keyword">class</span>.isAssignableFrom(raidNodeClass)) <span class="comment">&#123;</span><br><span class="line">    throw new ClassNotFoundException("not an implementation of RaidNode");</span><br><span class="line">&#125;</span></span><br><span class="line"><span class="function"><span class="keyword">Constructor</span>&lt;?&gt; <span class="title">constructor</span> = <span class="title">raidNodeClass</span>.<span class="title">getConstructor</span><span class="params">(<span class="keyword">new</span> <span class="keyword">Class</span>[] &#123;Configuration.<span class="keyword">class</span>&#125; )</span>;</span></span><br><span class="line">return (RaidNode) <span class="function"><span class="keyword">constructor</span>.<span class="title">newInstance</span><span class="params">(conf)</span>;</span></span><br></pre></td></tr></table></figure></p>
+<p>读取配置<code>raid.classname</code>通过反射创建RaidNode,即执行所配置类的构造函数,默认DistRaidNode.</p>
+<h2 id="LocalRaidNode启动">LocalRaidNode启动</h2><p>若配置为LocalRaidNode,则对于LocalRaidNode,构造函数为:<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="title">LocalRaidNode</span><span class="params">(Configuration conf)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">    <span class="keyword">super</span>(conf);</span><br><span class="line">    LOG.info(<span class="string">"created"</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>在父类<code>RaidNode</code>构造函数中通过<code>initialize(conf);</code>完成对象的构造,读取所需配置,创建相应对象,线程.</p>
+<h3 id="LocalRaidNode初始化">LocalRaidNode初始化</h3><p><code>initialize</code>中,创建了RaidNode管理的对象和相关线程,主要包括以下成分:</p>
+<h4 id="主要对象成员">主要对象成员</h4><ul>
+<li><p><code>ConfigManager</code>,成员属性<code>configMgr</code>  </p>
+  <figure class="highlight lisp"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">configMgr = new ConfigManager<span class="list">(<span class="keyword">conf</span>)</span><span class="comment">;</span></span><br></pre></td></tr></table></figure>
+<p>  加载policy文件</p>
+</li>
+<li><p><code>Server</code>,成员属性<code>server</code></p>
+  <figure class="highlight axapta"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">this</span>.<span class="keyword">server</span> = RPC.getServer(<span class="keyword">this</span>, socAddr.getAddress().getHostAddress(), socAddr.getPort(), handlerCount, <span class="keyword">false</span>, conf);</span><br></pre></td></tr></table></figure>
+<p>  RPC服务器</p>
+</li>
+<li><p><code>HttpServer</code>,成员属性<code>infoServer</code><br>  Raid http服务器:</p>
+  <figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">this</span>.infoServer = <span class="keyword">new</span> HttpServer(<span class="string">"raid"</span>, <span class="keyword">this</span>.infoBindAddress, tmpInfoPort, tmpInfoPort == <span class="number">0</span>, conf);</span><br></pre></td></tr></table></figure>
+</li>
+<li><p><code>CheckSumStore</code></p>
+  <figure class="highlight actionscript"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">RaidNode.createChecksumStore(conf, <span class="literal">true</span>);</span><br></pre></td></tr></table></figure>
+</li>
+<li><p><code>StripeStore</code>  </p>
+  <figure class="highlight stata"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">RaidNode.createStripeStore(<span class="keyword">conf</span>, true, FileSystem.<span class="literal">get</span>(<span class="keyword">conf</span>));</span><br></pre></td></tr></table></figure>
+</li>
+</ul>
+<h4 id="线程相关:">线程相关:</h4><ul>
+<li><p><code>blockIntegrityMonitor</code>,成员属性<code>blockIntegrityMonitor</code><br>负责损坏区块或丢失区块的修复,包括:</p>
+<ul>
+<li><code>blockFixerThread</code>损坏区块修复线程</li>
+<li><code>blockCopierThread</code>丢失区块修复线程</li>
+<li><p><code>corruptFileCounterThread</code><br>根据配置决定是否创建相应线程:</p>
+<figure class="highlight applescript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">boolean</span> useBlockFixer = </span><br><span class="line">    !conf.getBoolean(RAID_DISABLE_CORRUPT_BLOCK_FIXER_KEY, <span class="constant">false</span>);</span><br><span class="line"><span class="type">boolean</span> useBlockCopier = </span><br><span class="line">    !conf.getBoolean(RAID_DISABLE_DECOMMISSIONING_BLOCK_COPIER_KEY, <span class="constant">true</span>);</span><br><span class="line"><span class="type">boolean</span> useCorruptFileCounter = </span><br><span class="line">    !conf.getBoolean(RAID_DISABLE_CORRUPTFILE_COUNTER_KEY, <span class="constant">false</span>);</span><br></pre></td></tr></table></figure>
+<p>详见<code>BlockIntegrityMonitor</code>类.</p>
+</li>
+</ul>
+</li>
+<li><p><code>TriggerMonitor</code>,成员属性<code>triggerMonitor</code>,对应的线程属性<code>triggerThread</code></p>
+  <figure class="highlight actionscript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">this</span>.triggerMonitor = <span class="keyword">new</span> TriggerMonitor();</span><br><span class="line"><span class="keyword">this</span>.triggerThread = <span class="keyword">new</span> Daemon(<span class="keyword">this</span>.triggerMonitor);</span><br><span class="line"><span class="keyword">this</span>.triggerThread.setName(<span class="string">"Trigger Thread"</span>);</span><br><span class="line"><span class="keyword">this</span>.triggerThread.start();</span><br></pre></td></tr></table></figure>
+<p>  周期性检查policy,对可Raid的path进行编码操作.</p>
+</li>
+<li><p><code>UnderRedundantFilesProcessor</code>,成员属性<code>urfProcessor</code>,对应的线程属性<code>urfThread</code></p>
+  <figure class="highlight actionscript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">this</span>.urfProcessor = <span class="keyword">new</span> UnderRedundantFilesProcessor(conf);</span><br><span class="line"><span class="keyword">this</span>.urfThread = <span class="keyword">new</span> Daemon(<span class="keyword">this</span>.urfProcessor);</span><br><span class="line"><span class="keyword">this</span>.urfThread.setName(<span class="string">"UnderRedundantFilesProcessor Thread"</span>);</span><br><span class="line"><span class="keyword">this</span>.urfThread.start();</span><br></pre></td></tr></table></figure>
+</li>
+<li><p><code>PlacementMonitor</code>,成员属性<code>placementMonitor</code><br>  主要成员:<code>BlockMover</code>-&gt;线程<code>clusterUpdater</code>  </p>
+  <figure class="highlight actionscript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">this</span>.placementMonitor = <span class="keyword">new</span> PlacementMonitor(conf);</span><br><span class="line"><span class="keyword">this</span>.placementMonitor.start();</span><br></pre></td></tr></table></figure>
+<p>  负责区块管理和移动</p>
+</li>
+<li><p><code>PurgeMonitor</code>,成员属性<code>purgeMonitor</code>,对应线程属性<code>purgeThread</code></p>
+  <figure class="highlight actionscript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">this</span>.purgeMonitor = <span class="keyword">new</span> PurgeMonitor(conf, placementMonitor, <span class="keyword">this</span>);</span><br><span class="line"><span class="keyword">this</span>.purgeThread = <span class="keyword">new</span> Daemon(purgeMonitor);</span><br><span class="line"><span class="keyword">this</span>.purgeThread.setName(<span class="string">"Purge Thread"</span>);</span><br><span class="line"><span class="keyword">this</span>.purgeThread.start();</span><br></pre></td></tr></table></figure>
+<p>  负责孤立校验区块的删除</p>
+</li>
+<li><p><code>HarMonitor</code>,成员线程属性<code>harThread</code>  </p>
+  <figure class="highlight actionscript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">this</span>.harThread = <span class="keyword">new</span> Daemon(<span class="keyword">new</span> HarMonitor());</span><br><span class="line"><span class="keyword">this</span>.harThread.setName(<span class="string">"HAR Thread"</span>);</span><br><span class="line"><span class="keyword">this</span>.harThread.start();</span><br></pre></td></tr></table></figure>
+<p>  负责创建har文件</p>
+</li>
+<li><p><code>StatisticsCollector</code>,成员属性<code>statsCollector</code>,对应线程属性<code>statsCollectorThread</code> </p>
+  <figure class="highlight actionscript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">this</span>.statsCollector = <span class="keyword">new</span> StatisticsCollector(<span class="keyword">this</span>, configMgr, conf);</span><br><span class="line"><span class="keyword">this</span>.statsCollectorThread = <span class="keyword">new</span> Daemon(statsCollector);</span><br><span class="line"><span class="keyword">this</span>.statsCollectorThread.setName(<span class="string">"Stats Collector"</span>);</span><br><span class="line"><span class="keyword">this</span>.statsCollectorThread.start();</span><br></pre></td></tr></table></figure>
+<p>  负责统计信息的收集</p>
+</li>
+</ul>
+</span>
+      
+    </div>
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/Hadoop-0-20/" rel="tag">#Hadoop-0.20</a>
+          
+            <a href="/tags/RaidNode/" rel="tag">#RaidNode</a>
+          
+        </div>
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/Raid文件选取/" rel="next" title="RaidNode源码阅读---编码过程之上篇Raid文件选取(LocalRaidNode)">
+                <i class="fa fa-chevron-left"></i> RaidNode源码阅读---编码过程之上篇Raid文件选取(LocalRaidNode)
+              </a>
+            
+          </div>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/配置相关/" rel="prev" title="Hadoop配置相关---RaidNode">
+                Hadoop配置相关---RaidNode <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </article>
+
+
+
+    <div class="post-spread">
+      
+        <!-- JiaThis Button BEGIN -->
+<div class="jiathis_style">
+  <a class="jiathis_button_tsina"></a>
+  <a class="jiathis_button_tqq"></a>
+  <a class="jiathis_button_weixin"></a>
+  <a class="jiathis_button_cqq"></a>
+  <a class="jiathis_button_douban"></a>
+  <a class="jiathis_button_renren"></a>
+  <a class="jiathis_button_qzone"></a>
+  <a class="jiathis_button_kaixin001"></a>
+  <a class="jiathis_button_copy"></a>
+  <a href="http://www.jiathis.com/share" class="jiathis jiathis_txt jiathis_separator jtico jtico_jiathis" target="_blank"></a>
+  <a class="jiathis_counter_style"></a>
+</div>
+<script type="text/javascript" >
+  var jiathis_config={
+    hideMore:false
+  }
+</script>
+<script type="text/javascript" src="http://v3.jiathis.com/code/jia.js" charset="utf-8"></script>
+<!-- JiaThis Button END -->
+
+      
+    </div>
+  </div>
+
+
+        </div>
+
+        
+
+
+        
+  <div class="comments" id="comments">
+    
+      <div class="ds-thread" data-thread-key="RaidNode启动/"
+           data-title="RaidNode源码阅读---RaidNode启动过程分析" data-url="http://xiao-yun.github.io/RaidNode启动/">
+      </div>
+    
+  </div>
+
+
+      </div>
+
+      
+        
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap" >
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel ">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+          <img class="site-author-image" src="/images/hero.jpg" alt="xiaoyun" itemprop="image"/>
+          <p class="site-author-name" itemprop="name">xiaoyun</p>
+        </div>
+        <p class="site-description motion-element" itemprop="description">学习笔记，网上资源摘要等</p>
+        <nav class="site-state motion-element">
+          <div class="site-state-item site-state-posts">
+            <a href="/archives">
+              <span class="site-state-item-count">7</span>
+              <span class="site-state-item-name">日志</span>
+            </a>
+          </div>
+
+          <div class="site-state-item site-state-categories">
+            <a href="/categories">
+              <span class="site-state-item-count">4</span>
+              <span class="site-state-item-name">分类</span>
+              </a>
+          </div>
+
+          <div class="site-state-item site-state-tags">
+            <a href="/tags">
+              <span class="site-state-item-count">3</span>
+              <span class="site-state-item-name">标签</span>
+              </a>
+          </div>
+
+        </nav>
+
+        
+
+        <div class="links-of-author motion-element">
+          
+            
+              <span class="links-of-author-item">
+                <a href="https://github.com/xiao-yun" target="_blank">
+                  
+                    <i class="fa fa-globe"></i> github
+                  
+                </a>
+              </span>
+            
+          
+        </div>
+
+        
+        
+
+        <div class="links-of-author motion-element">
+          
+        </div>
+
+      </section>
+
+      
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc-indicator-top post-toc-indicator">
+            <i class="fa fa-angle-double-up"></i>
+          </div>
+          <div class="post-toc">
+            
+              
+            
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#start-raidnode-sh"><span class="nav-number">1.</span> <span class="nav-text">start-raidnode.sh</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#start-daemon-sh"><span class="nav-number">2.</span> <span class="nav-text">start-daemon.sh</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#hadoop"><span class="nav-number">3.</span> <span class="nav-text">hadoop</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#classpath设置"><span class="nav-number">3.1.</span> <span class="nav-text">classpath设置</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Java参数启动"><span class="nav-number">3.2.</span> <span class="nav-text">Java参数启动</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#RaidNode主类执行"><span class="nav-number">4.</span> <span class="nav-text">RaidNode主类执行</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#LocalRaidNode启动"><span class="nav-number">4.1.</span> <span class="nav-text">LocalRaidNode启动</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#LocalRaidNode初始化"><span class="nav-number">4.1.1.</span> <span class="nav-text">LocalRaidNode初始化</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#主要对象成员"><span class="nav-number">4.1.1.1.</span> <span class="nav-text">主要对象成员</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#线程相关:"><span class="nav-number">4.1.1.2.</span> <span class="nav-text">线程相关:</span></a></li></ol></li></ol></li></ol></li></ol></div>
+            
+          </div>
+          <div class="post-toc-indicator-bottom post-toc-indicator">
+            <i class="fa fa-angle-double-down"></i>
+          </div>
+        </section>
+      
+
+    </div>
+  </aside>
+
+
+      
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright" >
+  
+  &copy; 
+  <span itemprop="copyrightYear">2015</span>
+  <span class="with-love">
+    <i class="icon-next-heart fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">xiaoyun</span>
+</div>
+
+<div class="powered-by">
+  由 <a class="theme-link" href="http://hexo.io">Hexo</a> 强力驱动
+</div>
+
+<div class="theme-info">
+  主题 -
+  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
+    NexT.Mist
+  </a>
+</div>
+
+
+
+      </div>
+    </footer>
+
+    <div class="back-to-top"></div>
+  </div>
+
+  <script type="text/javascript" src="/vendors/jquery/index.js?v=2.1.3"></script>
+
+  
+  
+
+  
+    
+
+  
+    
+  
+
+  <script type="text/javascript">
+    var duoshuoQuery = {short_name:"xiaoyuncom"};
+    (function() {
+      var ds = document.createElement('script');
+      ds.type = 'text/javascript';ds.async = true;
+      ds.id = 'duoshuo-script';
+      ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+      ds.charset = 'UTF-8';
+      (document.getElementsByTagName('head')[0]
+      || document.getElementsByTagName('body')[0]).appendChild(ds);
+    })();
+  </script>
+    
+     
+
+
+    
+  
+
+  
+  <script type="text/javascript" src="/vendors/fancybox/source/jquery.fancybox.pack.js"></script>
+  <script type="text/javascript" src="/js/fancy-box.js?v=0.4.5.2"></script>
+
+
+  <script type="text/javascript" src="/js/helpers.js?v=0.4.5.2"></script>
+  <script type="text/javascript" src="/vendors/velocity/velocity.min.js"></script>
+<script type="text/javascript" src="/vendors/velocity/velocity.ui.min.js"></script>
+
+<script type="text/javascript" src="/js/motion.js?v=0.4.5.2" id="motion.global"></script>
+
+
+  <script type="text/javascript" src="/vendors/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  <script type="text/javascript" src="/vendors/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  
+<script type="text/javascript" src="/js/bootstrap.scrollspy.js?v=0.4.5.2" id="bootstrap.scrollspy.custom"></script>
+
+
+<script type="text/javascript" id="sidebar.toc.highlight">
+  $(document).ready(function () {
+    var tocSelector = '.post-toc';
+    var $tocSelector = $(tocSelector);
+    var activeCurrentSelector = '.active-current';
+
+    $tocSelector
+      .on('activate.bs.scrollspy', function () {
+        var $currentActiveElement = $(tocSelector + ' .active').last();
+
+        removeCurrentActiveClass();
+        $currentActiveElement.addClass('active-current');
+
+        $tocSelector[0].scrollTop = $currentActiveElement.position().top;
+      })
+      .on('clear.bs.scrollspy', function () {
+        removeCurrentActiveClass();
+      });
+
+    function removeCurrentActiveClass () {
+      $(tocSelector + ' ' + activeCurrentSelector)
+        .removeClass(activeCurrentSelector.substring(1));
+    }
+
+    function processTOC () {
+      getTOCMaxHeight();
+      toggleTOCOverflowIndicators();
+    }
+
+    function getTOCMaxHeight () {
+      var height = $('.sidebar').height() -
+                   $tocSelector.position().top -
+                   $('.post-toc-indicator-bottom').height();
+
+      $tocSelector.css('height', height);
+
+      return height;
+    }
+
+    function toggleTOCOverflowIndicators () {
+      tocOverflowIndicator(
+        '.post-toc-indicator-top',
+        $tocSelector.scrollTop() > 0 ? 'show' : 'hide'
+      );
+
+      tocOverflowIndicator(
+        '.post-toc-indicator-bottom',
+        $tocSelector.scrollTop() >= $tocSelector.find('ol').height() - $tocSelector.height() ? 'hide' : 'show'
+      )
+    }
+
+    $(document).on('sidebar.motion.complete', function () {
+      processTOC();
+    });
+
+    $('body').scrollspy({ target: tocSelector });
+    $(window).on('resize', function () {
+      if ( $('.sidebar').hasClass('sidebar-active') ) {
+        processTOC();
+      }
+    });
+
+    onScroll($tocSelector);
+
+    function onScroll (element) {
+      element.on('mousewheel DOMMouseScroll', function (event) {
+          var oe = event.originalEvent;
+          var delta = oe.wheelDelta || -oe.detail;
+
+          this.scrollTop += ( delta < 0 ? 1 : -1 ) * 30;
+          event.preventDefault();
+
+          toggleTOCOverflowIndicators();
+      });
+    }
+
+    function tocOverflowIndicator (indicator, action) {
+      var $indicator = $(indicator);
+      var opacity = action === 'show' ? 1 : 0;
+      $indicator.velocity ?
+        $indicator.velocity('stop').velocity({
+          opacity: opacity
+        }, { duration: 100 }) :
+        $indicator.stop().animate({
+          opacity: opacity
+        }, 100);
+    }
+
+  });
+</script>
+
+<script type="text/javascript" id="sidebar.nav">
+  $(document).ready(function () {
+    var html = $('html');
+    var TAB_ANIMATE_DURATION = 200;
+    var hasVelocity = $.isFunction(html.velocity);
+
+    $('.sidebar-nav li').on('click', function () {
+      var item = $(this);
+      var activeTabClassName = 'sidebar-nav-active';
+      var activePanelClassName = 'sidebar-panel-active';
+      if (item.hasClass(activeTabClassName)) {
+        return;
+      }
+
+      var currentTarget = $('.' + activePanelClassName);
+      var target = $('.' + item.data('target'));
+
+      hasVelocity ?
+        currentTarget.velocity('transition.slideUpOut', TAB_ANIMATE_DURATION, function () {
+          target
+            .velocity('stop')
+            .velocity('transition.slideDownIn', TAB_ANIMATE_DURATION)
+            .addClass(activePanelClassName);
+        }) :
+        currentTarget.animate({ opacity: 0 }, TAB_ANIMATE_DURATION, function () {
+          currentTarget.hide();
+          target
+            .stop()
+            .css({'opacity': 0, 'display': 'block'})
+            .animate({ opacity: 1 }, TAB_ANIMATE_DURATION, function () {
+              currentTarget.removeClass(activePanelClassName);
+              target.addClass(activePanelClassName);
+            });
+        });
+
+      item.siblings().removeClass(activeTabClassName);
+      item.addClass(activeTabClassName);
+    });
+
+    $('.post-toc a').on('click', function (e) {
+      e.preventDefault();
+      var targetSelector = escapeSelector(this.getAttribute('href'));
+      var offset = $(targetSelector).offset().top;
+      hasVelocity ?
+        html.velocity('stop').velocity('scroll', {
+          offset: offset  + 'px',
+          mobileHA: false
+        }) :
+        $('html, body').stop().animate({
+          scrollTop: offset
+        }, 500);
+    });
+
+    // Expand sidebar on post detail page by default, when post has a toc.
+    motionMiddleWares.sidebar = function () {
+      var $tocContent = $('.post-toc-content');
+      if (CONFIG.sidebar === 'post') {
+        if ($tocContent.length > 0 && $tocContent.html().trim().length > 0) {
+          displaySidebar();
+        }
+      }
+    };
+  });
+</script>
+
+
+
+  <script type="text/javascript" src="/js/bootstrap.js"></script>
+
+  
+  
+
+  
+  
+
+</body>
+</html>

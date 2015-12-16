@@ -1,0 +1,860 @@
+<!doctype html>
+<html class="theme-next   use-motion ">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+  <link href="/vendors/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css"/>
+
+
+
+
+  <link href="//fonts.googleapis.com/css?family=Lato:300,400,700,400italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+
+
+
+<link href="/vendors/font-awesome/css/font-awesome.min.css?v=4.4.0" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=0.4.5.2" rel="stylesheet" type="text/css" />
+
+
+  <meta name="keywords" content="Common,Hadoop-1.2.1," />
+
+
+
+
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=0.4.5.2" />
+
+
+
+
+
+
+<meta name="description" content="Hadoop版本:Hadoop-1.2.1参考：《Hadoop技术内幕-深入解析Hadoop Common和HDFS架构设计与实现原理》
+编解码器Hadoop中每一种压缩/解压算法有一个对应的编解码器，编解码器接口为CompressionCodec12345678910111213141516171819202122232425262728public interface CompressionC">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Common源码阅读---压缩">
+<meta property="og:url" content="http://xiao-yun.github.io/压缩/index.html">
+<meta property="og:site_name" content="xiaoyun">
+<meta property="og:description" content="Hadoop版本:Hadoop-1.2.1参考：《Hadoop技术内幕-深入解析Hadoop Common和HDFS架构设计与实现原理》
+编解码器Hadoop中每一种压缩/解压算法有一个对应的编解码器，编解码器接口为CompressionCodec12345678910111213141516171819202122232425262728public interface CompressionC">
+<meta property="og:image" content="http://xiao-yun.github.io/../images/CompressionCodec.png">
+<meta property="og:image" content="http://xiao-yun.github.io/../images/Compressor.png">
+<meta property="og:image" content="http://xiao-yun.github.io/../images/Snappy本地库.png">
+<meta property="og:image" content="http://xiao-yun.github.io/../images/压缩流解压流.png">
+<meta property="og:updated_time" content="2015-12-16T11:46:54.181Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Common源码阅读---压缩">
+<meta name="twitter:description" content="Hadoop版本:Hadoop-1.2.1参考：《Hadoop技术内幕-深入解析Hadoop Common和HDFS架构设计与实现原理》
+编解码器Hadoop中每一种压缩/解压算法有一个对应的编解码器，编解码器接口为CompressionCodec12345678910111213141516171819202122232425262728public interface CompressionC">
+
+
+
+<script type="text/javascript" id="hexo.configuration">
+  var CONFIG = {
+    scheme: 'Mist',
+    sidebar: 'hide',
+    motion: true
+  };
+</script>
+
+  <title> Common源码阅读---压缩 | xiaoyun </title>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  <!--[if lte IE 8]>
+  <div style=' clear: both; height: 59px; padding:0 0 0 15px; position: relative;margin:0 auto;'>
+    <a href="http://windows.microsoft.com/en-US/internet-explorer/products/ie/home?ocid=ie6_countdown_bannercode">
+      <img src="http://7u2nvr.com1.z0.glb.clouddn.com/picouterie.jpg" border="0" height="42" width="820"
+           alt="You are using an outdated browser. For a faster, safer browsing experience, upgrade for free today or use other browser ,like chrome firefox safari."
+           style='margin-left:auto;margin-right:auto;display: block;'/>
+    </a>
+  </div>
+<![endif]-->
+  
+
+
+
+  <script type="text/javascript">
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "//hm.baidu.com/hm.js?caeb4129c91d1e6fb3d562d35fedef0d";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+  <div class="container one-column page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-meta ">
+  
+
+  <div class="custom-logo-site-title">
+    <a href="/"  class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <span class="site-title">xiaoyun</span>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+  <p class="site-subtitle"></p>
+</div>
+
+<div class="site-nav-toggle">
+  <button>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+  </button>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu menu-left">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-home fa-fw"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives" rel="section">
+            
+              <i class="menu-item-icon fa fa-archive fa-fw"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories" rel="section">
+            
+              <i class="menu-item-icon fa fa-th fa-fw"></i> <br />
+            
+            分类
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+              <i class="menu-item-icon fa fa-tags fa-fw"></i> <br />
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about" rel="section">
+            
+              <i class="menu-item-icon fa fa-user fa-fw"></i> <br />
+            
+            关于
+          </a>
+        </li>
+      
+
+      
+      
+    </ul>
+  
+
+  
+    <div class="site-search">
+      
+  
+  <form class="site-search-form">
+    <input type="text" id="st-search-input" class="st-search-input st-default-search-input" />
+  </form>
+
+
+<script type="text/javascript">
+  (function(w,d,t,u,n,s,e){w['SwiftypeObject']=n;w[n]=w[n]||function(){
+    (w[n].q=w[n].q||[]).push(arguments);};s=d.createElement(t);
+    e=d.getElementsByTagName(t)[0];s.async=1;s.src=u;e.parentNode.insertBefore(s,e);
+  })(window,document,'script','//s.swiftypecdn.com/install/v2/st.js','_st');
+
+  _st('install', 'Nq1MdxGEF4xQgzakv9MC','2.0.0');
+</script>
+
+
+
+    </div>
+  
+</nav>
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div id="content" class="content">
+          
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                Common源码阅读---压缩
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            发表于
+            <time itemprop="dateCreated" datetime="2015-12-16T19:46:54+08:00" content="2015-12-16">
+              2015-12-16
+            </time>
+          </span>
+
+          
+            <span class="post-category" >
+              &nbsp; | &nbsp; 分类于
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Hadoop-1-2-1/" itemprop="url" rel="index">
+                    <span itemprop="name">Hadoop-1.2.1</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Hadoop-1-2-1/Common/" itemprop="url" rel="index">
+                    <span itemprop="name">Common</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Hadoop-1-2-1/Common/源码阅读/" itemprop="url" rel="index">
+                    <span itemprop="name">源码阅读</span>
+                  </a>
+                </span>
+
+                
+                
+
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                &nbsp; | &nbsp;
+                <a href="/压缩/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="压缩/" itemprop="commentsCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+
+        </div>
+      </header>
+    
+
+
+    <div class="post-body">
+
+      
+      
+
+      
+        <span itemprop="articleBody"><p>Hadoop版本:<a href="https://archive.apache.org/dist/hadoop/core/hadoop-1.2.1/" target="_blank" rel="external">Hadoop-1.2.1</a><br>参考：《Hadoop技术内幕-深入解析Hadoop Common和HDFS架构设计与实现原理》</p>
+<h2 id="编解码器">编解码器</h2><p>Hadoop中每一种压缩/解压算法有一个对应的编解码器，编解码器接口为<code>CompressionCodec</code><br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">interface</span> <span class="title">CompressionCodec</span> </span>&#123;</span><br><span class="line">  <span class="comment">//通过给定输出流out创建压缩输出流，即往输出流写数据时，写入的数据是压缩后的数据</span></span><br><span class="line">  <span class="function">CompressionOutputStream <span class="title">createOutputStream</span><span class="params">(OutputStream out)</span> <span class="keyword">throws</span> IOException</span>;</span><br><span class="line">  </span><br><span class="line">  <span class="comment">//指定压缩器为out创建压缩输出流</span></span><br><span class="line">  <span class="function">CompressionOutputStream <span class="title">createOutputStream</span><span class="params">(OutputStream out, Compressor compressor)</span> <span class="keyword">throws</span> IOException</span>;</span><br><span class="line"></span><br><span class="line">  <span class="comment">//返回当前编解码器对应的压缩器</span></span><br><span class="line">  Class&lt;? <span class="keyword">extends</span> Compressor&gt; getCompressorType();</span><br><span class="line">  </span><br><span class="line">  <span class="comment">//创建压缩器</span></span><br><span class="line">  <span class="function">Compressor <span class="title">createCompressor</span><span class="params">()</span></span>;</span><br><span class="line"></span><br><span class="line">  <span class="comment">//从给定的输入流in中创建解压输入流,即从中读取数据时，先解压，得到解压后的数据</span></span><br><span class="line">  <span class="function">CompressionInputStream <span class="title">createInputStream</span><span class="params">(InputStream in)</span> <span class="keyword">throws</span> IOException</span>;</span><br><span class="line">  </span><br><span class="line">  <span class="comment">//指定解压器为输入流in创建解压输入流</span></span><br><span class="line">  <span class="function">CompressionInputStream <span class="title">createInputStream</span><span class="params">(InputStream in, Decompressor decompressor)</span> <span class="keyword">throws</span> IOException</span>;</span><br><span class="line"></span><br><span class="line">  <span class="comment">//返回当前编解码器对应的解压器</span></span><br><span class="line">  Class&lt;? <span class="keyword">extends</span> Decompressor&gt; getDecompressorType();</span><br><span class="line">  </span><br><span class="line">  <span class="comment">//创建解压器</span></span><br><span class="line">  <span class="function">Decompressor <span class="title">createDecompressor</span><span class="params">()</span></span>;</span><br><span class="line">  </span><br><span class="line">  <span class="comment">//获取当前压缩算法缺省的文件扩展名</span></span><br><span class="line">  <span class="function">String <span class="title">getDefaultExtension</span><span class="params">()</span></span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>该接口的相关实现如下:<br><img src="../images/CompressionCodec.png" alt="CompressionCodec"><br>每一种压缩格式对应一种编解码器，<code>SplittableCompressionCodec</code>接口下的实现类压缩后文件可分割(MapReduce任务中)<br>相关信息如下(参考&lt;技术内幕&gt;)<br>|压缩格式|UNIX工具|算法|文件扩展名|支持多文件压缩|可分割|编解码器|<br>|:—:|:—:|:—:|:—:|:—:|:—:|:—:|<br>|DEFLATE|无|DEFLATE|.deflate|否|否|DefaultCodec|<br>|gzip|gzip|DEFLATE|.gz|否|否|GzipCodec|<br>|zip|zip|DEFLATE|.zip|是|是| |<br>|bzip|bzip2|bzip2|.bz2|否|是|BZip2Codec|<br>LZO|lzop|LZO|.lzo|否|否| |</p>
+<p>另外，SnappyCodec对应Snappy压缩格式  </p>
+<h2 id="编解码器工厂CompressionCodecFactory">编解码器工厂CompressionCodecFactory</h2><p>CompressionCodecFactory应用了工厂方法，可以通过它创建不同的CompressionCodec对象。  </p>
+<h3 id="成员属性">成员属性</h3><figure class="highlight lasso"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> SortedMap&lt;<span class="built_in">String</span>, CompressionCodec&gt; codecs = <span class="built_in">null</span>;<span class="comment">//"文件名后缀反转值-编解码器"有序对</span></span><br><span class="line"><span class="keyword">private</span> <span class="built_in">Map</span>&lt;<span class="built_in">String</span>, CompressionCodec&gt; codecsByName = <span class="built_in">null</span>;<span class="comment">//"简单名getSimpleName-编解码器"对</span></span><br><span class="line"><span class="keyword">private</span> HashMap&lt;<span class="built_in">String</span>, CompressionCodec&gt; codecsByClassName = <span class="built_in">null</span>;<span class="comment">//"规范名getCanonicalName-编解码器"对</span></span><br></pre></td></tr></table></figure>
+<h3 id="构造">构造</h3><figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br></pre></td><td class="code"><pre><span class="line">public CompressionCodecFactory(Configuration conf) &#123;</span><br><span class="line">    codecs = <span class="keyword">new</span> TreeMap&lt;<span class="built_in">String</span>, CompressionCodec&gt;();</span><br><span class="line">    codecsByClassName = <span class="keyword">new</span> HashMap&lt;<span class="built_in">String</span>, CompressionCodec&gt;();</span><br><span class="line">    codecsByName = <span class="keyword">new</span> HashMap&lt;<span class="built_in">String</span>, CompressionCodec&gt;();</span><br><span class="line">    <span class="built_in">List</span>&lt;Class&lt;? <span class="keyword">extends</span> CompressionCodec&gt;&gt; codecClasses = getCodecClasses(conf);<span class="comment">//从配置中构建相应编解码器</span></span><br><span class="line">    <span class="keyword">if</span> (codecClasses == <span class="keyword">null</span>) &#123;<span class="comment">//没有配置，默认添加GzipCodec和DefaultCodec两种编解码器</span></span><br><span class="line">      addCodec(<span class="keyword">new</span> GzipCodec());</span><br><span class="line">      addCodec(<span class="keyword">new</span> DefaultCodec());      </span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;<span class="comment">//有配置相关类的话，添加相关类</span></span><br><span class="line">      <span class="built_in">Iterator</span>&lt;Class&lt;? <span class="keyword">extends</span> CompressionCodec&gt;&gt; itr = codecClasses.iterator();</span><br><span class="line">      <span class="keyword">while</span> (itr.hasNext()) &#123;</span><br><span class="line">        CompressionCodec codec = ReflectionUtils.newInstance(itr.next(), conf);</span><br><span class="line">        addCodec(codec);     </span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">public <span class="literal">static</span> <span class="built_in">List</span>&lt;Class&lt;? <span class="keyword">extends</span> CompressionCodec&gt;&gt; getCodecClasses(Configuration conf) &#123;</span><br><span class="line">    <span class="built_in">String</span> codecsString = conf.<span class="literal">get</span>(<span class="string">"io.compression.codecs"</span>);</span><br><span class="line">    <span class="keyword">if</span> (codecsString != <span class="keyword">null</span>) &#123;</span><br><span class="line">      <span class="built_in">List</span>&lt;Class&lt;? <span class="keyword">extends</span> CompressionCodec&gt;&gt; result</span><br><span class="line">        = <span class="keyword">new</span> ArrayList&lt;Class&lt;? <span class="keyword">extends</span> CompressionCodec&gt;&gt;();</span><br><span class="line">      StringTokenizer codecSplit = <span class="keyword">new</span> StringTokenizer(codecsString, <span class="string">","</span>);</span><br><span class="line">      <span class="keyword">while</span> (codecSplit.hasMoreElements()) &#123;</span><br><span class="line">        <span class="built_in">String</span> codecSubstring = codecSplit.nextToken();</span><br><span class="line">        <span class="keyword">if</span> (codecSubstring.length() != <span class="number">0</span>) &#123;</span><br><span class="line">          <span class="keyword">try</span> &#123;</span><br><span class="line">            Class&lt;?&gt; cls = conf.getClassByName(codecSubstring);</span><br><span class="line">            <span class="keyword">if</span> (!CompressionCodec.<span class="keyword">class</span>.isAssignableFrom(cls)) &#123;</span><br><span class="line">              <span class="keyword">throw</span> <span class="keyword">new</span> IllegalArgumentException(<span class="string">"Class "</span> + codecSubstring +</span><br><span class="line">                                                 <span class="string">" is not a CompressionCodec"</span>);</span><br><span class="line">            &#125;</span><br><span class="line">            result.add(cls.asSubclass(CompressionCodec.<span class="keyword">class</span>));</span><br><span class="line">            ...<span class="comment">//异常处理，返回等</span></span><br><span class="line"></span><br><span class="line">private <span class="keyword">void</span> addCodec(CompressionCodec codec) &#123;</span><br><span class="line">    <span class="built_in">String</span> suffix = codec.getDefaultExtension();<span class="comment">//缺省文件后缀</span></span><br><span class="line">    codecs.put(<span class="keyword">new</span> <span class="built_in">StringBuffer</span>(suffix).reverse().toString(), codec);<span class="comment">//添加到codec中</span></span><br><span class="line">    codecsByClassName.put(codec.getClass().getCanonicalName(), codec);<span class="comment">//添加到codecsByName中(getCanonicalName)</span></span><br><span class="line">    </span><br><span class="line">    <span class="built_in">String</span> codecName = codec.getClass().getSimpleName();</span><br><span class="line">    codecsByName.put(codecName.toLowerCase(), codec);<span class="comment">//添加到codecsByName中(getSimpleName)</span></span><br><span class="line">    <span class="keyword">if</span> (codecName.endsWith(<span class="string">"Codec"</span>)) &#123;<span class="comment">//如果简单名以Codec结束，去掉Codec，再添加到codecsByName中</span></span><br><span class="line">      codecName = codecName.substring(<span class="number">0</span>, codecName.length() - <span class="string">"Codec"</span>.length());</span><br><span class="line">      codecsByName.put(codecName.toLowerCase(), codec);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>如上，构建时根据配置conf中的”io.compression.codec”配置相应的CompressionCodec类，以”,”分割。<br>若没有配置该项，则默认会添加GzipCodec和DefaultCodec两项。<br>添加时，简单名若以Codec结束，还要增加去掉Codec的简单名至codecsByName中。如GzipCodec在codecsByName中对应两项，键值为:GzipCodec和Gzip。  </p>
+<h3 id="通过工厂创建实例">通过工厂创建实例</h3><ul>
+<li><p>通过文件名创建</p>
+  <figure class="highlight nimrod"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">public <span class="type">CompressionCodec</span> getCodec(<span class="type">Path</span> file) &#123;</span><br><span class="line">    <span class="type">CompressionCodec</span> <span class="literal">result</span> = null;</span><br><span class="line">    <span class="keyword">if</span> (codecs != null) &#123;</span><br><span class="line">      <span class="type">String</span> filename = file.getName();</span><br><span class="line">      <span class="type">String</span> reversedFilename = new <span class="type">StringBuffer</span>(filename).reverse().toString();//文件名后缀反转</span><br><span class="line">      <span class="type">SortedMap</span>&lt;<span class="type">String</span>, <span class="type">CompressionCodec</span>&gt; subMap = codecs.headMap(reversedFilename);//返回开始项到匹配项的视图</span><br><span class="line">      <span class="keyword">if</span> (!subMap.isEmpty()) &#123;</span><br><span class="line">        <span class="type">String</span> potentialSuffix = subMap.lastKey();//取最后一项</span><br><span class="line">        <span class="keyword">if</span> (reversedFilename.startsWith(potentialSuffix)) &#123;</span><br><span class="line">          <span class="literal">result</span> = codecs.get(potentialSuffix);</span><br><span class="line">        &#125;</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> <span class="literal">result</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>  从codecs中通过headMap获取文件名后缀反转值最接近的有序映射部分视图。<br>  若codecs中按顺序对应的键为[2zb. etalfed. yppans. zg],当输入文件名后缀为”.bz2”时，上述<code>subMap</code>只包含键为2zb.的项，而当文件后缀为”.snappy”<br>  时，<code>subMap</code>包含从2zb.到yppans.键对应的项，取最后一项即为结果。</p>
+</li>
+<li><p>通过类名创建</p>
+  <figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="function">CompressionCodec <span class="title">getCodecByClassName</span><span class="params">(String classname)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (codecsByClassName == <span class="keyword">null</span>) &#123;</span><br><span class="line">      <span class="keyword">return</span> <span class="keyword">null</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="function"><span class="keyword">return</span> codecsByClassName.<span class="title">get</span><span class="params">(classname)</span></span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>  使用codecsByClassName查找即可</p>
+</li>
+<li><p>通过名字创建</p>
+  <figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> CompressionCodec <span class="title">getCodecByName</span>(<span class="params">String codecName</span>) </span>&#123;</span><br><span class="line">  <span class="keyword">if</span> (codecsByClassName == <span class="keyword">null</span>) &#123;</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">null</span>;</span><br><span class="line">  &#125;</span><br><span class="line">  CompressionCodec codec = getCodecByClassName(codecName);</span><br><span class="line">  <span class="keyword">if</span> (codec == <span class="keyword">null</span>) &#123;</span><br><span class="line">    codec = codecsByName.<span class="keyword">get</span>(codecName.toLowerCase());</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">return</span> codec;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>  给定名字可能为一个类名，因此先从codecsByClassName中查找，找不到再在codecsByName中查找。   </p>
+</li>
+</ul>
+<h2 id="压缩解压器">压缩解压器</h2><h3 id="压缩器接口">压缩器接口</h3><figure class="highlight x86asm"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br></pre></td><td class="code"><pre><span class="line"><span class="preprocessor">public</span> interface Compressor &#123;</span><br><span class="line">  //添加需压缩的数据，needsInput返回true时可继续添加数据</span><br><span class="line">  <span class="preprocessor">public</span> void setInput(<span class="preprocessor">byte</span>[] b, <span class="keyword">int</span> off, <span class="keyword">int</span> len)<span class="comment">;</span></span><br><span class="line">  </span><br><span class="line">  //当编码器缓冲还有空间时返回true，可通过setInput添加数据。返回false时，需要进行编码读取编码数据以释放缓冲</span><br><span class="line">  <span class="preprocessor">public</span> boolean needsInput()<span class="comment">;</span></span><br><span class="line">  </span><br><span class="line">  /**</span><br><span class="line">   * <span class="keyword">Sets</span> preset dictionary for compression. A preset dictionary </span><br><span class="line">   * is used when the history buffer can be predetermined. </span><br><span class="line">  /</span><br><span class="line">  <span class="preprocessor">public</span> void setDictionary(<span class="preprocessor">byte</span>[] b, <span class="keyword">int</span> off, <span class="keyword">int</span> len)<span class="comment">;</span></span><br><span class="line"></span><br><span class="line">  //返回目前压缩器缓冲区中还未压缩的字节数</span><br><span class="line">  <span class="preprocessor">public</span> long getBytesRead()<span class="comment">;</span></span><br><span class="line"></span><br><span class="line">  //返回目前压缩器已经输出压缩的字节数</span><br><span class="line">  <span class="preprocessor">public</span> long getBytesWritten()<span class="comment">;</span></span><br><span class="line"></span><br><span class="line">  //此函数调用时，表示压缩应该以当前输入缓冲的内容作为结束，即不会再有输入数据了</span><br><span class="line">  <span class="preprocessor">public</span> void finish()<span class="comment">;</span></span><br><span class="line">  </span><br><span class="line">  //返回true时，表示压缩数据输出流的末尾已经到达，压缩器中没有待读取的压缩数据</span><br><span class="line">  <span class="preprocessor">public</span> boolean finished()<span class="comment">;</span></span><br><span class="line"></span><br><span class="line">  //使用压缩后的数据填充字节数组b，返回实际输出到b中压缩的字节数。当返回<span class="number">0</span>时表示needsInput需要调用来决定是否应该添加更多的待压缩数据</span><br><span class="line">  <span class="preprocessor">public</span> <span class="keyword">int</span> compress(<span class="preprocessor">byte</span>[] b, <span class="keyword">int</span> off, <span class="keyword">int</span> len) throws IOException<span class="comment">;</span></span><br><span class="line">  </span><br><span class="line">  //重置压缩器，以便处理新的数据，原来的数据丢弃    </span><br><span class="line">  <span class="preprocessor">public</span> void reset()<span class="comment">;</span></span><br><span class="line">  </span><br><span class="line">  //关闭压缩器，丢弃还未处理的数据</span><br><span class="line">  <span class="preprocessor">public</span> void end()<span class="comment">;</span></span><br><span class="line"></span><br><span class="line">  //通过conf重新初始化压缩器对应到另一个新的流</span><br><span class="line">  <span class="preprocessor">public</span> void reinit(Configuration conf)<span class="comment">;</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>finish函数返回true表示不再有待压缩的输入数据了，而finished函数返回true表示压缩器缓冲中没有未压缩的数据，已经全部压缩并输出了。<br>给定待压缩数据，若判断needsInput为true时，每次往压缩器中送固定长度的数据，而当needsInput为false时，通过compress函数压缩并读取<br>压缩数据，释放压缩器缓冲区。<br>当所有待压缩数据都写入了压缩器时，调用finish函数通知压缩器不再有输入。<br>然后通过finished函数判断压缩器缓冲中的数据是否全部压缩并输出，没有的话通过compress压缩并输出。最终调用end函数完成整个压缩过程。<br>简单代码举例(参考&lt;技术内幕&gt;)<br><figure class="highlight glsl"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line">Compressor compressor=new ...<span class="comment">//创建压缩器</span></span><br><span class="line">byte[] inbuf=... <span class="comment">//待压缩数据字节数组</span></span><br><span class="line"><span class="keyword">int</span> <span class="built_in">length</span>=...<span class="comment">//inbuf数据长度</span></span><br><span class="line">byte[] outbuf=...<span class="comment">//outbuf为压缩后数据存储数组</span></span><br><span class="line"><span class="keyword">int</span> outlen=...<span class="comment">//outbuf数据长度</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">int</span> <span class="built_in">step</span>=...<span class="comment">//每次从inbuf中往压缩器中送step个字节的数据</span></span><br><span class="line"><span class="keyword">int</span> pos=...<span class="comment">//当前处理的inbuf中位置,初始化为0</span></span><br><span class="line"><span class="keyword">int</span> compressedlen=<span class="number">0</span>;</span><br><span class="line"></span><br><span class="line"><span class="keyword">while</span>(pos&lt;<span class="built_in">length</span>)&#123;<span class="comment">//输入缓冲还有数据</span></span><br><span class="line">    <span class="keyword">int</span> len=(<span class="built_in">length</span>-pos&gt;=<span class="built_in">step</span>)?<span class="built_in">step</span>:(<span class="built_in">length</span>-pos);<span class="comment">//每次往压缩器写的数据长度</span></span><br><span class="line">    compressor.setInput(inbuf,pos,len);<span class="comment">//添加待压缩的数据</span></span><br><span class="line">    <span class="keyword">while</span>(!compressor.needsInput())&#123;</span><br><span class="line">        <span class="comment">//如果压缩器暂时不需要添加数据(如待压缩缓冲区满)，压缩数据并输出</span></span><br><span class="line">        compressedlen=compressor.compress(outbuf,<span class="number">0</span>,outlen);</span><br><span class="line">    &#125;</span><br><span class="line">    pos+=len;</span><br><span class="line">&#125;</span><br><span class="line">compressor.finish();<span class="comment">//所有输入数据写到压缩器中，通知压缩器</span></span><br><span class="line"><span class="keyword">while</span>(!compressor.finished())&#123;<span class="comment">//压缩器中还有未压缩的数据，压缩并输出</span></span><br><span class="line">    compressor.compress(outbuf,<span class="number">0</span>,outlen);</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">//此时finished()为true，所有数据已经压缩并输出，end()终止。</span></span><br><span class="line">compressor.end();</span><br></pre></td></tr></table></figure></p>
+<h3 id="解压器接口">解压器接口</h3><figure class="highlight nimrod"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br></pre></td><td class="code"><pre><span class="line">public <span class="keyword">interface</span> <span class="type">Decompressor</span> &#123;</span><br><span class="line">  /**</span><br><span class="line">   * (<span class="type">Both</span> native <span class="keyword">and</span> non-native versions <span class="keyword">of</span> various <span class="type">Decompressors</span> require</span><br><span class="line">   * that the data passed <span class="keyword">in</span> via &lt;code&gt;b[]&lt;/code&gt; remain unmodified until</span><br><span class="line">   * the caller <span class="keyword">is</span> explicitly notified--via &#123;@link <span class="comment">#needsInput()&#125;--that the</span></span><br><span class="line">   * buffer may be safely modified.  <span class="type">With</span> this requirement, an extra</span><br><span class="line">   * buffer-copy can be avoided.)</span><br><span class="line">  /</span><br><span class="line">  //添加数据用于解压，当且仅当needsInput返回<span class="literal">true</span>时才能调用。</span><br><span class="line">  public <span class="type">void</span> setInput(byte[] b, <span class="type">int</span> off, <span class="type">int</span> len);</span><br><span class="line">  </span><br><span class="line">  //返回<span class="literal">true</span>时，表示需要添加更多的数据</span><br><span class="line">  public boolean needsInput();</span><br><span class="line">  </span><br><span class="line">  /**</span><br><span class="line">   * <span class="type">Sets</span> preset dictionary <span class="keyword">for</span> compression. A preset dictionary</span><br><span class="line">   * <span class="keyword">is</span> used <span class="keyword">when</span> the history buffer can be predetermined. </span><br><span class="line">  /</span><br><span class="line">  public <span class="type">void</span> setDictionary(byte[] b, <span class="type">int</span> off, <span class="type">int</span> len);</span><br><span class="line">  </span><br><span class="line">  //当需要设置预设词典时返回<span class="literal">true</span></span><br><span class="line">  public boolean needsDictionary();</span><br><span class="line"></span><br><span class="line">  //返回<span class="literal">true</span>时，表示到达解压数据输出流的末尾，没有尚未读取的解压数据，否则表示解压器中还有尚未解压且输出的数据</span><br><span class="line">  public boolean finished();</span><br><span class="line">  </span><br><span class="line">  //将解压后的数据填充到字节数组b中，返回实际填充的字节数。返回<span class="number">0</span>时，需要调用needsInput判断是否需要继续添加数据</span><br><span class="line">  public <span class="type">int</span> decompress(byte[] b, <span class="type">int</span> off, <span class="type">int</span> len) throws <span class="type">IOException</span>;</span><br><span class="line"></span><br><span class="line">  //返回当前将诶呀数据缓冲区中剩余字节数，一般在解压器解压完目前的gzip流后调用。</span><br><span class="line">  public <span class="type">int</span> getRemaining();</span><br><span class="line"></span><br><span class="line">  //重置解压器的输入输出缓冲，以便处理新的数据</span><br><span class="line">  public <span class="type">void</span> reset();</span><br><span class="line"></span><br><span class="line">  //关闭解压器，丢弃未处理的数据</span><br><span class="line">  public <span class="type">void</span> <span class="keyword">end</span>(); </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>解压过程与压缩过程类似，都是循环往解压器中送待解压数据，如果解压器暂时不需要添加数据，则通过decompress函数解压并输出数据。所有数据添加完后，<br>调用finish()函数表示没有剩余的待解压数据输入。然后解压并输出解压器中的剩余数据(如果有),最终end函数终止。  </p>
+<p>目前Hadoop相关实现类如下<br><img src="../images/Compressor.png" alt="Compressor"></p>
+<h3 id="SnappyCompressor(参考&lt;技术内幕&gt;)">SnappyCompressor(参考&lt;技术内幕&gt;)</h3><h4 id="成员属性-1">成员属性</h4><figure class="highlight gradle"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="keyword">int</span> DEFAULT_DIRECT_BUFFER_SIZE = <span class="number">64</span> * <span class="number">1024</span>;<span class="comment">//缺省直接内存Buffer大小</span></span><br><span class="line"></span><br><span class="line"><span class="comment">// HACK - Use this as a global lock in the JNI layer</span></span><br><span class="line">@SuppressWarnings(&#123;<span class="string">"unchecked"</span>, <span class="string">"unused"</span>&#125;)</span><br><span class="line"><span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">Class</span> clazz = SnappyCompressor.<span class="keyword">class</span>;</span><br><span class="line"></span><br><span class="line"><span class="keyword">private</span> <span class="keyword">int</span> directBufferSize;</span><br><span class="line"><span class="keyword">private</span> Buffer compressedDirectBuf = <span class="keyword">null</span>;<span class="comment">//已压缩数据缓冲区</span></span><br><span class="line"><span class="keyword">private</span> <span class="keyword">int</span> uncompressedDirectBufLen;<span class="comment">//待压缩数据缓冲区长度</span></span><br><span class="line"><span class="keyword">private</span> Buffer uncompressedDirectBuf = <span class="keyword">null</span>;<span class="comment">//待压缩数据缓冲区</span></span><br><span class="line"><span class="keyword">private</span> <span class="keyword">byte</span>[] userBuf = <span class="keyword">null</span>;<span class="comment">//额外的缓冲区</span></span><br><span class="line"><span class="keyword">private</span> <span class="keyword">int</span> userBufOff = <span class="number">0</span>, userBufLen = <span class="number">0</span>;<span class="comment">//额外缓冲区长度和偏移量</span></span><br><span class="line"><span class="keyword">private</span> <span class="keyword">boolean</span> finish, finished;<span class="comment">//两个标志，对应finish()和finished()函数</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">private</span> <span class="keyword">long</span> bytesRead = <span class="number">0</span>L;<span class="comment">//对应getBytesRead函数</span></span><br><span class="line"><span class="keyword">private</span> <span class="keyword">long</span> bytesWritten = <span class="number">0</span>L;<span class="comment">//对应getBytesWritten函数</span></span><br></pre></td></tr></table></figure>
+<p>如上，SnappyCompressor中使用两个直接内存缓冲区分别保存添加的待压缩数据和已压缩数据，关于Buffer另见<a href="./缓冲区">NIO 缓冲区</a>。<br>同时，遇到添加数据至待压缩数据缓冲区，而此时剩余空间不够时，需要暂时将待添加的数据暂存在额外的缓冲区<code>userBuf</code>中。  </p>
+<h4 id="构造-1">构造</h4><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="title">SnappyCompressor</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="keyword">this</span>(DEFAULT_DIRECT_BUFFER_SIZE);</span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="title">SnappyCompressor</span><span class="params">(<span class="keyword">int</span> directBufferSize)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">this</span>.directBufferSize = directBufferSize;</span><br><span class="line">    uncompressedDirectBuf = ByteBuffer.allocateDirect(directBufferSize);</span><br><span class="line">    compressedDirectBuf = ByteBuffer.allocateDirect(directBufferSize);</span><br><span class="line">    compressedDirectBuf.position(directBufferSize);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>通过ByteBuffer分配直接内存缓冲区(分配另见<a href="./缓冲区">NIO 缓冲区</a>),并将已压缩缓冲区的position置为limit值，即remaining值为0，没有已压缩<br>的数据。</p>
+<h4 id="主要方法">主要方法</h4><ul>
+<li><p>添加待压缩数据setInput</p>
+  <figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="annotation">@Override</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">synchronized</span> <span class="function"><span class="keyword">void</span> <span class="title">setInput</span><span class="params">(<span class="keyword">byte</span>[] b, <span class="keyword">int</span> off, <span class="keyword">int</span> len)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (b == <span class="keyword">null</span>) &#123;</span><br><span class="line">      <span class="keyword">throw</span> <span class="keyword">new</span> NullPointerException();</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> (off &lt; <span class="number">0</span> || len &lt; <span class="number">0</span> || off &gt; b.length - len) &#123;</span><br><span class="line">      <span class="keyword">throw</span> <span class="keyword">new</span> ArrayIndexOutOfBoundsException();</span><br><span class="line">    &#125;<span class="comment">//合理性检查</span></span><br><span class="line">    finished = <span class="keyword">false</span>;</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">if</span> (len &gt; uncompressedDirectBuf.remaining()) &#123;</span><br><span class="line">      <span class="comment">//待压缩缓冲区剩余空间不足以添加这些数据，暂时保存在userBuf中，之后便需要调用compress压缩并释放待压缩缓冲区了，然后读取userBuf</span></span><br><span class="line">      <span class="comment">//中暂存数据到待压缩数据缓冲区中</span></span><br><span class="line">      <span class="comment">// save data; now !needsInput</span></span><br><span class="line">      <span class="keyword">this</span>.userBuf = b;</span><br><span class="line">      <span class="keyword">this</span>.userBufOff = off;</span><br><span class="line">      <span class="keyword">this</span>.userBufLen = len;</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;<span class="comment">//待压缩缓冲区剩余空间足够添加这些数据，添加</span></span><br><span class="line">      ((ByteBuffer) uncompressedDirectBuf).put(b, off, len);</span><br><span class="line">      uncompressedDirectBufLen = uncompressedDirectBuf.position();</span><br><span class="line">    &#125;</span><br><span class="line">    bytesRead += len;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>  如上，如果能够添加进待压缩数据缓冲区中，则直接添加，否则暂存在userBuf中，接下来应该compress压缩并释放待压缩数据缓冲区，释放后下一次<br>  需要读取userBuf中的暂存数据。</p>
+</li>
+<li><p>是否能够继续添加待压缩数据needsInput</p>
+  <figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="annotation">@Override</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">synchronized</span> <span class="function"><span class="keyword">boolean</span> <span class="title">needsInput</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="keyword">return</span> !(compressedDirectBuf.remaining() &gt; <span class="number">0</span></span><br><span class="line">        || uncompressedDirectBuf.remaining() == <span class="number">0</span> || userBufLen &gt; <span class="number">0</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>  看什么情况下不能继续添加待压缩数据(即需要压缩数据并释放缓冲区)。<br>  第一，已压缩缓冲区中还有数据未读取完，不能继续添加；<br>  第二，待压缩缓冲区中没有剩余空间，不能继续添加;<br>  第三，userBuf中有暂存数据，不能继续添加(这时可能待压缩数据缓冲区中还有剩余空间，只是不能保存userBuf暂存的全部数据);  </p>
+</li>
+<li><p>finished</p>
+  <figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="annotation">@Override</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">synchronized</span> <span class="function"><span class="keyword">boolean</span> <span class="title">finished</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="comment">// Check if all uncompressed data has been consumed</span></span><br><span class="line">    <span class="keyword">return</span> (finish &amp;&amp; finished &amp;&amp; compressedDirectBuf.remaining() == <span class="number">0</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>  finish标志置位表示没有待压缩数据输入了，finished标志置位表示待压缩数据缓冲区中没有剩余数据了。<br>  因此当待压缩数据全部添加到压缩器中，待压缩缓冲区没有剩余数据(此时全部输入数据压缩完成，大部分数据已经输出，可能有一部分数据在已压缩数据缓冲区中)，<br>  且已压缩数据缓冲区中没有未读取的数据时，所有输入数据已经压缩并输出了。  </p>
+</li>
+<li><p>压缩待压缩数据缓冲区中数据compress</p>
+  <figure class="highlight stata"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br></pre></td><td class="code"><pre><span class="line">@Override</span><br><span class="line">public synchronized int <span class="keyword">compress</span>(byte[] b, int off, int len)</span><br><span class="line">  throws IOException &#123;</span><br><span class="line">    <span class="comment">//合理性检查</span></span><br><span class="line">    ...</span><br><span class="line">    int <span class="keyword">n</span> = compressedDirectBuf.remaining();</span><br><span class="line">    <span class="keyword">if</span> (<span class="keyword">n</span> &gt; 0) &#123;<span class="comment">//如果已压缩数据缓冲区中还有数据，则直接读取数据输出</span></span><br><span class="line">      <span class="keyword">n</span> = Math.<span class="literal">min</span>(<span class="keyword">n</span>, len);</span><br><span class="line">      ((ByteBuffer) compressedDirectBuf).<span class="literal">get</span>(b, off, <span class="keyword">n</span>);</span><br><span class="line">      bytesWritten += <span class="keyword">n</span>;</span><br><span class="line">      <span class="keyword">return</span> <span class="keyword">n</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">//已压缩数据缓冲区没有数据，clear(准备写入put)并将limit置0(remaining=0)</span></span><br><span class="line">    compressedDirectBuf.<span class="keyword">clear</span>();</span><br><span class="line">    compressedDirectBuf.limit(0);</span><br><span class="line">    <span class="comment">//见上needsInput条件，上面已经处理了有已压缩数据没读取的情况，这里position为0，则userBuf中有数据，读取数据至待压缩缓冲区中。</span></span><br><span class="line">    <span class="keyword">if</span> (0 == uncompressedDirectBuf.position()) &#123;</span><br><span class="line">      <span class="comment">// No compressed data, so we should have !needsInput or !finished</span></span><br><span class="line">      setInputFromSavedData();<span class="comment">//从userBuf中读取数据至uncompressedDirectBuf中</span></span><br><span class="line">      <span class="keyword">if</span> (0 == uncompressedDirectBuf.position()) &#123;<span class="comment">//userBuf中没有数据，所有数据处理完</span></span><br><span class="line">        <span class="comment">// Called without data; write nothing</span></span><br><span class="line">        finished = true;</span><br><span class="line">        <span class="keyword">return</span> 0;</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// Compress data</span></span><br><span class="line">    <span class="keyword">n</span> = compressBytesDirect();<span class="comment">//压缩数据，将uncompressedDirectBuf中待压缩数据压缩，压缩后数据保存在compressedDirectBuf中</span></span><br><span class="line">    compressedDirectBuf.limit(<span class="keyword">n</span>);<span class="comment">//compressedDirectBuf有数据了，设置limit值，等待读取</span></span><br><span class="line">    uncompressedDirectBuf.<span class="keyword">clear</span>(); <span class="comment">// snappy consumes all buffer input，准备继续读取待压缩的输入数据</span></span><br><span class="line">    </span><br><span class="line">    <span class="comment">// Set 'finished' if snapy has consumed all user-data</span></span><br><span class="line">    <span class="keyword">if</span> (0 == userBufLen) &#123;</span><br><span class="line">      finished = true;</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// Get atmost 'len' bytes</span></span><br><span class="line">    <span class="keyword">n</span> = Math.<span class="literal">min</span>(<span class="keyword">n</span>, len);</span><br><span class="line">    bytesWritten += <span class="keyword">n</span>;</span><br><span class="line">    ((ByteBuffer) compressedDirectBuf).<span class="literal">get</span>(b, off, <span class="keyword">n</span>);<span class="comment">//压缩完后读取数据到输出字节数组b中</span></span><br><span class="line">    </span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">n</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">synchronized void setInputFromSavedData() &#123;</span><br><span class="line">    <span class="keyword">if</span> (0 &gt;= userBufLen) &#123;<span class="comment">//没有数据，直接返回，对应上面待压缩缓冲区position为0，所有数据处理完</span></span><br><span class="line">      <span class="keyword">return</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    finished = false;</span><br><span class="line">    </span><br><span class="line">    uncompressedDirectBufLen = Math.<span class="literal">min</span>(userBufLen, directBufferSize);</span><br><span class="line">    ((ByteBuffer) uncompressedDirectBuf).put(userBuf, userBufOff, uncompressedDirectBufLen);<span class="comment">//读取数据至待压缩缓冲区</span></span><br><span class="line">    </span><br><span class="line">    <span class="comment">// Note how much data is being fed to snappy</span></span><br><span class="line">    userBufOff += uncompressedDirectBufLen;</span><br><span class="line">    userBufLen -= uncompressedDirectBufLen;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>  如上，如果已压缩缓冲区中有数据尚未读取，则直接读取数据。<br>  否则压缩待压缩缓冲区的数据至已压缩缓冲区，压缩后读取数据输出。<br>  而这里如果发现待压缩数据缓冲区没有可用数据，表明需要从userBuf这一暂存区中读取数据，然后压缩输出。  </p>
+<p>  最终压缩是通过<code>compressBytesDirect</code>方法来完成</p>
+  <figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="keyword">native</span> <span class="function"><span class="keyword">int</span> <span class="title">compressBytesDirect</span><span class="params">()</span></span>;</span><br></pre></td></tr></table></figure>
+<p>  该方法为本地实现，另外还有一个本地方法</p>
+  <figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="keyword">native</span> <span class="keyword">static</span> <span class="function"><span class="keyword">void</span> <span class="title">initIDs</span><span class="params">()</span></span>;</span><br></pre></td></tr></table></figure>
+</li>
+</ul>
+<h4 id="本地库(参见&lt;技术内幕&gt;)">本地库(参见&lt;技术内幕&gt;)</h4><p>如上，SnappyCompressor最终压缩为本地方法，要实现本地方法,一般需要三个步骤:</p>
+<ol>
+<li>为方法生成一个在Java调用和实际C函数间转换的C存根；</li>
+<li>建立一个共享库并导出该存根；</li>
+<li>使用System.loadLibrary()通知Java运行环境加载共享库；</li>
+</ol>
+<p>JDK为C存根的生成提供了使用程序javah，可以在build/classes目录下执行：<br><figure class="highlight stylus"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">javah oar<span class="class">.apache</span><span class="class">.hadoop</span><span class="class">.io</span><span class="class">.compress</span><span class="class">.snappy</span><span class="class">.SnappyCompressor</span></span><br></pre></td></tr></table></figure></p>
+<p>系统会生成一个头文件<code>org_apache_hadoop_io_compress_snappy_SnappyCompressor.h</code>，包含SnappyCompressor中两个本地方法的声明:<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">JNIEXPORT <span class="keyword">void</span> <span class="function">JNICALL <span class="title">Java_org_apache_hadoop_io_compress_snappy_SnappyCompressor_initIDs</span><span class="params">(JNIEnv *, jclass)</span></span>;</span><br><span class="line">JNIEXPORT jint <span class="function">JNICALL <span class="title">Java_org_apache_hadoop_io_compress_snappy_SnappyCompressor_compressBytesDirect</span><span class="params">(JNIEnv *, jobject)</span></span>;</span><br></pre></td></tr></table></figure></p>
+<p>声明中JNIEXPORT和JNICALL表明这两个方法会被JNI调用。<br>参数JNIEnv指针用于和JVM通信，JNIEnv提供了大量的函数，可以执行类和对象的相关方法，也可以访问对象的成员变量或类的静态变量。<br>参数jclass提供了引用静态方法对应类的机制。<br>jobject可以理解为this引用。<br>有了上述头文件，可以对两个方法做相应实现，实现在目录<code>$HADOOP_HOME/src/native/src/org/apache/hadoop/io/compress</code>下，压缩部分对应的<br>C源代码时SnappyCompressor.c文件，如下:<br><img src="../images/Snappy本地库.png" alt="Snappy本地库"><br>看相应实现<br><figure class="highlight lisp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br></pre></td><td class="code"><pre><span class="line">static snappy_status <span class="list">(<span class="keyword">*dlsym_snappy_compress</span>)</span><span class="list">(<span class="keyword">const</span> char*, size_t, char*, size_t*)</span><span class="comment">;//压缩方法对应函数指针</span></span><br><span class="line"></span><br><span class="line">JNIEXPORT void JNICALL Java_org_apache_hadoop_io_compress_snappy_SnappyCompressor_initIDs</span><br><span class="line"><span class="list">(<span class="keyword">JNIEnv</span> <span class="variable">*env, jclass clazz)&#123;</span><br><span class="line"></span><br><span class="line">  // Load libsnappy.so</span><br><span class="line">  //加载snappy动态库</span><br><span class="line">  void *</span>libsnappy = dlopen<span class="list">(<span class="keyword">HADOOP_SNAPPY_LIBRARY</span>, RTLD_LAZY | RTLD_GLOBAL)</span><span class="comment">;</span></span><br><span class="line">  if <span class="list">(!libsnappy)</span> &#123;</span><br><span class="line">    char* msg = <span class="list">(<span class="keyword">char*</span>)</span>malloc<span class="list">(<span class="number">1000</span>)</span><span class="comment">;</span></span><br><span class="line">    snprintf<span class="list">(<span class="keyword">msg</span>, <span class="number">1000</span>, <span class="string">"%s (%s)!"</span>, <span class="string">"Cannot load "</span> HADOOP_SNAPPY_LIBRARY, dlerror<span class="list">()</span>)</span><span class="comment">;</span></span><br><span class="line">    THROW<span class="list">(<span class="keyword">env</span>, <span class="string">"java/lang/UnsatisfiedLinkError"</span>, msg)</span><span class="comment">;</span></span><br><span class="line">    return<span class="comment">;</span></span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  // Locate the requisite symbols from libsnappy.so</span><br><span class="line">  dlerror<span class="list">()</span><span class="comment">;                                 // Clear any existing error</span></span><br><span class="line">  //加载压缩函数dlsym_snappy_compress为动态库中snappy_compress函数</span><br><span class="line">  LOAD_DYNAMIC_SYMBOL<span class="list">(<span class="keyword">dlsym_snappy_compress</span>, env, libsnappy, <span class="string">"snappy_compress"</span>)</span><span class="comment">;</span></span><br><span class="line">  </span><br><span class="line">  //初始化加载SnappyCompressor中成员类型</span><br><span class="line">  SnappyCompressor_clazz = <span class="list">(<span class="keyword">*env</span>)</span>-&gt;GetStaticFieldID<span class="list">(<span class="keyword">env</span>, clazz, <span class="string">"clazz"</span>, <span class="string">"Ljava/lang/Class;"</span>)</span><span class="comment">;</span></span><br><span class="line">  SnappyCompressor_uncompressedDirectBuf = <span class="list">(<span class="keyword">*env</span>)</span>-&gt;GetFieldID<span class="list">(<span class="keyword">env</span>, clazz,<span class="string">"uncompressedDirectBuf"</span>,<span class="string">"Ljava/nio/Buffer;"</span>)</span><span class="comment">;</span></span><br><span class="line">  SnappyCompressor_uncompressedDirectBufLen = <span class="list">(<span class="keyword">*env</span>)</span>-&gt;GetFieldID<span class="list">(<span class="keyword">env</span>, clazz, <span class="string">"uncompressedDirectBufLen"</span>, <span class="string">"I"</span>)</span><span class="comment">;</span></span><br><span class="line">  SnappyCompressor_compressedDirectBuf = <span class="list">(<span class="keyword">*env</span>)</span>-&gt;GetFieldID<span class="list">(<span class="keyword">env</span>, clazz, <span class="string">"compressedDirectBuf"</span>, <span class="string">"Ljava/nio/Buffer;"</span>)</span><span class="comment">;</span></span><br><span class="line">  SnappyCompressor_directBufferSize = <span class="list">(<span class="keyword">*env</span>)</span>-&gt;GetFieldID<span class="list">(<span class="keyword">env</span>, clazz, <span class="string">"directBufferSize"</span>, <span class="string">"I"</span>)</span><span class="comment">;</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">JNIEXPORT jint JNICALL Java_org_apache_hadoop_io_compress_snappy_SnappyCompressor_compressBytesDirect</span><br><span class="line"><span class="list">(<span class="keyword">JNIEnv</span> <span class="variable">*env, jobject thisj)&#123;//compressBytesDirect方法C实现</span><br><span class="line">  // Get members of SnappyCompressor</span><br><span class="line">  //通过JNI的JNIEnv指针获取SnappyCompressor成员属性</span><br><span class="line">  jobject clazz = (*</span>env)</span>-&gt;GetStaticObjectField<span class="list">(<span class="keyword">env</span>, thisj, SnappyCompressor_clazz)</span><span class="comment">;</span></span><br><span class="line">  jobject uncompressed_direct_buf = <span class="list">(<span class="keyword">*env</span>)</span>-&gt;GetObjectField<span class="list">(<span class="keyword">env</span>, thisj, SnappyCompressor_uncompressedDirectBuf)</span><span class="comment">;</span></span><br><span class="line">  jint uncompressed_direct_buf_len = <span class="list">(<span class="keyword">*env</span>)</span>-&gt;GetIntField<span class="list">(<span class="keyword">env</span>, thisj, SnappyCompressor_uncompressedDirectBufLen)</span><span class="comment">;</span></span><br><span class="line">  jobject compressed_direct_buf = <span class="list">(<span class="keyword">*env</span>)</span>-&gt;GetObjectField<span class="list">(<span class="keyword">env</span>, thisj, SnappyCompressor_compressedDirectBuf)</span><span class="comment">;</span></span><br><span class="line">  jint compressed_direct_buf_len = <span class="list">(<span class="keyword">*env</span>)</span>-&gt;GetIntField<span class="list">(<span class="keyword">env</span>, thisj, SnappyCompressor_directBufferSize)</span><span class="comment">;</span></span><br><span class="line"></span><br><span class="line">  // Get the input direct buffer</span><br><span class="line">  //uncompressedDirectBuf成员,即待压缩缓冲区对应在内存中的地址</span><br><span class="line">  LOCK_CLASS<span class="list">(<span class="keyword">env</span>, clazz, <span class="string">"SnappyCompressor"</span>)</span><span class="comment">;</span></span><br><span class="line">  const char* uncompressed_bytes = <span class="list">(<span class="keyword">const</span> char*)</span><span class="list">(<span class="keyword">*env</span>)</span>-&gt;GetDirectBufferAddress<span class="list">(<span class="keyword">env</span>, uncompressed_direct_buf)</span><span class="comment">;</span></span><br><span class="line">  UNLOCK_CLASS<span class="list">(<span class="keyword">env</span>, clazz, <span class="string">"SnappyCompressor"</span>)</span><span class="comment">;</span></span><br><span class="line"></span><br><span class="line">  if <span class="list">(<span class="keyword">uncompressed_bytes</span> == <span class="number">0</span>)</span> &#123;</span><br><span class="line">    return <span class="list">(<span class="keyword">jint</span>)</span><span class="number">0</span><span class="comment">;</span></span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  // Get the output direct buffer</span><br><span class="line">  //compressedDirectBuf成员，即已压缩缓冲区在内存中地址</span><br><span class="line">  LOCK_CLASS<span class="list">(<span class="keyword">env</span>, clazz, <span class="string">"SnappyCompressor"</span>)</span><span class="comment">;</span></span><br><span class="line">  char* compressed_bytes = <span class="list">(<span class="keyword">char</span> <span class="variable">*)(*</span>env)</span>-&gt;GetDirectBufferAddress<span class="list">(<span class="keyword">env</span>, compressed_direct_buf)</span><span class="comment">;</span></span><br><span class="line">  UNLOCK_CLASS<span class="list">(<span class="keyword">env</span>, clazz, <span class="string">"SnappyCompressor"</span>)</span><span class="comment">;</span></span><br><span class="line">    </span><br><span class="line">  if <span class="list">(<span class="keyword">compressed_bytes</span> == <span class="number">0</span>)</span> &#123;</span><br><span class="line">    return <span class="list">(<span class="keyword">jint</span>)</span><span class="number">0</span><span class="comment">;</span></span><br><span class="line">  &#125;</span><br><span class="line">  //压缩，通过函数dlsym_snappy_compress完成</span><br><span class="line">  snappy_status ret = dlsym_snappy_compress<span class="list">(<span class="keyword">uncompressed_bytes</span>, uncompressed_direct_buf_len, compressed_bytes, <span class="keyword">&amp;compressed_direct_buf_len</span>)</span><span class="comment">;</span></span><br><span class="line">  if <span class="list">(<span class="keyword">ret</span> != SNAPPY_OK)</span>&#123;</span><br><span class="line">    HROW<span class="list">(<span class="keyword">env</span>, <span class="string">"Ljava/lang/InternalError"</span>, <span class="string">"Could not compress data. Buffer length is too small."</span>)</span><span class="comment">;</span></span><br><span class="line">  &#125;</span><br><span class="line">  //压缩完成，更新SnappyCompressor中的成员</span><br><span class="line">  <span class="list">(<span class="keyword">*env</span>)</span>-&gt;SetIntField<span class="list">(<span class="keyword">env</span>, thisj, SnappyCompressor_uncompressedDirectBufLen, <span class="number">0</span>)</span><span class="comment">;</span></span><br><span class="line"></span><br><span class="line">  return <span class="list">(<span class="keyword">jint</span>)</span>compressed_direct_buf_len<span class="comment">;</span></span><br><span class="line">&#125;</span></span><br></pre></td></tr></table></figure></p>
+<p>如上，可通过JNIEnv的<code>GetStaticFieldID</code>，<code>GetFieldID</code>和指定的<code>clazz</code>分别获取Java中静态成员和非静态成员的ID，然后通过<br><code>GetStaticObjectField</code>,<code>GetObjectField</code>，<code>GetIntField</code>以及指定的this对象<code>thisj</code>分别获取静态对象成员，非静态对象成员和其他属性(Int)<br>的成员属性，然后通过<code>GetDirectBufferAddress</code>获取直接内存对应的内存地址。  </p>
+<p>编码通过函数指针<code>dlsym_snappy_compress</code>完成，在<code>initIDs</code>中初始化。<br><code>initIDs</code>中加载libsnappy.so动态库，然后将dlsym_snappy_compress初始化为动态库中的<code>snappy_compress</code>方法。  </p>
+<p>要使用snappy本地库，需要将这些本地头文件和实现c文件编译连接成动态库(打包成libhadoop.so)，在运行时要将Snappy的动态库加载进来。<br>因此，在运行时，需要将包含Snappy动态库的路径放在系统属性<code>java.library.path</code>中，这样Java虚拟机才能找到对应的动态库。最后，Java应用需要<br>显式通知Java运行环境加载相关的动态库(Snappy动态库)，对应SnappyCompressor中静态代码段<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">static</span> &#123;</span><br><span class="line">    <span class="keyword">if</span> (LoadSnappy.isLoaded()) &#123;</span><br><span class="line">      <span class="comment">// Initialize the native library</span></span><br><span class="line">      <span class="keyword">try</span> &#123;</span><br><span class="line">        initIDs();</span><br><span class="line">      &#125; <span class="keyword">catch</span> (Throwable t) &#123;</span><br><span class="line">        <span class="comment">// Ignore failure to load/initialize snappy</span></span><br><span class="line">        LOG.warn(t.toString());</span><br><span class="line">      &#125;</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">      LOG.<span class="keyword">error</span>(<span class="string">"Cannot load "</span> + SnappyCompressor.class.getName() +</span><br><span class="line">          <span class="string">" without snappy library!"</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> <span class="function"><span class="keyword">boolean</span> <span class="title">isLoaded</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="keyword">return</span> LOADED;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>在initIDs实现中会加载<code>HADOOP_SNAPPY_LIBRARY</code>，而在LoadSnappy的静态代码段中<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">static</span> &#123;</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">      System.loadLibrary(<span class="string">"snappy"</span>);<span class="comment">//加载"java.library.path"路径下的snappy动态库</span></span><br><span class="line">      LOG.warn(<span class="string">"Snappy native library is available"</span>);</span><br><span class="line">      AVAILABLE = <span class="keyword">true</span>;</span><br><span class="line">    &#125; <span class="keyword">catch</span> (UnsatisfiedLinkError ex) &#123;</span><br><span class="line">      <span class="comment">//NOP</span></span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">boolean</span> hadoopNativeAvailable = NativeCodeLoader.isNativeCodeLoaded();</span><br><span class="line">    LOADED = AVAILABLE &amp;&amp; hadoopNativeAvailable;</span><br><span class="line">    <span class="keyword">if</span> (LOADED) &#123;</span><br><span class="line">      LOG.info(<span class="string">"Snappy native library loaded"</span>);</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">      LOG.warn(<span class="string">"Snappy native library not loaded"</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<h2 id="压缩流和解压流">压缩流和解压流</h2><p>在CompressionCodec中还提供了创建相应压缩流和解压流的方法，可以同时指定所用的压缩器/解压器。<br>相应类图如下:<br><img src="../images/压缩流解压流.png" alt="压缩流解压流"><br>压缩流对应CompressionOutputStream,继承自OutputStream，为抽象类<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">abstract</span> <span class="class"><span class="keyword">class</span> <span class="title">CompressionOutputStream</span> <span class="keyword">extends</span> <span class="title">OutputStream</span> </span>&#123;</span><br><span class="line">  <span class="comment">//底层输出流，最终压缩数据输出至此</span></span><br><span class="line">  <span class="keyword">protected</span> <span class="keyword">final</span> OutputStream out;</span><br><span class="line">  </span><br><span class="line">  <span class="function"><span class="keyword">protected</span> <span class="title">CompressionOutputStream</span><span class="params">(OutputStream out)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">this</span>.out = out;</span><br><span class="line">  &#125;</span><br><span class="line">  </span><br><span class="line">  <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">close</span><span class="params">()</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">    finish();</span><br><span class="line">    out.close();</span><br><span class="line">  &#125;</span><br><span class="line">  </span><br><span class="line">  <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">flush</span><span class="params">()</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">    out.flush();</span><br><span class="line">  &#125;</span><br><span class="line">  </span><br><span class="line">  <span class="comment">//数据b压缩后写入底层流中</span></span><br><span class="line">  <span class="function"><span class="keyword">public</span> <span class="keyword">abstract</span> <span class="keyword">void</span> <span class="title">write</span><span class="params">(<span class="keyword">byte</span>[] b, <span class="keyword">int</span> off, <span class="keyword">int</span> len)</span> <span class="keyword">throws</span> IOException</span>;</span><br><span class="line"></span><br><span class="line">  <span class="comment">//完成向底层流写入压缩数据，底层流未关闭</span></span><br><span class="line">  <span class="function"><span class="keyword">public</span> <span class="keyword">abstract</span> <span class="keyword">void</span> <span class="title">finish</span><span class="params">()</span> <span class="keyword">throws</span> IOException</span>;</span><br><span class="line">  </span><br><span class="line">  <span class="comment">//重置压缩为初始状态，底层流不重置</span></span><br><span class="line">  <span class="function"><span class="keyword">public</span> <span class="keyword">abstract</span> <span class="keyword">void</span> <span class="title">resetState</span><span class="params">()</span> <span class="keyword">throws</span> IOException</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>而CompressorStream使用压缩器实现了一个通用的压缩流，给定不同压缩器便得到相应压缩器的压缩流。</p>
+<ul>
+<li><p>成员属性</p>
+  <figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">protected</span> Compressor compressor;<span class="comment">//压缩器</span></span><br><span class="line"><span class="keyword">protected</span> <span class="keyword">byte</span>[] buffer;<span class="comment">//压缩结果暂存缓冲</span></span><br><span class="line"><span class="keyword">protected</span> <span class="keyword">boolean</span> closed = <span class="keyword">false</span>;</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>构造</p>
+  <figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">protected</span> <span class="title">CompressorStream</span>(<span class="params">OutputStream <span class="keyword">out</span></span>) </span>&#123;</span><br><span class="line">    super(<span class="keyword">out</span>);</span><br><span class="line">&#125;</span><br><span class="line">  </span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="title">CompressorStream</span>(<span class="params">OutputStream <span class="keyword">out</span>, Compressor compressor</span>) </span>&#123;</span><br><span class="line">  <span class="keyword">this</span>(<span class="keyword">out</span>, compressor, <span class="number">512</span>);</span><br><span class="line">&#125;</span><br><span class="line">    </span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="title">CompressorStream</span>(<span class="params">OutputStream <span class="keyword">out</span>, Compressor compressor, <span class="keyword">int</span> bufferSize</span>) </span>&#123;</span><br><span class="line">    super(<span class="keyword">out</span>);<span class="comment">//底层流</span></span><br><span class="line">    <span class="keyword">if</span> (<span class="keyword">out</span> == <span class="keyword">null</span> || compressor == <span class="keyword">null</span>) &#123;</span><br><span class="line">      <span class="keyword">throw</span> <span class="keyword">new</span> NullPointerException();</span><br><span class="line">    &#125; <span class="function"><span class="keyword">else</span> <span class="title">if</span> (<span class="params">bufferSize &lt;= <span class="number">0</span></span>) </span>&#123;</span><br><span class="line">      <span class="keyword">throw</span> <span class="keyword">new</span> IllegalArgumentException(<span class="string">"Illegal bufferSize"</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">this</span>.compressor = compressor;</span><br><span class="line">    buffer = <span class="keyword">new</span> <span class="keyword">byte</span>[bufferSize];</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>流的写操作</p>
+  <figure class="highlight gradle"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="keyword">write</span>(<span class="keyword">byte</span>[] b, <span class="keyword">int</span> off, <span class="keyword">int</span> len) <span class="keyword">throws</span> IOException &#123;</span><br><span class="line">    <span class="comment">// 合理性检查</span></span><br><span class="line">    ...</span><br><span class="line">    <span class="comment">//写到压缩器的缓冲</span></span><br><span class="line">    compressor.setInput(b, off, len);</span><br><span class="line">    <span class="keyword">while</span> (!compressor.needsInput()) &#123;<span class="comment">//需要压缩时压缩并输出到底层流</span></span><br><span class="line">      compress();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">protected</span> <span class="keyword">void</span> compress() <span class="keyword">throws</span> IOException &#123;</span><br><span class="line">    <span class="keyword">int</span> len = compressor.compress(buffer, <span class="number">0</span>, buffer.length);<span class="comment">//压缩</span></span><br><span class="line">    <span class="keyword">if</span> (len &gt; <span class="number">0</span>) &#123;</span><br><span class="line">      out.<span class="keyword">write</span>(buffer, <span class="number">0</span>, len);<span class="comment">//写到底层流</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">private</span> <span class="keyword">byte</span>[] oneByte = <span class="keyword">new</span> <span class="keyword">byte</span>[<span class="number">1</span>];</span><br><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="keyword">write</span>(<span class="keyword">int</span> b) <span class="keyword">throws</span> IOException &#123;</span><br><span class="line">    oneByte[<span class="number">0</span>] = (<span class="keyword">byte</span>)(b &amp; <span class="number">0</span>xff);</span><br><span class="line">    <span class="keyword">write</span>(oneByte, <span class="number">0</span>, oneByte.length);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>状态相关<br>  等待完成finish方法</p>
+  <figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">void</span> <span class="title">finish</span><span class="params">()</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (!compressor.finished()) &#123;</span><br><span class="line">      compressor.finish();<span class="comment">//终止输入</span></span><br><span class="line">      <span class="keyword">while</span> (!compressor.finished()) &#123;<span class="comment">//压缩并输出剩余数据</span></span><br><span class="line">        compress();</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">void</span> <span class="title">resetState</span><span class="params">()</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">    compressor.reset();</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">void</span> <span class="title">close</span><span class="params">()</span> <span class="keyword">throws</span> IOException </span>&#123;<span class="comment">//关闭压缩流，包括底层流</span></span><br><span class="line">    <span class="keyword">if</span> (!closed) &#123;</span><br><span class="line">      finish();</span><br><span class="line">      out.close();</span><br><span class="line">      closed = <span class="keyword">true</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+</li>
+</ul>
+<p>解压流类似，不再分析。  </p>
+</span>
+      
+    </div>
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/Common/" rel="tag">#Common</a>
+          
+            <a href="/tags/Hadoop-1-2-1/" rel="tag">#Hadoop-1.2.1</a>
+          
+        </div>
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/序列化/" rel="next" title="Common源码阅读---序列化">
+                <i class="fa fa-chevron-left"></i> Common源码阅读---序列化
+              </a>
+            
+          </div>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/Configuration/" rel="prev" title="Common源码阅读---Configuration">
+                Common源码阅读---Configuration <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </article>
+
+
+
+    <div class="post-spread">
+      
+        <!-- JiaThis Button BEGIN -->
+<div class="jiathis_style">
+  <a class="jiathis_button_tsina"></a>
+  <a class="jiathis_button_tqq"></a>
+  <a class="jiathis_button_weixin"></a>
+  <a class="jiathis_button_cqq"></a>
+  <a class="jiathis_button_douban"></a>
+  <a class="jiathis_button_renren"></a>
+  <a class="jiathis_button_qzone"></a>
+  <a class="jiathis_button_kaixin001"></a>
+  <a class="jiathis_button_copy"></a>
+  <a href="http://www.jiathis.com/share" class="jiathis jiathis_txt jiathis_separator jtico jtico_jiathis" target="_blank"></a>
+  <a class="jiathis_counter_style"></a>
+</div>
+<script type="text/javascript" >
+  var jiathis_config={
+    hideMore:false
+  }
+</script>
+<script type="text/javascript" src="http://v3.jiathis.com/code/jia.js" charset="utf-8"></script>
+<!-- JiaThis Button END -->
+
+      
+    </div>
+  </div>
+
+
+        </div>
+
+        
+
+
+        
+  <div class="comments" id="comments">
+    
+      <div class="ds-thread" data-thread-key="压缩/"
+           data-title="Common源码阅读---压缩" data-url="http://xiao-yun.github.io/压缩/">
+      </div>
+    
+  </div>
+
+
+      </div>
+
+      
+        
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap" >
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel ">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+          <img class="site-author-image" src="/images/hero.jpg" alt="xiaoyun" itemprop="image"/>
+          <p class="site-author-name" itemprop="name">xiaoyun</p>
+        </div>
+        <p class="site-description motion-element" itemprop="description">学习笔记，网上资源摘要等</p>
+        <nav class="site-state motion-element">
+          <div class="site-state-item site-state-posts">
+            <a href="/archives">
+              <span class="site-state-item-count">12</span>
+              <span class="site-state-item-name">日志</span>
+            </a>
+          </div>
+
+          <div class="site-state-item site-state-categories">
+            <a href="/categories">
+              <span class="site-state-item-count">9</span>
+              <span class="site-state-item-name">分类</span>
+              </a>
+          </div>
+
+          <div class="site-state-item site-state-tags">
+            <a href="/tags">
+              <span class="site-state-item-count">7</span>
+              <span class="site-state-item-name">标签</span>
+              </a>
+          </div>
+
+        </nav>
+
+        
+
+        <div class="links-of-author motion-element">
+          
+            
+              <span class="links-of-author-item">
+                <a href="https://github.com/xiao-yun" target="_blank">
+                  
+                    <i class="fa fa-globe"></i> github
+                  
+                </a>
+              </span>
+            
+          
+        </div>
+
+        
+        
+
+        <div class="links-of-author motion-element">
+          
+        </div>
+
+      </section>
+
+      
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc-indicator-top post-toc-indicator">
+            <i class="fa fa-angle-double-up"></i>
+          </div>
+          <div class="post-toc">
+            
+              
+            
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#编解码器"><span class="nav-number">1.</span> <span class="nav-text">编解码器</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#编解码器工厂CompressionCodecFactory"><span class="nav-number">2.</span> <span class="nav-text">编解码器工厂CompressionCodecFactory</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#成员属性"><span class="nav-number">2.1.</span> <span class="nav-text">成员属性</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#构造"><span class="nav-number">2.2.</span> <span class="nav-text">构造</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#通过工厂创建实例"><span class="nav-number">2.3.</span> <span class="nav-text">通过工厂创建实例</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#压缩解压器"><span class="nav-number">3.</span> <span class="nav-text">压缩解压器</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#压缩器接口"><span class="nav-number">3.1.</span> <span class="nav-text">压缩器接口</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#解压器接口"><span class="nav-number">3.2.</span> <span class="nav-text">解压器接口</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#SnappyCompressor(参考<技术内幕>)"><span class="nav-number">3.3.</span> <span class="nav-text">SnappyCompressor(参考<技术内幕>)</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#成员属性-1"><span class="nav-number">3.3.1.</span> <span class="nav-text">成员属性</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#构造-1"><span class="nav-number">3.3.2.</span> <span class="nav-text">构造</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#主要方法"><span class="nav-number">3.3.3.</span> <span class="nav-text">主要方法</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#本地库(参见<技术内幕>)"><span class="nav-number">3.3.4.</span> <span class="nav-text">本地库(参见<技术内幕>)</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#压缩流和解压流"><span class="nav-number">4.</span> <span class="nav-text">压缩流和解压流</span></a></li></ol></div>
+            
+          </div>
+          <div class="post-toc-indicator-bottom post-toc-indicator">
+            <i class="fa fa-angle-double-down"></i>
+          </div>
+        </section>
+      
+
+    </div>
+  </aside>
+
+
+      
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright" >
+  
+  &copy; 
+  <span itemprop="copyrightYear">2015</span>
+  <span class="with-love">
+    <i class="icon-next-heart fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">xiaoyun</span>
+</div>
+
+<div class="powered-by">
+  由 <a class="theme-link" href="http://hexo.io">Hexo</a> 强力驱动
+</div>
+
+<div class="theme-info">
+  主题 -
+  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
+    NexT.Mist
+  </a>
+</div>
+
+
+
+      </div>
+    </footer>
+
+    <div class="back-to-top"></div>
+  </div>
+
+  <script type="text/javascript" src="/vendors/jquery/index.js?v=2.1.3"></script>
+
+  
+  
+
+  
+    
+
+  
+    
+  
+
+  <script type="text/javascript">
+    var duoshuoQuery = {short_name:"xiaoyuncom"};
+    (function() {
+      var ds = document.createElement('script');
+      ds.type = 'text/javascript';ds.async = true;
+      ds.id = 'duoshuo-script';
+      ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+      ds.charset = 'UTF-8';
+      (document.getElementsByTagName('head')[0]
+      || document.getElementsByTagName('body')[0]).appendChild(ds);
+    })();
+  </script>
+    
+     
+
+
+    
+  
+
+  
+  <script type="text/javascript" src="/vendors/fancybox/source/jquery.fancybox.pack.js"></script>
+  <script type="text/javascript" src="/js/fancy-box.js?v=0.4.5.2"></script>
+
+
+  <script type="text/javascript" src="/js/helpers.js?v=0.4.5.2"></script>
+  <script type="text/javascript" src="/vendors/velocity/velocity.min.js"></script>
+<script type="text/javascript" src="/vendors/velocity/velocity.ui.min.js"></script>
+
+<script type="text/javascript" src="/js/motion.js?v=0.4.5.2" id="motion.global"></script>
+
+
+  <script type="text/javascript" src="/vendors/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  <script type="text/javascript" src="/vendors/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  
+<script type="text/javascript" src="/js/bootstrap.scrollspy.js?v=0.4.5.2" id="bootstrap.scrollspy.custom"></script>
+
+
+<script type="text/javascript" id="sidebar.toc.highlight">
+  $(document).ready(function () {
+    var tocSelector = '.post-toc';
+    var $tocSelector = $(tocSelector);
+    var activeCurrentSelector = '.active-current';
+
+    $tocSelector
+      .on('activate.bs.scrollspy', function () {
+        var $currentActiveElement = $(tocSelector + ' .active').last();
+
+        removeCurrentActiveClass();
+        $currentActiveElement.addClass('active-current');
+
+        $tocSelector[0].scrollTop = $currentActiveElement.position().top;
+      })
+      .on('clear.bs.scrollspy', function () {
+        removeCurrentActiveClass();
+      });
+
+    function removeCurrentActiveClass () {
+      $(tocSelector + ' ' + activeCurrentSelector)
+        .removeClass(activeCurrentSelector.substring(1));
+    }
+
+    function processTOC () {
+      getTOCMaxHeight();
+      toggleTOCOverflowIndicators();
+    }
+
+    function getTOCMaxHeight () {
+      var height = $('.sidebar').height() -
+                   $tocSelector.position().top -
+                   $('.post-toc-indicator-bottom').height();
+
+      $tocSelector.css('height', height);
+
+      return height;
+    }
+
+    function toggleTOCOverflowIndicators () {
+      tocOverflowIndicator(
+        '.post-toc-indicator-top',
+        $tocSelector.scrollTop() > 0 ? 'show' : 'hide'
+      );
+
+      tocOverflowIndicator(
+        '.post-toc-indicator-bottom',
+        $tocSelector.scrollTop() >= $tocSelector.find('ol').height() - $tocSelector.height() ? 'hide' : 'show'
+      )
+    }
+
+    $(document).on('sidebar.motion.complete', function () {
+      processTOC();
+    });
+
+    $('body').scrollspy({ target: tocSelector });
+    $(window).on('resize', function () {
+      if ( $('.sidebar').hasClass('sidebar-active') ) {
+        processTOC();
+      }
+    });
+
+    onScroll($tocSelector);
+
+    function onScroll (element) {
+      element.on('mousewheel DOMMouseScroll', function (event) {
+          var oe = event.originalEvent;
+          var delta = oe.wheelDelta || -oe.detail;
+
+          this.scrollTop += ( delta < 0 ? 1 : -1 ) * 30;
+          event.preventDefault();
+
+          toggleTOCOverflowIndicators();
+      });
+    }
+
+    function tocOverflowIndicator (indicator, action) {
+      var $indicator = $(indicator);
+      var opacity = action === 'show' ? 1 : 0;
+      $indicator.velocity ?
+        $indicator.velocity('stop').velocity({
+          opacity: opacity
+        }, { duration: 100 }) :
+        $indicator.stop().animate({
+          opacity: opacity
+        }, 100);
+    }
+
+  });
+</script>
+
+<script type="text/javascript" id="sidebar.nav">
+  $(document).ready(function () {
+    var html = $('html');
+    var TAB_ANIMATE_DURATION = 200;
+    var hasVelocity = $.isFunction(html.velocity);
+
+    $('.sidebar-nav li').on('click', function () {
+      var item = $(this);
+      var activeTabClassName = 'sidebar-nav-active';
+      var activePanelClassName = 'sidebar-panel-active';
+      if (item.hasClass(activeTabClassName)) {
+        return;
+      }
+
+      var currentTarget = $('.' + activePanelClassName);
+      var target = $('.' + item.data('target'));
+
+      hasVelocity ?
+        currentTarget.velocity('transition.slideUpOut', TAB_ANIMATE_DURATION, function () {
+          target
+            .velocity('stop')
+            .velocity('transition.slideDownIn', TAB_ANIMATE_DURATION)
+            .addClass(activePanelClassName);
+        }) :
+        currentTarget.animate({ opacity: 0 }, TAB_ANIMATE_DURATION, function () {
+          currentTarget.hide();
+          target
+            .stop()
+            .css({'opacity': 0, 'display': 'block'})
+            .animate({ opacity: 1 }, TAB_ANIMATE_DURATION, function () {
+              currentTarget.removeClass(activePanelClassName);
+              target.addClass(activePanelClassName);
+            });
+        });
+
+      item.siblings().removeClass(activeTabClassName);
+      item.addClass(activeTabClassName);
+    });
+
+    $('.post-toc a').on('click', function (e) {
+      e.preventDefault();
+      var targetSelector = escapeSelector(this.getAttribute('href'));
+      var offset = $(targetSelector).offset().top;
+      hasVelocity ?
+        html.velocity('stop').velocity('scroll', {
+          offset: offset  + 'px',
+          mobileHA: false
+        }) :
+        $('html, body').stop().animate({
+          scrollTop: offset
+        }, 500);
+    });
+
+    // Expand sidebar on post detail page by default, when post has a toc.
+    motionMiddleWares.sidebar = function () {
+      var $tocContent = $('.post-toc-content');
+      if (CONFIG.sidebar === 'post') {
+        if ($tocContent.length > 0 && $tocContent.html().trim().length > 0) {
+          displaySidebar();
+        }
+      }
+    };
+  });
+</script>
+
+
+
+  <script type="text/javascript" src="/js/bootstrap.js"></script>
+
+  
+  
+
+  
+  
+
+</body>
+</html>

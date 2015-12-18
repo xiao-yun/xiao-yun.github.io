@@ -1,0 +1,971 @@
+<!doctype html>
+<html class="theme-next   use-motion ">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+  <link href="/vendors/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css"/>
+
+
+
+
+  <link href="//fonts.googleapis.com/css?family=Lato:300,400,700,400italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+
+
+
+<link href="/vendors/font-awesome/css/font-awesome.min.css?v=4.4.0" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=0.4.5.2" rel="stylesheet" type="text/css" />
+
+
+  <meta name="keywords" content="Java,NIO," />
+
+
+
+
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=0.4.5.2" />
+
+
+
+
+
+
+<meta name="description" content="Java NIO提供了通道,缓冲区,选择器，字符集等多项特性。缓冲区另见Java NIO—缓冲区。Java NIO的通道类似于流，不同点在于:
+
+通道支持双向的数据读写，但流通常是单向的；
+通道支持异步操作，流只能是同步的；
+通道的读写基于块(使用缓冲区)，而流基于字节。流一个字节一个字节按顺序传输数据，虽然也可以传输字节数组，但流概念要求一次传送一个字节。而通道的数据传输基于NIO的Buffer">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Java NIO---通道和选择器">
+<meta property="og:url" content="http://xiao-yun.github.io/通道和选择器/index.html">
+<meta property="og:site_name" content="xiaoyun">
+<meta property="og:description" content="Java NIO提供了通道,缓冲区,选择器，字符集等多项特性。缓冲区另见Java NIO—缓冲区。Java NIO的通道类似于流，不同点在于:
+
+通道支持双向的数据读写，但流通常是单向的；
+通道支持异步操作，流只能是同步的；
+通道的读写基于块(使用缓冲区)，而流基于字节。流一个字节一个字节按顺序传输数据，虽然也可以传输字节数组，但流概念要求一次传送一个字节。而通道的数据传输基于NIO的Buffer">
+<meta property="og:image" content="http://xiao-yun.github.io/../images/通道.png">
+<meta property="og:image" content="http://xiao-yun.github.io/../images/SelectableChannel.png">
+<meta property="og:image" content="http://xiao-yun.github.io/../images/随机访问文件">
+<meta property="og:image" content="http://xiao-yun.github.io/../images/选择器.png">
+<meta property="og:image" content="http://xiao-yun.github.io/../images/SelectionKey.png">
+<meta property="og:updated_time" content="2015-12-18T02:28:44.964Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Java NIO---通道和选择器">
+<meta name="twitter:description" content="Java NIO提供了通道,缓冲区,选择器，字符集等多项特性。缓冲区另见Java NIO—缓冲区。Java NIO的通道类似于流，不同点在于:
+
+通道支持双向的数据读写，但流通常是单向的；
+通道支持异步操作，流只能是同步的；
+通道的读写基于块(使用缓冲区)，而流基于字节。流一个字节一个字节按顺序传输数据，虽然也可以传输字节数组，但流概念要求一次传送一个字节。而通道的数据传输基于NIO的Buffer">
+
+
+
+<script type="text/javascript" id="hexo.configuration">
+  var CONFIG = {
+    scheme: 'Mist',
+    sidebar: 'hide',
+    motion: true
+  };
+</script>
+
+  <title> Java NIO---通道和选择器 | xiaoyun </title>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  <!--[if lte IE 8]>
+  <div style=' clear: both; height: 59px; padding:0 0 0 15px; position: relative;margin:0 auto;'>
+    <a href="http://windows.microsoft.com/en-US/internet-explorer/products/ie/home?ocid=ie6_countdown_bannercode">
+      <img src="http://7u2nvr.com1.z0.glb.clouddn.com/picouterie.jpg" border="0" height="42" width="820"
+           alt="You are using an outdated browser. For a faster, safer browsing experience, upgrade for free today or use other browser ,like chrome firefox safari."
+           style='margin-left:auto;margin-right:auto;display: block;'/>
+    </a>
+  </div>
+<![endif]-->
+  
+
+
+
+  <script type="text/javascript">
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "//hm.baidu.com/hm.js?caeb4129c91d1e6fb3d562d35fedef0d";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+  <div class="container one-column page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-meta ">
+  
+
+  <div class="custom-logo-site-title">
+    <a href="/"  class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <span class="site-title">xiaoyun</span>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+  <p class="site-subtitle"></p>
+</div>
+
+<div class="site-nav-toggle">
+  <button>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+  </button>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu menu-left">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-home fa-fw"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives" rel="section">
+            
+              <i class="menu-item-icon fa fa-archive fa-fw"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories" rel="section">
+            
+              <i class="menu-item-icon fa fa-th fa-fw"></i> <br />
+            
+            分类
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+              <i class="menu-item-icon fa fa-tags fa-fw"></i> <br />
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about" rel="section">
+            
+              <i class="menu-item-icon fa fa-user fa-fw"></i> <br />
+            
+            关于
+          </a>
+        </li>
+      
+
+      
+      
+    </ul>
+  
+
+  
+    <div class="site-search">
+      
+  
+  <form class="site-search-form">
+    <input type="text" id="st-search-input" class="st-search-input st-default-search-input" />
+  </form>
+
+
+<script type="text/javascript">
+  (function(w,d,t,u,n,s,e){w['SwiftypeObject']=n;w[n]=w[n]||function(){
+    (w[n].q=w[n].q||[]).push(arguments);};s=d.createElement(t);
+    e=d.getElementsByTagName(t)[0];s.async=1;s.src=u;e.parentNode.insertBefore(s,e);
+  })(window,document,'script','//s.swiftypecdn.com/install/v2/st.js','_st');
+
+  _st('install', 'Nq1MdxGEF4xQgzakv9MC','2.0.0');
+</script>
+
+
+
+    </div>
+  
+</nav>
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div id="content" class="content">
+          
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                Java NIO---通道和选择器
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            发表于
+            <time itemprop="dateCreated" datetime="2015-12-18T10:28:44+08:00" content="2015-12-18">
+              2015-12-18
+            </time>
+          </span>
+
+          
+            <span class="post-category" >
+              &nbsp; | &nbsp; 分类于
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Java/" itemprop="url" rel="index">
+                    <span itemprop="name">Java</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Java/Java基础/" itemprop="url" rel="index">
+                    <span itemprop="name">Java基础</span>
+                  </a>
+                </span>
+
+                
+                
+
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                &nbsp; | &nbsp;
+                <a href="/通道和选择器/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="通道和选择器/" itemprop="commentsCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+
+        </div>
+      </header>
+    
+
+
+    <div class="post-body">
+
+      
+      
+
+      
+        <span itemprop="articleBody"><p>Java NIO提供了<code>通道</code>,<code>缓冲区</code>,<code>选择器</code>，<code>字符集</code>等多项特性。缓冲区另见<a href="./缓冲区">Java NIO—缓冲区</a>。<br>Java NIO的通道类似于流，不同点在于:</p>
+<ul>
+<li>通道支持双向的数据读写，但流通常是单向的；</li>
+<li>通道支持异步操作，流只能是同步的；</li>
+<li>通道的读写基于块(使用缓冲区)，而流基于字节。流一个字节一个字节按顺序传输数据，虽然也可以传输字节数组，但流概念要求一次传送一个字节。<br>而通道的数据传输基于NIO的Buffer，一次读写一个缓冲区的数据。  </li>
+</ul>
+<p>Java NIO中比较重要的通道实现有:</p>
+<ul>
+<li>FileChannel,对应文件读写</li>
+<li>DataGramChannel,对应UDP数据读写</li>
+<li>SocketChannel,对应TCP连接数据读写</li>
+<li>ServerSocketChannel，对应TCP服务器端用于监听的Socket通道，accept时创建用于读写的SocketChannel  </li>
+</ul>
+<p>类图如下：<br><img src="../images/通道.png" alt="通道">  </p>
+<hr>
+<h3 id="Channel">Channel</h3><p><code>Channel</code>是顶层接口，代表实体上一个打开的连接，实体可以为<code>硬件设备</code>,<code>文件</code>,<code>网络套接字Socket</code>或者一个能够执行不同I/O操作的程序部件。<br>通道要么是打开的要么是关闭的，通道在创建时打开，一旦关闭后维持关闭状态。如果往一个已经关闭的通道上执行I/O操作，将会抛出<code>ClosedChannelException</code>。<br>主要有两个方法，<code>isOpen</code>和<code>close</code><br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">interface</span> <span class="title">Channel</span> <span class="keyword">extends</span> <span class="title">Closeable</span> </span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">boolean</span> <span class="title">isOpen</span><span class="params">()</span></span>;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">close</span><span class="params">()</span> <span class="keyword">throws</span> IOException</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<hr>
+<h3 id="InterruptibleChannel">InterruptibleChannel</h3><p><code>InterruptibleChannel</code>可以异步关闭和中断。  </p>
+<p>实现该接口的通道异步可关闭，所谓异步可关闭是指：如果一个线程阻塞在一个实现了该接口通道的I/O操作上，那么其他线程可以调用通道的close方法，<br>这将导致阻塞的线程收到一个<code>AsynchronousCloseException</code>异常。  </p>
+<p>实现该接口的通道也是可中断的，这意味着：如果一个线程阻塞在一个实现了该接口通道的I/O操作上，那么其他线程可以调用阻塞线程的<code>interrupt</code>方法，<br>这将导致通道关闭，阻塞的线程收到一个<code>ClosedByInterruptException</code>，阻塞线程的中断状态被设置。</p>
+<p>如果一个线程的中断状态被设置了，且它执行了通道上的阻塞I/O操作，那么通道将关闭，该线程收到<code>ClosedByInterruptException</code>异常，并维持中断<br>已设置的状态。<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">interface</span> <span class="title">InterruptibleChannel</span> <span class="keyword">extends</span> <span class="title">Channel</span></span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">close</span><span class="params">()</span> <span class="keyword">throws</span> IOException</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p><code>AbstractInterruptibleChannel</code>是<code>InterruptibleChannel</code>的基本实现。  </p>
+<hr>
+<h3 id="SelectableChannel">SelectableChannel</h3><p>可以被选择器<code>Selector</code>复用的通道。<br>为了使用选择器，该类的实例必须先调用<code>register</code>方法进行注册，该方法返回一个<code>SelectionKey</code>对象，表示该通道注册了一个选择器。<br>通道一旦注册了一个选择器，它将维持注册状态直到被取消注册，这涉及到释放选择器给通道分配的所有资源。  </p>
+<p>一个通道不能直接取消和选择器的注册，而是通过关联键(SelectionKey)的取消来取消注册。键取消后在选择器下一次选择时通道取消在该选择器上的注册。<br>键可以通过调用该键的<code>cancel</code>方法显示地取消。当一个通道关闭时，该通道对应的键隐式地全部取消，而通道的关闭或者通过调用通道的<code>close</code>方法，<br>或者通过中断一个阻塞在该通道上执行I/O操作的线程来完成。  </p>
+<p>如果选择器关闭，那么相应的通道将被取消注册，对应的键也立刻变得无效。  </p>
+<p>一个通道最多在一个选择器上注册一次，可以通过<code>isRegistered</code>方法来判断该通道是否在一个或多个选择器上已经注册了。<br>可选择通道可以被多个线程安全的访问。</p>
+<p><code>SelectableChannel</code>含有以下方法:<br><img src="../images/SelectableChannel.png" alt="SelectableChannel"><br>其中<code>provider</code>返回一个<code>SelectorProvider</code>，用于打开相应的通道。<br><code>validOps</code>返回通道支持的操作，注册选择器。<br><code>isRegistered</code>判断是否已经注册了一个或多个选择器。<br><code>keyFor(Selector)</code>返回在指定选择器上注册后关联的SelectionKey。<br><code>register</code>方法在指定选择器上注册，第二个参数对应上面的validOps，即支持的操作，而第三个参数为绑定到SelectionKey上的附件。<br><code>configureBlocking(boolean)</code>配置该通道阻塞或非阻塞模式。<br><code>isBlocking</code>获取通道当前的模式。<br><code>blockingLock</code>获取用在<code>register</code>和<code>configureBlocking</code>两个方法中同步用的锁。  </p>
+<p><code>AbstractSelectableChannel</code>作为<code>SelectableChannel</code>的基本实现。<br>定义了处理通道注册，取消注册，关闭的方法；维护了通道目前的阻塞模式以及目前SelectionKey键的集合。  </p>
+<hr>
+<h3 id="FileChannel">FileChannel</h3><p>FileChannel是抽象类，只有一个实现类<code>FileChannelImpl</code>,打开的文件通道都是<code>FileChanenlImpl</code>。<br>可以通过文件通道读写文件，不过文件通道不像Socket通道可以工作在非阻塞模式下一样，文件通道只能工作在阻塞模式下。  </p>
+<h4 id="打开和关闭">打开和关闭</h4><p><strong>&lt;通道打开&gt;</strong><br>使用文件通道前，必须先打开它。可以通过<code>FileInputStream</code>,<code>FileOutputStream</code>,<code>RandomAccessFile</code>的<code>getChannel</code>方法打开一个文件通道。<br>三者都是通过<code>FileChannelImpl</code>的<code>open</code>方法打开指定文件描述符<code>FileDescriptor</code>的文件通道，打开时设置相应读写访问属性。  </p>
+<p><code>RandomAccessFile</code>也是NIO中的一个特性，支持随机访问文件的读写操作<br>一个随机访问文件像是一个存储在文件系统中的大的字节数组，有一个叫做<code>文件指针(file pointer)</code>的字节数组索引。  </p>
+<p>当对随机访问文件进行读写时，从文件指针处开始，并增加相应的读写值。<br>写数据时，若到达字节数组的尾端，会造成字节数组扩展。<br>读数据时，读取到文件尾没有读到想要大小的数据，抛出<code>EOFException</code>异常。其他的读取错误抛出除<code>EOFException</code>之外的<code>IOException</code>异常，<br>关闭时也可能会抛出<code>IOException</code>异常。</p>
+<p>文件指针可以通过<code>getFilePointer</code>方法获得，通过seek方法设置<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">native</span> <span class="function"><span class="keyword">long</span> <span class="title">getFilePointer</span><span class="params">()</span> <span class="keyword">throws</span> IOException</span>;</span><br><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">void</span> <span class="title">seek</span><span class="params">(<span class="keyword">long</span> pos)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (pos &lt; <span class="number">0</span>) &#123;</span><br><span class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> IOException(<span class="string">"Negative seek offset"</span>);</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        seek0(pos);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">private</span> <span class="keyword">native</span> <span class="function"><span class="keyword">void</span> <span class="title">seek0</span><span class="params">(<span class="keyword">long</span> pos)</span> <span class="keyword">throws</span> IOException</span>;</span><br></pre></td></tr></table></figure></p>
+<p>RandomAccessFile的相关类图如下:<br><img src="../images/随机访问文件" alt="随机访问文件"><br>实现了<code>DataInput</code>和<code>DataOutput</code>接口，相应的有read*系列数据读取方法和write*系列的写数据方法。<br><strong>&lt;通道关闭&gt;</strong><br>通道使用完后需要关闭<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">final</span> <span class="keyword">void</span> close() <span class="keyword">throws</span> IOException</span><br></pre></td></tr></table></figure></p>
+<h4 id="数据读写">数据读写</h4><p>打开了文件通道FileChannel后，便可执行Channel的数据读写方法了，ByteBuffer另见<a href="./缓冲区">Java NIO—缓冲区</a><br><strong>&lt;数据读&gt;</strong><br>从文件通道中读取数据至ByteBuffer缓冲中，对应的ByteBuffer缓冲执行相应的put操作。<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">abstract</span> <span class="function"><span class="keyword">int</span> <span class="title">read</span><span class="params">(ByteBuffer dst)</span> <span class="keyword">throws</span> IOException</span>;</span><br><span class="line"><span class="keyword">public</span> <span class="keyword">abstract</span> <span class="function"><span class="keyword">long</span> <span class="title">read</span><span class="params">(ByteBuffer[] dsts, <span class="keyword">int</span> offset, <span class="keyword">int</span> length)</span> <span class="keyword">throws</span> IOException</span>;</span><br><span class="line"><span class="keyword">public</span> <span class="keyword">final</span> <span class="function"><span class="keyword">long</span> <span class="title">read</span><span class="params">(ByteBuffer[] dsts)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">return</span> <span class="title">read</span><span class="params">(dsts, <span class="number">0</span>, dsts.length)</span></span>;</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">public</span> <span class="keyword">abstract</span> <span class="function"><span class="keyword">int</span> <span class="title">read</span><span class="params">(ByteBuffer dst, <span class="keyword">long</span> position)</span> <span class="keyword">throws</span> IOException</span>;<span class="comment">//从文件中指定位置position处开始读</span></span><br></pre></td></tr></table></figure></p>
+<p><strong>&lt;数据写&gt;</strong><br>将指定ByteBuffer中的数据写到文件通道中，对应的ByteBuffer执行相应的get操作。<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">abstract</span> <span class="function"><span class="keyword">int</span> <span class="title">write</span><span class="params">(ByteBuffer src)</span> <span class="keyword">throws</span> IOException</span>;</span><br><span class="line"><span class="keyword">public</span> <span class="keyword">abstract</span> <span class="function"><span class="keyword">long</span> <span class="title">write</span><span class="params">(ByteBuffer[] srcs, <span class="keyword">int</span> offset, <span class="keyword">int</span> length)</span> <span class="keyword">throws</span> IOException</span>;</span><br><span class="line"><span class="keyword">public</span> <span class="keyword">final</span> <span class="function"><span class="keyword">long</span> <span class="title">write</span><span class="params">(ByteBuffer[] srcs)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">return</span> <span class="title">write</span><span class="params">(srcs, <span class="number">0</span>, srcs.length)</span></span>;</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">public</span> <span class="keyword">abstract</span> <span class="function"><span class="keyword">int</span> <span class="title">write</span><span class="params">(ByteBuffer src, <span class="keyword">long</span> position)</span> <span class="keyword">throws</span> IOException</span>;<span class="comment">//写到文件中指定位置position处</span></span><br></pre></td></tr></table></figure></p>
+<h4 id="其他操作">其他操作</h4><ul>
+<li><p>position</p>
+  <figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//获取文件当前位置</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">abstract</span> <span class="function"><span class="keyword">long</span> <span class="title">position</span><span class="params">()</span> <span class="keyword">throws</span> IOException</span>;</span><br><span class="line"><span class="comment">//设置文件当前位置。newPosition大于文件大小是合法的，但不改变文件大小。之后从该位置读取数据时，将显示到达文件尾(EOFException)。而写数据</span></span><br><span class="line"><span class="comment">//将造成文件大小的增长，而之"前文件尾～最新位置"这段数据是未定义的。</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">abstract</span> <span class="function">FileChannel <span class="title">position</span><span class="params">(<span class="keyword">long</span> newPosition)</span> <span class="keyword">throws</span> IOException</span>;</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>size </p>
+  <figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//文件通道关联文件的大小</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">abstract</span> <span class="function"><span class="keyword">long</span> <span class="title">size</span><span class="params">()</span> <span class="keyword">throws</span> IOException</span>;</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>truncate </p>
+  <figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//截取文件。如果size小于文件大小，则将从size到文件尾的数据删除，即取"0~size-1"部分数据。而如果size大于等于文件大小，文件不做修改。</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">abstract</span> <span class="function">FileChannel <span class="title">truncate</span><span class="params">(<span class="keyword">long</span> size)</span> <span class="keyword">throws</span> IOException</span>;</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>force</p>
+  <figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//将通道里尚未写入磁盘的数据(缓冲区)写到磁盘中，metaData为true时，同时写入文件元信息(修改时间等)，不过这依赖于操作系统。</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">abstract</span> <span class="function"><span class="keyword">void</span> <span class="title">force</span><span class="params">(<span class="keyword">boolean</span> metaData)</span> <span class="keyword">throws</span> IOException</span>;</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>map  </p>
+  <figure class="highlight processing"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">abstract</span> MappedByteBuffer <span class="built_in">map</span>(MapMode mode, <span class="keyword">long</span> position, <span class="keyword">long</span> <span class="built_in">size</span>) <span class="keyword">throws</span> IOException;</span><br></pre></td></tr></table></figure>
+<p>  映射文件的部分区域到内存中。文件区域映射到内存有三种方式:  </p>
+<ol>
+<li>只读，任何试图修改映射结果缓冲的操作将抛出<code>ReadOnlyBufferException</code>异常，对应的mode为<code>MapMode.READ_ONLY</code>  </li>
+<li>读/写，对映射结果缓冲的修改将导致文件修改，这个修改在其他程序对该文件的内存映射可能可见，也可能不可见，对应mode为<code>MapMode.READ_WRITE</code>    </li>
+<li><p>私有，对映射结果缓冲的修改不会导致文件修改，这个修改在其他程序对该文件的内存映射中也不可见，而是会对这个修改的部分形成一个私有的拷贝缓冲<br>，对应的mode为<code>MapMode.PRIVATE</code></p>
+<p>该方法返回的<code>MappedByteBuffer</code>缓冲区，position为0，limit和capacity为映射的大小，mark未定义。该缓冲区以及其维持的映射将保持合法性，<br>直到它被垃圾回收。映射一旦建立，合法性将不依赖创建它的文件通道，就算文件通道关闭了，也不影响它的合法性。  </p>
+<p>许多详细的内存映射文件本质上依赖于底层的操作系统因此时未定义的。<br>当请求映射的文件区域没有包含文件通道的所有内容时该方法的行为是未定义的。<br>当本进程或其他进程改变底层文件的内容或大小时，此缓冲区是否相应的改变是未定义的。<br>当改变该缓冲区时，改变传输到文件的速率是未定义的。  </p>
+<p>对于大部分操作系统，当文件大小小于10几KB时，映射文件到内存中的代价要高于普通的read和write方法。处于性能考虑，一般只是映射大文件到内存中。</p>
+</li>
+</ol>
+</li>
+</ul>
+<hr>
+<h3 id="SocketChannel">SocketChannel</h3><p>SocketChannel可以通过该类的<code>open</code>方法创建，而不能从一个随意已经存在的socket中创建。新创建的SocketChannel已经打开了但还没连接，在这种<br>没连接的socket通道中尝试进行I/O操作将抛出<code>NotYetConnectedException</code>异常。可以通过<code>connect</code>方法建立连接，一旦连接后，socket通道将维持<br>连接直到关闭。可以通过<code>isConnected</code>方法判断是否建立了连接。  </p>
+<p>Socket通道支持非阻塞的连接，非阻塞的connect方法会立刻返回，必须通过<code>isConnected</code>判断连接是否已经建立，或者通过<code>finishConnect</code>方法在<br>非阻塞套接字上阻塞等待连接成功。可以通过<code>isConnectionPending</code>方法来判断连接建立过程是否正在处理。而非阻塞的<code>read</code>方法，在Socket上没有<br>数据的时候，立即返回(0)，不会等待。非阻塞的accept，如果没有等待的连接，将返回null。  </p>
+<p>Socket选项可通过<code>setOption</code>方法设置，SocketChannel支持以下选项，都是<code>java.net.StandardSocketOptions</code>类型:</p>
+<ul>
+<li><code>SO_SNDBUF</code>,socket发送缓冲大小</li>
+<li><code>SO_RCVBUF</code>,socket接收缓冲大小</li>
+<li><code>SO_KEEPALIVE</code>，socket保活选项，另见<a href="./Socket选项">Socket选项</a></li>
+<li><code>SO_REUSEADDRf</code>重用地址，重用已经关闭的处于TIME_WAIT状态下的socket地址</li>
+<li><code>SO_LINGER</code>，linger选项，设置close行为，另见<a href="./Socket选项">Socket 选项</a></li>
+<li><code>TCP_NODELAY</code>,取消Nagle算法。Nagle算法启动时，小包到达时会等待一段时间，尽量积累更多数据一起发送。  </li>
+</ul>
+<p>SocketChannel支持并发访问。</p>
+<h4 id="打开，连接">打开，连接</h4><p>通过open方法打开一个SocketChannel<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//打开一个SocketChannel，还未连接</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> SocketChannel open() <span class="keyword">throws</span> IOException</span><br><span class="line"></span><br><span class="line"><span class="comment">//连接至远程地址。如果是非阻塞模式，连接建立返回true，否则返回false，需要通过finishConnect等待连接建立。如果是阻塞模式，则会一直阻塞直到连接建立</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">abstract</span> <span class="function"><span class="keyword">boolean</span> <span class="title">connect</span><span class="params">(SocketAddress remote)</span> <span class="keyword">throws</span> IOException</span>;</span><br><span class="line"></span><br><span class="line"><span class="comment">//非阻塞模式等待连接建立</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">abstract</span> <span class="function"><span class="keyword">boolean</span> <span class="title">finishConnect</span><span class="params">()</span> <span class="keyword">throws</span> IOException</span>;</span><br><span class="line"></span><br><span class="line"><span class="comment">//建立连接过程是否在进行</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">abstract</span> <span class="function"><span class="keyword">boolean</span> <span class="title">isConnectionPending</span><span class="params">()</span></span>;</span><br><span class="line"></span><br><span class="line"><span class="comment">//判断连接是否已经建立</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">abstract</span> <span class="function"><span class="keyword">boolean</span> <span class="title">isConnected</span><span class="params">()</span></span>;</span><br><span class="line"></span><br><span class="line"><span class="comment">//打开一个SocketChannel，并连接至远端地址</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> SocketChannel open(SocketAddress remote)</span><br></pre></td></tr></table></figure></p>
+<h4 id="关闭">关闭</h4><p>close继承父类，SocketChannel中可以单独关闭输入或输出<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//关闭连接的读操作，并没有关闭该通道，关闭后接下来的read操作将返回-1</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">abstract</span> <span class="function">SocketChannel <span class="title">shutdownInput</span><span class="params">()</span> <span class="keyword">throws</span> IOException</span>;</span><br><span class="line"></span><br><span class="line"><span class="comment">//关闭连接的写操作，并没有关闭该通道，关闭后接下来的write操作将抛出ClosedChannelException异常</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">abstract</span> <span class="function">SocketChannel <span class="title">shutdownOutput</span><span class="params">()</span> <span class="keyword">throws</span> IOException</span>;</span><br></pre></td></tr></table></figure></p>
+<h4 id="数据读">数据读</h4><p>从socket通道中读取数据到缓冲区中<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">abstract</span> <span class="function"><span class="keyword">int</span> <span class="title">read</span><span class="params">(ByteBuffer dst)</span> <span class="keyword">throws</span> IOException</span>;</span><br><span class="line"><span class="keyword">public</span> <span class="keyword">abstract</span> <span class="function"><span class="keyword">long</span> <span class="title">read</span><span class="params">(ByteBuffer[] dsts, <span class="keyword">int</span> offset, <span class="keyword">int</span> length)</span> <span class="keyword">throws</span> IOException</span>;</span><br><span class="line"><span class="keyword">public</span> <span class="keyword">final</span> <span class="function"><span class="keyword">long</span> <span class="title">read</span><span class="params">(ByteBuffer[] dsts)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">return</span> <span class="title">read</span><span class="params">(dsts, <span class="number">0</span>, dsts.length)</span></span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<h4 id="数据写">数据写</h4><p>将缓冲区中数据写到通道中<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">abstract</span> <span class="function"><span class="keyword">int</span> <span class="title">write</span><span class="params">(ByteBuffer src)</span> <span class="keyword">throws</span> IOException</span>;</span><br><span class="line"><span class="keyword">public</span> <span class="keyword">abstract</span> <span class="function"><span class="keyword">long</span> <span class="title">write</span><span class="params">(ByteBuffer[] srcs, <span class="keyword">int</span> offset, <span class="keyword">int</span> length)</span> <span class="keyword">throws</span> IOException</span>;</span><br><span class="line"><span class="keyword">public</span> <span class="keyword">final</span> <span class="function"><span class="keyword">long</span> <span class="title">write</span><span class="params">(ByteBuffer[] srcs)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">return</span> <span class="title">write</span><span class="params">(srcs, <span class="number">0</span>, srcs.length)</span></span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<h4 id="选择器相关">选择器相关</h4><p>见上父类<code>SelectableChannel</code>，以下为<code>SelectableChannel</code>中方法</p>
+<ul>
+<li><p>注册选择器</p>
+  <figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">final</span> <span class="function">SelectionKey <span class="title">register</span><span class="params">(Selector sel, <span class="keyword">int</span> ops)</span> <span class="keyword">throws</span> ClosedChannelException</span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">return</span> <span class="title">register</span><span class="params">(sel, ops, <span class="keyword">null</span>)</span></span>;</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">public</span> <span class="keyword">abstract</span> <span class="function">SelectionKey <span class="title">register</span><span class="params">(Selector sel, <span class="keyword">int</span> ops, Object att)</span> <span class="keyword">throws</span> ClosedChannelException</span>;</span><br><span class="line"><span class="keyword">public</span> <span class="keyword">abstract</span> <span class="function"><span class="keyword">boolean</span> <span class="title">isRegistered</span><span class="params">()</span></span>;</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>获取与指定选择器关联的SelectionKey</p>
+  <figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">abstract</span> <span class="function">SelectionKey <span class="title">keyFor</span><span class="params">(Selector sel)</span></span>;</span><br></pre></td></tr></table></figure>
+</li>
+</ul>
+<h4 id="阻塞/非阻塞模式配置">阻塞/非阻塞模式配置</h4><p>以下为父类<code>SelectableChannel</code>中方法<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">abstract</span> <span class="function">SelectableChannel <span class="title">configureBlocking</span><span class="params">(<span class="keyword">boolean</span> block)</span> <span class="keyword">throws</span> IOException</span>;</span><br><span class="line"><span class="keyword">public</span> <span class="keyword">abstract</span> <span class="function"><span class="keyword">boolean</span> <span class="title">isBlocking</span><span class="params">()</span></span>;</span><br></pre></td></tr></table></figure></p>
+<h4 id="其他">其他</h4><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">abstract</span> <span class="function">Socket <span class="title">socket</span><span class="params">()</span></span>;<span class="comment">//返回与该通道关联的socket对象</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">final</span> <span class="function"><span class="keyword">int</span> <span class="title">validOps</span><span class="params">()</span> </span>&#123;<span class="comment">//socket通道支持的操作，读/写/连接，用于注册选择器，这里继承了父类该方法</span></span><br><span class="line">    <span class="keyword">return</span> (SelectionKey.OP_READ | SelectionKey.OP_WRITE | SelectionKey.OP_CONNECT);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">//设置socket选项，具体选项见上</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">abstract</span> &lt;T&gt; <span class="function">SocketChannel <span class="title">setOption</span><span class="params">(SocketOption&lt;T&gt; name, T value)</span> <span class="keyword">throws</span> IOException</span>;</span><br><span class="line"></span><br><span class="line"><span class="comment">//绑定本地地址</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">abstract</span> <span class="function">SocketChannel <span class="title">bind</span><span class="params">(SocketAddress local)</span> <span class="keyword">throws</span> IOException</span>;</span><br><span class="line"></span><br><span class="line"><span class="comment">//获取本地地址</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">abstract</span> <span class="function">SocketAddress <span class="title">getLocalAddress</span><span class="params">()</span> <span class="keyword">throws</span> IOException</span>;</span><br><span class="line"></span><br><span class="line"><span class="comment">//获取远端地址</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">abstract</span> <span class="function">SocketAddress <span class="title">getRemoteAddress</span><span class="params">()</span> <span class="keyword">throws</span> IOException</span>;</span><br></pre></td></tr></table></figure>
+<hr>
+<h3 id="ServerSocketChannel">ServerSocketChannel</h3><p>ServerSocketChannel通过调用该类的open方法创建，不能从任意一个已经存在的ServerSocket中创建ServerSocketChannel。新创建的ServerSocketChannel<br>已经打开但还未绑定，尝试对未绑定的ServerSocketChannel调用accept方法将抛出<code>NotYetBoundException</code>异常。可以通过bind方法绑定。  </p>
+<p>可以通过<code>setOption</code>方法配置选项，ServerSocketChannel支持以下选项:</p>
+<ul>
+<li>SO_RCVBUF，socket的接受缓冲大小</li>
+<li>SO_REUSEADDR，重用地址</li>
+</ul>
+<p>支持多线程并发访问</p>
+<h4 id="相关方法">相关方法</h4><ul>
+<li><p>创建一个ServerSocketChannel</p>
+  <figure class="highlight processing"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> ServerSocketChannel <span class="built_in">open</span>() <span class="keyword">throws</span> IOException</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>绑定到本地地址</p>
+  <figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">final</span> <span class="function">ServerSocketChannel <span class="title">bind</span><span class="params">(SocketAddress local)</span> <span class="keyword">throws</span> IOException</span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">return</span> <span class="title">bind</span><span class="params">(local, <span class="number">0</span>)</span></span>;</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">public</span> <span class="keyword">abstract</span> <span class="function">ServerSocketChannel <span class="title">bind</span><span class="params">(SocketAddress local, <span class="keyword">int</span> backlog)</span> <span class="keyword">throws</span> IOException</span>;</span><br></pre></td></tr></table></figure>
+<p>  其中<code>backlog</code>为最大等待连接socket的数量</p>
+</li>
+<li><p>accept</p>
+  <figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">abstract</span> <span class="function">SocketChannel <span class="title">accept</span><span class="params">()</span> <span class="keyword">throws</span> IOException</span>;</span><br></pre></td></tr></table></figure>
+<p>  如果通道工作在非阻塞模式，该方法在没有等待连接时立刻返回null。阻塞模式下一直阻塞直到有连接到达。<br>  不管本ServerSocketChannel工作在什么模式，返回的SocketChannel工作在阻塞模式。  </p>
+</li>
+<li><p>获取本地地址</p>
+  <figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">abstract</span> <span class="function">SocketAddress <span class="title">getLocalAddress</span><span class="params">()</span> <span class="keyword">throws</span> IOException</span>;</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>设置socket选项</p>
+  <figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">abstract</span> &lt;T&gt; <span class="function">ServerSocketChannel <span class="title">setOption</span><span class="params">(SocketOption&lt;T&gt; name, T value)</span> <span class="keyword">throws</span> IOException</span>;</span><br></pre></td></tr></table></figure>
+<p>  支持的选项见上</p>
+</li>
+<li><p>返回关联的ServerSocket</p>
+  <figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">abstract</span> <span class="function">ServerSocket <span class="title">socket</span><span class="params">()</span></span>;</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>支持的操作</p>
+  <figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">final</span> <span class="function"><span class="keyword">int</span> <span class="title">validOps</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="keyword">return</span> SelectionKey.OP_ACCEPT;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>  ServerSocketChannel只支持accept操作，注册选择器，建立连接后accept返回SocketChannel，进行数据的读写。</p>
+</li>
+<li><p>配置成非阻塞模式</p>
+  <figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">final</span> SelectableChannel configureBlocking(<span class="keyword">boolean</span> block) <span class="keyword">throws</span> IOException</span><br></pre></td></tr></table></figure>
+<p>  父类方法</p>
+</li>
+</ul>
+<hr>
+<h3 id="DatagramChannel">DatagramChannel</h3><p>对应UDP通道。<br>DatagramChannel通过<code>open</code>方法创建，不能为任意的已经存在的数据报socket创建通道。<br>新创建的数据报Socket没有连接，当使用<code>receive</code>和<code>send</code>方法时不需要建立连接，而使用<code>read</code>和<code>write</code>方法时需要预先建立连接。<br>可以通过<code>connect</code>建立连接，建立连接后能够避免每次<code>send</code>或<code>receive</code>的安全检查负载。可以通过<code>isConnected</code>判断是否已经建立了连接。  </p>
+<p>可以通过<code>setOption</code>设置数据报socket选项，支持的选项有:</p>
+<ul>
+<li>SO_SNDBUF，发送缓冲区大小</li>
+<li>SO_RCVBUF，接受缓冲区大小</li>
+<li>SO_REUSEADDR,重用地址</li>
+<li>SO_BROADCAST，允许传输广播数据报</li>
+<li>IP_TOS,IP头部的TOS(Type of Service服务类型)字段</li>
+<li>IP_MULTICAST_IF，IP多播数据报的网络接口</li>
+<li>IP_MULTICAST_TTL，IP多播数据报的生存时间(TTL)</li>
+<li>IP_MULTICAST_LOOP，IP多播回环</li>
+</ul>
+<p>支持多线程并发访问。</p>
+<h4 id="相关方法-1">相关方法</h4><ul>
+<li><p>打开</p>
+  <figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> <span class="function">DatagramChannel <span class="title">open</span><span class="params">()</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">    <span class="keyword">return</span> SelectorProvider.provider().openDatagramChannel();</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> <span class="function">DatagramChannel <span class="title">open</span><span class="params">(ProtocolFamily family)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">    <span class="keyword">return</span> SelectorProvider.provider().openDatagramChannel(family);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>  参数<code>family</code>指定协议簇，当该通道用于IP多播时，该参数用于指定该通道要加入的多播组地址类型。  </p>
+</li>
+<li><p>数据操作</p>
+  <figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//不需要建立连接</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">abstract</span> <span class="function">SocketAddress <span class="title">receive</span><span class="params">(ByteBuffer dst)</span> <span class="keyword">throws</span> IOException</span>;</span><br><span class="line"><span class="keyword">public</span> <span class="keyword">abstract</span> <span class="function"><span class="keyword">int</span> <span class="title">send</span><span class="params">(ByteBuffer src, SocketAddress <span class="keyword">target</span>)</span> <span class="keyword">throws</span> IOException</span>;</span><br><span class="line"></span><br><span class="line"><span class="comment">//需要建立连接</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">abstract</span> <span class="function"><span class="keyword">int</span> <span class="title">read</span><span class="params">(ByteBuffer dst)</span> <span class="keyword">throws</span> IOException</span>;</span><br><span class="line"><span class="keyword">public</span> <span class="keyword">abstract</span> <span class="function"><span class="keyword">long</span> <span class="title">read</span><span class="params">(ByteBuffer[] dsts, <span class="keyword">int</span> offset, <span class="keyword">int</span> length)</span> <span class="keyword">throws</span> IOException</span>;</span><br><span class="line"><span class="keyword">public</span> <span class="keyword">final</span> <span class="function"><span class="keyword">long</span> <span class="title">read</span><span class="params">(ByteBuffer[] dsts)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">return</span> <span class="title">read</span><span class="params">(dsts, <span class="number">0</span>, dsts.length)</span></span>;</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">public</span> <span class="keyword">abstract</span> <span class="function"><span class="keyword">int</span> <span class="title">write</span><span class="params">(ByteBuffer src)</span> <span class="keyword">throws</span> IOException</span>;</span><br><span class="line"><span class="keyword">public</span> <span class="keyword">abstract</span> <span class="function"><span class="keyword">long</span> <span class="title">write</span><span class="params">(ByteBuffer[] srcs, <span class="keyword">int</span> offset, <span class="keyword">int</span> length)</span> <span class="keyword">throws</span> IOException</span>;</span><br><span class="line"><span class="keyword">public</span> <span class="keyword">final</span> <span class="function"><span class="keyword">long</span> <span class="title">write</span><span class="params">(ByteBuffer[] srcs)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">return</span> <span class="title">write</span><span class="params">(srcs, <span class="number">0</span>, srcs.length)</span></span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>  如上对于<code>send</code>和<code>receive</code>来说，不需要建立连接即可使用，而对于<code>read</code>和<code>write</code>来说需要建立连接才能使用。  </p>
+</li>
+<li><p>连接</p>
+  <figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//建立连接</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">abstract</span> <span class="function">DatagramChannel <span class="title">connect</span><span class="params">(SocketAddress remote)</span> <span class="keyword">throws</span> IOException</span>;</span><br><span class="line"><span class="comment">//取消连接</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">abstract</span> <span class="function">DatagramChannel <span class="title">disconnect</span><span class="params">()</span> <span class="keyword">throws</span> IOException</span>;</span><br><span class="line"><span class="comment">//是否连接上</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">abstract</span> <span class="function"><span class="keyword">boolean</span> <span class="title">isConnected</span><span class="params">()</span></span>;</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>其他</p>
+  <figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//绑定本地地址</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">abstract</span> <span class="function">DatagramChannel <span class="title">bind</span><span class="params">(SocketAddress local)</span> <span class="keyword">throws</span> IOException</span>;</span><br><span class="line"></span><br><span class="line"><span class="comment">//获取本地地址</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">abstract</span> <span class="function">SocketAddress <span class="title">getLocalAddress</span><span class="params">()</span> <span class="keyword">throws</span> IOException</span>;</span><br><span class="line"></span><br><span class="line"><span class="comment">//获取远端地址</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">abstract</span> <span class="function">SocketAddress <span class="title">getRemoteAddress</span><span class="params">()</span> <span class="keyword">throws</span> IOException</span>;</span><br><span class="line"></span><br><span class="line"><span class="comment">//获取关联的数据报Socket</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">abstract</span> <span class="function">DatagramSocket <span class="title">socket</span><span class="params">()</span></span>;</span><br><span class="line"></span><br><span class="line"><span class="comment">//设置socket选项</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">abstract</span> &lt;T&gt; <span class="function">DatagramChannel <span class="title">setOption</span><span class="params">(SocketOption&lt;T&gt; name, T value)</span> <span class="keyword">throws</span> IOException</span>;</span><br><span class="line"></span><br><span class="line"><span class="comment">//支持的操作，支持读/写</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">final</span> <span class="function"><span class="keyword">int</span> <span class="title">validOps</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="keyword">return</span> (SelectionKey.OP_READ | SelectionKey.OP_WRITE);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+</li>
+</ul>
+<hr>
+<h3 id="选择器Selector">选择器Selector</h3><p>一个<code>SelectableChannel</code>的多路转换器对象。<br>可以通过该类的<code>open</code>方法创建一个选择器，这将使用系统默认的选择器提供者(SelectorProvider)来创建新的选择器。选择器也可以通过一个具体的<br><code>SelectorProvider</code>的<code>openSelector</code>方法来创建。选择器创建后将一直维持打开状态直到调用<code>close</code>方法。  </p>
+<h4 id="维护的集合">维护的集合</h4><p><code>SelectableChannel</code>在选择器上的注册通过<code>SelectionKey</code>来维护。选择器上维护了三个SelectionKey的集合:</p>
+<ul>
+<li><p>所有当前注册的可选择通道对应的SelectionKey的集合，通过<code>keys</code>方法返回，可以称之为选择器<code>键集</code>：</p>
+  <figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">abstract</span> Set&lt;SelectionKey&gt; <span class="title">keys</span>(<span class="params"></span>)</span>;</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>有相应感兴趣事件发生的SelectionKey的集合，可以称之为选择器<code>已选择的键集</code>，通过<code>selectedKeys</code>方法返回，是第一种集合的子集:</p>
+  <figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">abstract</span> Set&lt;SelectionKey&gt; <span class="title">selectedKeys</span>(<span class="params"></span>)</span>;</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>SelectionKey已经取消的集合，不过此时对应的通道还没有取消注册(下一次选择操作时将取消注册),可以称之为选择器的<code>取消键集</code>，是第一种集合的子集。  </p>
+</li>
+</ul>
+<p>选择器刚创建时这三个集合为空集。  </p>
+<p>当通道注册在选择器上时，相应的键将添加至该选择器的<code>键集</code>中，当键取消时在选择操作中从键集中删除指定取消的键，不能自己修改键集。<br>当一个键被取消时(关闭对应的通道或调用键的cancel方法),添加至选择器的<code>取消键集</code>中，在下一次选择操作时，将从该选择器中<code>所有键集</code>中移除该键。<br>选择器的选择操作可以将一个键添加到<code>已选择键集</code>中，可以通过使用该集合的<code>remove</code>方法或集合迭代器的<code>remove</code>方法移除一个键，不能通过其他方式<br>从已选择键集中移除一个键(选择操作不会移除键)，也不能通过除选择操作之外的方式添加键到<code>已选择键集</code>中。  </p>
+<h4 id="选择操作">选择操作</h4><p>选择操作通过<code>select()</code>，<code>select(long)</code>,<code>selectNow()</code>方法调用，执行三个步骤:</p>
+<ol>
+<li><code>取消键集</code>中的每一个键从所有的集合中移除，同时关联的通道取消注册，这会将取消键值清空；</li>
+<li>底层操作系统查询维护的所有通道是否有其感兴趣的操作准备好发生，对每一个通道如果有任意一个其感兴趣的操作已经准备好发生，则执行以下两个操作:<br> a. 如果该通道对应的键没在<code>已选择键集</code>中则添加进去，然后它的<code>已准备好操作集合</code>修改成完全与操作系统通知的准备好操作相同，而先前<code>已准备好集合</code><br> 中任意记录的准备好信息将取消；<br> b. 否则，如果该通道对应的键已经在<code>已选择键集</code>中了，则<code>已准备好操作集合</code>修改为等于操作系统通知的新的准备好的操作，之前记录的信息保留，<br> 即此时<code>已准备好操作集合</code>添加了新的准备好集合。<br>如果这一步开始所有注册键都没有相应的兴趣集，则<code>已选择键集</code>和键的<code>已准备好操作集合</code>都不会更新。  </li>
+<li>如果在第2步的处理过程中，有键添加到<code>取消键集</code>中，那么添加的键直接按第1步方式处理。  </li>
+</ol>
+<p>而选择操作是否阻塞以及阻塞的时间长短，取决于上面三个方法。  </p>
+<h4 id="并发">并发</h4><p>选择器能够在多线程下并发访问，不过维护的集合不能保证多线程访问的安全性。<br>选择操作选择器能够对<code>键集</code>,<code>已选键集</code>自行同步，而在上述选择操作的1,3两个步骤能够自行对<code>取消键集</code>保证同步。<br>在选择操作过程中对选择器<code>键集</code>中键的兴趣集进行改变不会影响当前的选择操作，这个改变要在下一次选择操作才能体现出来。<br>在任何时候键都可能被取消或通道可能被关闭，因此一个键存在在一个或多个选择器的<code>键集</code>中并不能意味着该键是合法的或者对应的通道是打开的。<br>如果其他线程可能取消一个键或关闭对应的通道，那么应用程序应该仔细的进行同步或者对相关条件进行必要性的检查。  </p>
+<p>阻塞在<code>select()</code>或<code>select(long)</code>方法上的线程可能被其他线程中断，有三种方式:</p>
+<ol>
+<li>调用选择器的wakeup()方法；</li>
+<li>调用选择器的close()方法；</li>
+<li>调用阻塞线程的interrupt()方法，此时阻塞线程的中断状态被设置，选择器的wakeup()将被调用；</li>
+</ol>
+<p><code>close</code>方法在选择器和三个集合上的同步顺序和选择操作一样。<br>选择器的<code>键集</code>和<code>已选键集</code>通常不能被多个线程安全的并发访问，如果一个线程可能对这三个线程中任意一个做出直接修改，那么该访问应该在集合上做<br>同步控制。集合<code>iterator</code>方法返回的迭代器是<code>快速失败</code>的：如果集合在创建迭代器后做出了修改，除了调用迭代器自己的<code>remove</code>方法外的其他任何方式<br>都将抛出<code>ConcurrentModificationException</code>异常。</p>
+<h4 id="相关方法-2">相关方法</h4><p>如下:<br><img src="../images/选择器.png" alt="选择器"><br><code>wakeup</code>，如果有线程阻塞在选择操作上，则阻塞操作直接返回，而如果当前没有在执行选择操作的，下一次调用<code>select()</code>，<code>select(long)</code>方法将<br>直接返回，之后的选择操作执行正常流程。<br><code>close</code>，如果有线程阻塞在选择操作上，则阻塞线程被中断，就像调用了wakeup一样。所有没有取消的键变得不合法，对应的通道也被取消，相关资源被释放。<br>如果选择器已经被关闭了，则没有影响。已经关闭了的通道除了调用<code>close</code>和<code>wakeup</code>，其他操作将抛出<code>ClosedSelectorException</code>异常。  </p>
+<hr>
+<h3 id="SelectionKey">SelectionKey</h3><p>前面介绍了很多，对应了通道和选择器的绑定，直接看支持的方法:<br><img src="../images/SelectionKey.png" alt="SelectionKey"><br><code>channel</code>和<code>selector</code>分别返回对应的通道和选择器。<br><code>isValid</code>，键只要创建便是合法的，直到它被取消，或者对应通道被关闭，或者选择器关闭。<br><code>interestOps()</code>和<code>interestOps(int)</code>方法用于获取和设置兴趣集，该方法是否阻塞以及阻塞时间的长短依赖于具体实现。<br><code>readyOps</code>返回键已准备好操作集合，支持的操作如下(读，写，连接，接收):<br><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> final <span class="keyword">int</span> OP_ACCEPT = <span class="number">1</span> &lt;&lt; <span class="number">4</span>;</span><br><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> final <span class="keyword">int</span> OP_CONNECT = <span class="number">1</span> &lt;&lt; <span class="number">3</span>;</span><br><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> final <span class="keyword">int</span> OP_READ = <span class="number">1</span> &lt;&lt; <span class="number">0</span>;</span><br><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> final <span class="keyword">int</span> OP_WRITE = <span class="number">1</span> &lt;&lt; <span class="number">2</span>;</span><br></pre></td></tr></table></figure></p>
+<p><code>isReadable</code>,<code>isWritable</code>,<code>isConnectable</code>，<code>isAcceptable</code>分别对应是否可读，可写，可连接，可接收。<br><code>attach(Object)</code>设置绑定的附件，<code>attachment()</code>获取之前绑定的附件。</p>
+</span>
+      
+    </div>
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/Java/" rel="tag">#Java</a>
+          
+            <a href="/tags/NIO/" rel="tag">#NIO</a>
+          
+        </div>
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/缓冲区/" rel="next" title="Java NIO---缓冲区">
+                <i class="fa fa-chevron-left"></i> Java NIO---缓冲区
+              </a>
+            
+          </div>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/压缩/" rel="prev" title="Common源码阅读---压缩">
+                Common源码阅读---压缩 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </article>
+
+
+
+    <div class="post-spread">
+      
+        <!-- JiaThis Button BEGIN -->
+<div class="jiathis_style">
+  <a class="jiathis_button_tsina"></a>
+  <a class="jiathis_button_tqq"></a>
+  <a class="jiathis_button_weixin"></a>
+  <a class="jiathis_button_cqq"></a>
+  <a class="jiathis_button_douban"></a>
+  <a class="jiathis_button_renren"></a>
+  <a class="jiathis_button_qzone"></a>
+  <a class="jiathis_button_kaixin001"></a>
+  <a class="jiathis_button_copy"></a>
+  <a href="http://www.jiathis.com/share" class="jiathis jiathis_txt jiathis_separator jtico jtico_jiathis" target="_blank"></a>
+  <a class="jiathis_counter_style"></a>
+</div>
+<script type="text/javascript" >
+  var jiathis_config={
+    hideMore:false
+  }
+</script>
+<script type="text/javascript" src="http://v3.jiathis.com/code/jia.js" charset="utf-8"></script>
+<!-- JiaThis Button END -->
+
+      
+    </div>
+  </div>
+
+
+        </div>
+
+        
+
+
+        
+  <div class="comments" id="comments">
+    
+      <div class="ds-thread" data-thread-key="通道和选择器/"
+           data-title="Java NIO---通道和选择器" data-url="http://xiao-yun.github.io/通道和选择器/">
+      </div>
+    
+  </div>
+
+
+      </div>
+
+      
+        
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap" >
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel ">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+          <img class="site-author-image" src="/images/hero.jpg" alt="xiaoyun" itemprop="image"/>
+          <p class="site-author-name" itemprop="name">xiaoyun</p>
+        </div>
+        <p class="site-description motion-element" itemprop="description">学习笔记，网上资源摘要等</p>
+        <nav class="site-state motion-element">
+          <div class="site-state-item site-state-posts">
+            <a href="/archives">
+              <span class="site-state-item-count">14</span>
+              <span class="site-state-item-name">日志</span>
+            </a>
+          </div>
+
+          <div class="site-state-item site-state-categories">
+            <a href="/categories">
+              <span class="site-state-item-count">11</span>
+              <span class="site-state-item-name">分类</span>
+              </a>
+          </div>
+
+          <div class="site-state-item site-state-tags">
+            <a href="/tags">
+              <span class="site-state-item-count">11</span>
+              <span class="site-state-item-name">标签</span>
+              </a>
+          </div>
+
+        </nav>
+
+        
+
+        <div class="links-of-author motion-element">
+          
+            
+              <span class="links-of-author-item">
+                <a href="https://github.com/xiao-yun" target="_blank">
+                  
+                    <i class="fa fa-globe"></i> github
+                  
+                </a>
+              </span>
+            
+          
+        </div>
+
+        
+        
+
+        <div class="links-of-author motion-element">
+          
+        </div>
+
+      </section>
+
+      
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc-indicator-top post-toc-indicator">
+            <i class="fa fa-angle-double-up"></i>
+          </div>
+          <div class="post-toc">
+            
+              
+            
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#Channel"><span class="nav-number">1.</span> <span class="nav-text">Channel</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#InterruptibleChannel"><span class="nav-number">2.</span> <span class="nav-text">InterruptibleChannel</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#SelectableChannel"><span class="nav-number">3.</span> <span class="nav-text">SelectableChannel</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#FileChannel"><span class="nav-number">4.</span> <span class="nav-text">FileChannel</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#打开和关闭"><span class="nav-number">4.1.</span> <span class="nav-text">打开和关闭</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#数据读写"><span class="nav-number">4.2.</span> <span class="nav-text">数据读写</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#其他操作"><span class="nav-number">4.3.</span> <span class="nav-text">其他操作</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#SocketChannel"><span class="nav-number">5.</span> <span class="nav-text">SocketChannel</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#打开，连接"><span class="nav-number">5.1.</span> <span class="nav-text">打开，连接</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#关闭"><span class="nav-number">5.2.</span> <span class="nav-text">关闭</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#数据读"><span class="nav-number">5.3.</span> <span class="nav-text">数据读</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#数据写"><span class="nav-number">5.4.</span> <span class="nav-text">数据写</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#选择器相关"><span class="nav-number">5.5.</span> <span class="nav-text">选择器相关</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#阻塞/非阻塞模式配置"><span class="nav-number">5.6.</span> <span class="nav-text">阻塞/非阻塞模式配置</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#其他"><span class="nav-number">5.7.</span> <span class="nav-text">其他</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#ServerSocketChannel"><span class="nav-number">6.</span> <span class="nav-text">ServerSocketChannel</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#相关方法"><span class="nav-number">6.1.</span> <span class="nav-text">相关方法</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#DatagramChannel"><span class="nav-number">7.</span> <span class="nav-text">DatagramChannel</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#相关方法-1"><span class="nav-number">7.1.</span> <span class="nav-text">相关方法</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#选择器Selector"><span class="nav-number">8.</span> <span class="nav-text">选择器Selector</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#维护的集合"><span class="nav-number">8.1.</span> <span class="nav-text">维护的集合</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#选择操作"><span class="nav-number">8.2.</span> <span class="nav-text">选择操作</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#并发"><span class="nav-number">8.3.</span> <span class="nav-text">并发</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#相关方法-2"><span class="nav-number">8.4.</span> <span class="nav-text">相关方法</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#SelectionKey"><span class="nav-number">9.</span> <span class="nav-text">SelectionKey</span></a></li></ol></div>
+            
+          </div>
+          <div class="post-toc-indicator-bottom post-toc-indicator">
+            <i class="fa fa-angle-double-down"></i>
+          </div>
+        </section>
+      
+
+    </div>
+  </aside>
+
+
+      
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright" >
+  
+  &copy; 
+  <span itemprop="copyrightYear">2015</span>
+  <span class="with-love">
+    <i class="icon-next-heart fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">xiaoyun</span>
+</div>
+
+<div class="powered-by">
+  由 <a class="theme-link" href="http://hexo.io">Hexo</a> 强力驱动
+</div>
+
+<div class="theme-info">
+  主题 -
+  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
+    NexT.Mist
+  </a>
+</div>
+
+
+
+      </div>
+    </footer>
+
+    <div class="back-to-top"></div>
+  </div>
+
+  <script type="text/javascript" src="/vendors/jquery/index.js?v=2.1.3"></script>
+
+  
+  
+
+  
+    
+
+  
+    
+  
+
+  <script type="text/javascript">
+    var duoshuoQuery = {short_name:"xiaoyuncom"};
+    (function() {
+      var ds = document.createElement('script');
+      ds.type = 'text/javascript';ds.async = true;
+      ds.id = 'duoshuo-script';
+      ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+      ds.charset = 'UTF-8';
+      (document.getElementsByTagName('head')[0]
+      || document.getElementsByTagName('body')[0]).appendChild(ds);
+    })();
+  </script>
+    
+     
+
+
+    
+  
+
+  
+  <script type="text/javascript" src="/vendors/fancybox/source/jquery.fancybox.pack.js"></script>
+  <script type="text/javascript" src="/js/fancy-box.js?v=0.4.5.2"></script>
+
+
+  <script type="text/javascript" src="/js/helpers.js?v=0.4.5.2"></script>
+  <script type="text/javascript" src="/vendors/velocity/velocity.min.js"></script>
+<script type="text/javascript" src="/vendors/velocity/velocity.ui.min.js"></script>
+
+<script type="text/javascript" src="/js/motion.js?v=0.4.5.2" id="motion.global"></script>
+
+
+  <script type="text/javascript" src="/vendors/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  <script type="text/javascript" src="/vendors/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  
+<script type="text/javascript" src="/js/bootstrap.scrollspy.js?v=0.4.5.2" id="bootstrap.scrollspy.custom"></script>
+
+
+<script type="text/javascript" id="sidebar.toc.highlight">
+  $(document).ready(function () {
+    var tocSelector = '.post-toc';
+    var $tocSelector = $(tocSelector);
+    var activeCurrentSelector = '.active-current';
+
+    $tocSelector
+      .on('activate.bs.scrollspy', function () {
+        var $currentActiveElement = $(tocSelector + ' .active').last();
+
+        removeCurrentActiveClass();
+        $currentActiveElement.addClass('active-current');
+
+        $tocSelector[0].scrollTop = $currentActiveElement.position().top;
+      })
+      .on('clear.bs.scrollspy', function () {
+        removeCurrentActiveClass();
+      });
+
+    function removeCurrentActiveClass () {
+      $(tocSelector + ' ' + activeCurrentSelector)
+        .removeClass(activeCurrentSelector.substring(1));
+    }
+
+    function processTOC () {
+      getTOCMaxHeight();
+      toggleTOCOverflowIndicators();
+    }
+
+    function getTOCMaxHeight () {
+      var height = $('.sidebar').height() -
+                   $tocSelector.position().top -
+                   $('.post-toc-indicator-bottom').height();
+
+      $tocSelector.css('height', height);
+
+      return height;
+    }
+
+    function toggleTOCOverflowIndicators () {
+      tocOverflowIndicator(
+        '.post-toc-indicator-top',
+        $tocSelector.scrollTop() > 0 ? 'show' : 'hide'
+      );
+
+      tocOverflowIndicator(
+        '.post-toc-indicator-bottom',
+        $tocSelector.scrollTop() >= $tocSelector.find('ol').height() - $tocSelector.height() ? 'hide' : 'show'
+      )
+    }
+
+    $(document).on('sidebar.motion.complete', function () {
+      processTOC();
+    });
+
+    $('body').scrollspy({ target: tocSelector });
+    $(window).on('resize', function () {
+      if ( $('.sidebar').hasClass('sidebar-active') ) {
+        processTOC();
+      }
+    });
+
+    onScroll($tocSelector);
+
+    function onScroll (element) {
+      element.on('mousewheel DOMMouseScroll', function (event) {
+          var oe = event.originalEvent;
+          var delta = oe.wheelDelta || -oe.detail;
+
+          this.scrollTop += ( delta < 0 ? 1 : -1 ) * 30;
+          event.preventDefault();
+
+          toggleTOCOverflowIndicators();
+      });
+    }
+
+    function tocOverflowIndicator (indicator, action) {
+      var $indicator = $(indicator);
+      var opacity = action === 'show' ? 1 : 0;
+      $indicator.velocity ?
+        $indicator.velocity('stop').velocity({
+          opacity: opacity
+        }, { duration: 100 }) :
+        $indicator.stop().animate({
+          opacity: opacity
+        }, 100);
+    }
+
+  });
+</script>
+
+<script type="text/javascript" id="sidebar.nav">
+  $(document).ready(function () {
+    var html = $('html');
+    var TAB_ANIMATE_DURATION = 200;
+    var hasVelocity = $.isFunction(html.velocity);
+
+    $('.sidebar-nav li').on('click', function () {
+      var item = $(this);
+      var activeTabClassName = 'sidebar-nav-active';
+      var activePanelClassName = 'sidebar-panel-active';
+      if (item.hasClass(activeTabClassName)) {
+        return;
+      }
+
+      var currentTarget = $('.' + activePanelClassName);
+      var target = $('.' + item.data('target'));
+
+      hasVelocity ?
+        currentTarget.velocity('transition.slideUpOut', TAB_ANIMATE_DURATION, function () {
+          target
+            .velocity('stop')
+            .velocity('transition.slideDownIn', TAB_ANIMATE_DURATION)
+            .addClass(activePanelClassName);
+        }) :
+        currentTarget.animate({ opacity: 0 }, TAB_ANIMATE_DURATION, function () {
+          currentTarget.hide();
+          target
+            .stop()
+            .css({'opacity': 0, 'display': 'block'})
+            .animate({ opacity: 1 }, TAB_ANIMATE_DURATION, function () {
+              currentTarget.removeClass(activePanelClassName);
+              target.addClass(activePanelClassName);
+            });
+        });
+
+      item.siblings().removeClass(activeTabClassName);
+      item.addClass(activeTabClassName);
+    });
+
+    $('.post-toc a').on('click', function (e) {
+      e.preventDefault();
+      var targetSelector = escapeSelector(this.getAttribute('href'));
+      var offset = $(targetSelector).offset().top;
+      hasVelocity ?
+        html.velocity('stop').velocity('scroll', {
+          offset: offset  + 'px',
+          mobileHA: false
+        }) :
+        $('html, body').stop().animate({
+          scrollTop: offset
+        }, 500);
+    });
+
+    // Expand sidebar on post detail page by default, when post has a toc.
+    motionMiddleWares.sidebar = function () {
+      var $tocContent = $('.post-toc-content');
+      if (CONFIG.sidebar === 'post') {
+        if ($tocContent.length > 0 && $tocContent.html().trim().length > 0) {
+          displaySidebar();
+        }
+      }
+    };
+  });
+</script>
+
+
+
+  <script type="text/javascript" src="/js/bootstrap.js"></script>
+
+  
+  
+
+  
+  
+
+</body>
+</html>

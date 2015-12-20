@@ -1,0 +1,1036 @@
+<!doctype html>
+<html class="theme-next   use-motion ">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+  <link href="/vendors/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css"/>
+
+
+
+
+  <link href="//fonts.googleapis.com/css?family=Lato:300,400,700,400italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+
+
+
+<link href="/vendors/font-awesome/css/font-awesome.min.css?v=4.4.0" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=0.4.5.2" rel="stylesheet" type="text/css" />
+
+
+  <meta name="keywords" content="Common,Hadoop-1.2.1,RPC," />
+
+
+
+
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=0.4.5.2" />
+
+
+
+
+
+
+<meta name="description" content="Hadoop版本:Hadoop-1.2.1参考：《Hadoop技术内幕-深入解析Hadoop Common和HDFS架构设计与实现原理》,后文简称技术内幕RPC中用到的通道和选择器另见通道和选择器，缓冲区另见缓冲区,以及序列化(主要是ObjectWritable)另见序列化
+Hadoop RPC作为Hadoop节点间底层通信机制，简单来说便是客户端和服务器两者协商使用一个接口(以后称为协议)，客户">
+<meta property="og:type" content="article">
+<meta property="og:title" content="RPC源码阅读---概述">
+<meta property="og:url" content="http://xiao-yun.github.io/RPC概述/index.html">
+<meta property="og:site_name" content="xiaoyun">
+<meta property="og:description" content="Hadoop版本:Hadoop-1.2.1参考：《Hadoop技术内幕-深入解析Hadoop Common和HDFS架构设计与实现原理》,后文简称技术内幕RPC中用到的通道和选择器另见通道和选择器，缓冲区另见缓冲区,以及序列化(主要是ObjectWritable)另见序列化
+Hadoop RPC作为Hadoop节点间底层通信机制，简单来说便是客户端和服务器两者协商使用一个接口(以后称为协议)，客户">
+<meta property="og:image" content="http://xiao-yun.github.io/../images/RPC辅助类.png">
+<meta property="og:image" content="http://xiao-yun.github.io/../images/RPC-Client.png">
+<meta property="og:image" content="http://xiao-yun.github.io/../images/RPC-Client成员属性.png">
+<meta property="og:image" content="http://xiao-yun.github.io/../images/RPC-Client-Call成员属性.png">
+<meta property="og:image" content="http://xiao-yun.github.io/../images/RPC-Client-ConnectionId成员属性.png">
+<meta property="og:image" content="http://xiao-yun.github.io/../images/RPC-Client-Connection成员属性.png">
+<meta property="og:image" content="http://xiao-yun.github.io/../images/RPC-Server.png">
+<meta property="og:image" content="http://xiao-yun.github.io/../images/RPC-Server成员属性.png">
+<meta property="og:image" content="http://xiao-yun.github.io/../images/RPC-Server-Listener成员属性.png">
+<meta property="og:image" content="http://xiao-yun.github.io/../images/RPC-Server-Responder成员属性.png">
+<meta property="og:image" content="http://xiao-yun.github.io/../images/RPC-Server-Call成员属性.png">
+<meta property="og:image" content="http://xiao-yun.github.io/../images/RPC-Server-Connection成员属性.png">
+<meta property="og:image" content="http://xiao-yun.github.io/../images/RPC-RPC.png">
+<meta property="og:image" content="http://xiao-yun.github.io/../images/RPC-RPC-Invocation成员属性.png">
+<meta property="og:image" content="http://xiao-yun.github.io/../images/RPC-RPC-Invoker.png">
+<meta property="og:updated_time" content="2015-12-20T14:32:04.471Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="RPC源码阅读---概述">
+<meta name="twitter:description" content="Hadoop版本:Hadoop-1.2.1参考：《Hadoop技术内幕-深入解析Hadoop Common和HDFS架构设计与实现原理》,后文简称技术内幕RPC中用到的通道和选择器另见通道和选择器，缓冲区另见缓冲区,以及序列化(主要是ObjectWritable)另见序列化
+Hadoop RPC作为Hadoop节点间底层通信机制，简单来说便是客户端和服务器两者协商使用一个接口(以后称为协议)，客户">
+
+
+
+<script type="text/javascript" id="hexo.configuration">
+  var CONFIG = {
+    scheme: 'Mist',
+    sidebar: 'hide',
+    motion: true
+  };
+</script>
+
+  <title> RPC源码阅读---概述 | xiaoyun </title>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  <!--[if lte IE 8]>
+  <div style=' clear: both; height: 59px; padding:0 0 0 15px; position: relative;margin:0 auto;'>
+    <a href="http://windows.microsoft.com/en-US/internet-explorer/products/ie/home?ocid=ie6_countdown_bannercode">
+      <img src="http://7u2nvr.com1.z0.glb.clouddn.com/picouterie.jpg" border="0" height="42" width="820"
+           alt="You are using an outdated browser. For a faster, safer browsing experience, upgrade for free today or use other browser ,like chrome firefox safari."
+           style='margin-left:auto;margin-right:auto;display: block;'/>
+    </a>
+  </div>
+<![endif]-->
+  
+
+
+
+  <script type="text/javascript">
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "//hm.baidu.com/hm.js?caeb4129c91d1e6fb3d562d35fedef0d";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+  <div class="container one-column page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-meta ">
+  
+
+  <div class="custom-logo-site-title">
+    <a href="/"  class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <span class="site-title">xiaoyun</span>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+  <p class="site-subtitle"></p>
+</div>
+
+<div class="site-nav-toggle">
+  <button>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+  </button>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu menu-left">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-home fa-fw"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives" rel="section">
+            
+              <i class="menu-item-icon fa fa-archive fa-fw"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories" rel="section">
+            
+              <i class="menu-item-icon fa fa-th fa-fw"></i> <br />
+            
+            分类
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+              <i class="menu-item-icon fa fa-tags fa-fw"></i> <br />
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about" rel="section">
+            
+              <i class="menu-item-icon fa fa-user fa-fw"></i> <br />
+            
+            关于
+          </a>
+        </li>
+      
+
+      
+      
+    </ul>
+  
+
+  
+    <div class="site-search">
+      
+  
+  <form class="site-search-form">
+    <input type="text" id="st-search-input" class="st-search-input st-default-search-input" />
+  </form>
+
+
+<script type="text/javascript">
+  (function(w,d,t,u,n,s,e){w['SwiftypeObject']=n;w[n]=w[n]||function(){
+    (w[n].q=w[n].q||[]).push(arguments);};s=d.createElement(t);
+    e=d.getElementsByTagName(t)[0];s.async=1;s.src=u;e.parentNode.insertBefore(s,e);
+  })(window,document,'script','//s.swiftypecdn.com/install/v2/st.js','_st');
+
+  _st('install', 'Nq1MdxGEF4xQgzakv9MC','2.0.0');
+</script>
+
+
+
+    </div>
+  
+</nav>
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div id="content" class="content">
+          
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                RPC源码阅读---概述
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            发表于
+            <time itemprop="dateCreated" datetime="2015-12-20T22:32:04+08:00" content="2015-12-20">
+              2015-12-20
+            </time>
+          </span>
+
+          
+            <span class="post-category" >
+              &nbsp; | &nbsp; 分类于
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Java/" itemprop="url" rel="index">
+                    <span itemprop="name">Java</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Java/Hadoop/" itemprop="url" rel="index">
+                    <span itemprop="name">Hadoop</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Java/Hadoop/Hadoop-1-2-1/" itemprop="url" rel="index">
+                    <span itemprop="name">Hadoop-1.2.1</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Java/Hadoop/Hadoop-1-2-1/Common/" itemprop="url" rel="index">
+                    <span itemprop="name">Common</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Java/Hadoop/Hadoop-1-2-1/Common/RPC/" itemprop="url" rel="index">
+                    <span itemprop="name">RPC</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Java/Hadoop/Hadoop-1-2-1/Common/RPC/源码阅读/" itemprop="url" rel="index">
+                    <span itemprop="name">源码阅读</span>
+                  </a>
+                </span>
+
+                
+                
+
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                &nbsp; | &nbsp;
+                <a href="/RPC概述/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="RPC概述/" itemprop="commentsCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+
+        </div>
+      </header>
+    
+
+
+    <div class="post-body">
+
+      
+      
+
+      
+        <span itemprop="articleBody"><p>Hadoop版本:<a href="https://archive.apache.org/dist/hadoop/core/hadoop-1.2.1/" target="_blank" rel="external">Hadoop-1.2.1</a><br>参考：《Hadoop技术内幕-深入解析Hadoop Common和HDFS架构设计与实现原理》,后文简称技术内幕<br>RPC中用到的通道和选择器另见<a href="./通道和选择器">通道和选择器</a>，缓冲区另见<a href="./缓冲区">缓冲区</a>,以及序列化(主要是ObjectWritable)另见<a href="./序列化">序列化</a></p>
+<p>Hadoop RPC作为Hadoop节点间底层通信机制，简单来说便是客户端和服务器两者协商使用一个接口(以后称为协议)，客户端通过该接口的一个代理发送接口<br>内方法的调用请求，请求由代理的调用处理器通过网络发送到服务器(本机的另一个进程当然也可以)，而服务器包含有该接口的实现，服务器从网络中接收到调用<br>请求后，调用接口实现类指定方法，调用结果通过网络发送回客户端代理，代理转发给客户端，完成远程调用过程。  </p>
+<p>Hadoop RPC相关的代码在<code>org.apache.hadoop.ipc</code>包中，主要包括<code>Client</code>,<code>Server</code>,<code>RPC</code>类和相关辅助类。  </p>
+<h3 id="辅助类">辅助类</h3><p><img src="../images/RPC辅助类.png" alt="RPC辅助类">  </p>
+<ul>
+<li><code>RPCInstrumentation</code>，为度量相关类，管理一些统计信息。  </li>
+<li><code>ConnectionHeader</code>，为连接头，每一个连接对应一个连接头，在建立连接时由客户端发送给服务器，主要包括该连接使用的协议(接口),用户信息，鉴权方法等。<br>服务端通过该连接头相应的创建一个服务器端的连接对象，两个连接对象处理该连接上的通信，更具体见后面分析。    </li>
+<li><p><code>VersionedProtocol</code>，为RPC所有接口的父类，支持远程过程调用的接口必须继承该接口，接口含有一个方法:</p>
+  <figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">long</span> <span class="title">getProtocolVersion</span><span class="params">(String protocol, <span class="keyword">long</span> clientVersion)</span> <span class="keyword">throws</span> IOException</span>;</span><br></pre></td></tr></table></figure>
+<p>  获取服务器端协议<code>protocol</code>对应的版本号，主要用于验证客户端协议和服务端协议版本是否匹配。  </p>
+</li>
+<li><code>RemoteException</code>，远程异常，用于客户端，表示远程过程调用中的错误。  </li>
+<li><code>Status</code>，是一个枚举类，定义了远程过程调用的返回结果，包括成功，错误和致命错误三种情况:  <figure class="highlight pf"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">enum Status &#123;</span><br><span class="line">  SUCCESS (<span class="number">0</span>),</span><br><span class="line">  ERROR (<span class="number">1</span>),</span><br><span class="line">  FATAL (-<span class="number">1</span>);</span><br><span class="line">  int <span class="keyword">state</span>;</span><br><span class="line">  private Status(int <span class="keyword">state</span>) &#123; this.<span class="keyword">state</span> = <span class="keyword">state</span>; &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+</li>
+</ul>
+<hr>
+<h3 id="Client">Client</h3><p>Client相关类如下:<br><img src="../images/RPC-Client.png" alt="RPC-Client">  </p>
+<h4 id="成员属性">成员属性</h4><p>主要成员属性如下:<br><img src="../images/RPC-Client成员属性.png" alt="RPC-Client成员属性">  </p>
+<ul>
+<li><code>IPC_CLIENT_CONNECT_MAX_RETRIES_KEY</code>，连接服务器失败最大重试次数，配置项<code>ipc.client.connect.max.retries</code>，缺省为<br><code>IPC_CLIENT_CONNECT_MAX_RETRIES_DEFAULT</code>(10)。  </li>
+<li><code>connections</code>,该客户端上所有的连接，键为连接的标识<code>ConnectionId</code>，具体见下，值为对应的连接<code>Connection</code>，具体见下。主要用于连接复用，<br>当新请求的连接和目前维护的连接标识一样是，直接使用原来的连接，而不是创建新的连接。  </li>
+<li><code>valueClass</code>，继承自<code>Writable</code>，对应为远程调用返回值类型，即服务器端序列化数据的反序列化类型，创建该类对象，然后反序列化服务器端发送<br>过来的序列化数据即为远程方法调用的返回值对象。  </li>
+<li><code>counter</code>,调用Call对象成员属性<code>id</code>的递增计数器，客户端的方法调用对应一个Call对象，Call对象的成员<code>id</code>用于标识这个Call对象，使用counter<br>递增每一次调用的id。  </li>
+<li><code>running</code>，客户端的运行状态。  </li>
+<li><code>conf</code>,客户端的配置信息，具体见<a href="./Configuration">Configuration</a></li>
+<li><code>socketFactory</code>，客户端对应的配置工厂，用于创建通信用的socket，一般为默认socket工厂。  </li>
+<li><code>refCount</code>，客户端的引用计数。  </li>
+<li><code>PING_INTERVAL_NAME</code>,ping周期的配置项，对应为<code>ipc.ping.interval</code>，默认值<code>DEFAULT_PING_INTERVAL</code>(1min)。若客户端在读取服务器端的<br>返回值响应超时，则会周期性的发送值为<code>PING_CALL_ID</code>(-1)的ping消息给服务器以维持连接。  </li>
+</ul>
+<p>Client包含了很多内部类。  </p>
+<h4 id="Client-Call">Client.Call</h4><p>对应客户端的一个方法调用，成员属性如下:<br><img src="../images/RPC-Client-Call成员属性.png" alt="RPC-Client-Call成员属性">  </p>
+<ul>
+<li><code>id</code>为Call的标识，构造Call对象时由客户端的<code>counter</code>指定，每构造一个Call对象<code>counter</code>加1。  </li>
+<li><code>param</code>，包含方法调用的基本信息，包括方法名，参数类型和对应的参数值，目前为<code>RPC.Invocation</code>类型。  </li>
+<li><code>value</code>，远程调用返回值类型，使用该对象的<code>readFields</code>方法反序列化服务器发送过来的远程调用返回值序列化数据，便得到远程调用结果，目前为<br><code>ObjectWritable</code>类型。  </li>
+<li><code>error</code>,远程调用发生错误时，服务器端会发送异常类型和对应的异常实例，因此<code>error</code>便保存了远程调用异常信息。  </li>
+<li><code>done</code>，该调用是否完成，当<code>value</code>或<code>error</code>不为null时，调用完成，done为true。调用要么成功返回，要么异常。  </li>
+</ul>
+<p>创建Call对象时，param存储远程调用对应的方法，方法参数类型以及对应的方法参数(为什么不包含<code>协议</code>，因为一个连接关联一个协议)，将param序列化<br>发送到服务器，服务器调用协议实现的方法后序列化发送回给客户端，客户端读取响应时，首先读取状态，若成功，通过<code>value</code>反序列化即为调用结果，若<br>有错误，通过<code>error</code>反序列化为异常信息，若为致命错误，关闭连接，具体见后面详细分析。  </p>
+<h4 id="Client-ParallelCall">Client.ParallelCall</h4><p>为Client.Call的子类，用于并行调用多个远程服务器上的方法。并行向多个远程服务器发送一组方法调用请求，并等待所有这些请求都得到相应应答，或者<br>超时。<br>除了父类的成员，还包含了一个<code>ParallelResults</code>类型的成员<code>results</code>保存并行请求的结果，以及当前调用在并行调用中的索引<code>index</code>。<br><code>ParallelResults</code>包含以下成员:<br><figure class="highlight gradle"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> Writable[] values;<span class="comment">//并行结果</span></span><br><span class="line"><span class="keyword">private</span> <span class="keyword">int</span> <span class="keyword">size</span>;<span class="comment">//并行结果数量</span></span><br><span class="line"><span class="keyword">private</span> <span class="keyword">int</span> <span class="keyword">count</span>;<span class="comment">//当前已完成的并行调用数量</span></span><br></pre></td></tr></table></figure></p>
+<p>当该调用完成时，调用<code>callComplete()</code>方法<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">protected</span> <span class="function"><span class="keyword">void</span> <span class="title">callComplete</span><span class="params">()</span> </span>&#123; results.callComplete(<span class="keyword">this</span>);&#125;</span><br></pre></td></tr></table></figure></p>
+<p>而ParallelResults中的callComplete方法如下:<br><figure class="highlight fortran"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> synchronized void callComplete(ParallelCall <span class="keyword">call</span>) &#123;</span><br><span class="line">  values[<span class="keyword">call</span>.<span class="built_in">index</span>] = <span class="keyword">call</span>.<span class="keyword">value</span>;            // store the <span class="keyword">value</span></span><br><span class="line">  <span class="built_in">count</span>++;                                    // <span class="built_in">count</span> it</span><br><span class="line">  <span class="keyword">if</span> (<span class="built_in">count</span> == <span class="built_in">size</span>)                          // <span class="keyword">if</span> <span class="built_in">all</span> values are <span class="type">in</span></span><br><span class="line">    notify();                                 // <span class="keyword">then</span> notify waiting caller</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>即更新第<code>index</code>结果值，增加已完成的调用数量，若所有调用已完成，则通知等待的调用者。  </p>
+<h4 id="ConnectionId">ConnectionId</h4><p>ConnectionId是客户端连接的标识，用于连接复用，客户端所有的连接保存在Client成员<code>connections</code>中(见上)。客户端到服务器的连接由</p>
+<p><remoteaddress, protocol,="" ticket="">三个属性唯一标识，当请求的连接对应的这三个属性能够在connections中找到现有的连接时，直接使用该连接<br>而不用创建新的连接。  </remoteaddress,></p>
+<p>ConnectionId成员属性如下:<br><img src="../images/RPC-Client-ConnectionId成员属性.png" alt="RPC-Client-ConnectionId成员属性">  </p>
+<ul>
+<li><code>address</code>，对应为服务器地址，包括服务器的”IP地址+端口”或”主机名+端口”信息；</li>
+<li><code>ticket</code>，包含了用户和用户所在组的信息；</li>
+<li><code>protocol</code>，客户端和服务器通信以来的协议(接口)；</li>
+<li><code>PRIME</code>，素数16777619；</li>
+<li><code>rpcTimeout</code>,read超时时间，默认为0，为0时使用<code>pingInterval</code>。不为0时，用此值覆盖<code>pingInterval</code>。</li>
+<li><code>serverPrincipal</code>，服务器主体信息，用于鉴权；</li>
+<li><code>maxIdleTime</code>，最大空闲时间，一个连接上没有通信活动的时间超过该时间，则会关闭。配置<code>ipc.client.connection.maxidletime</code>,默认10s。</li>
+<li><code>connectionRetryPolicy</code>，连接失败重试策略，包括失败后的重试次数和每次重试间隔，默认情况下重试次数10，间隔为1s；</li>
+<li><code>tcpNoDelay</code>,决定是否关闭<code>Nagel</code>算法，true时关闭，false开启。开启时对于小包会暂存在缓冲区，等待一段时间尽可能积累更多的包再发送；</li>
+<li><code>pingInterval</code>，read操作超时时发送ping数据的间隔，配置项<code>ipc.ping.interval</code>默认1min。当<code>rpcTimeout</code>不为0时，使用rpcTimeout覆盖此值。</li>
+</ul>
+<p>主要方法<code>getConnectionId</code>，通过指定的address，ticket，protocol和配置conf创建<code>ConnectionId</code>对象。  </p>
+<h4 id="Connection">Connection</h4><p>为客户端这边的一个连接，由上，客户端所有连接信息保存在客户端的<code>connections</code>成员中。<br>一个连接的成员属性如下:<br><img src="../images/RPC-Client-Connection成员属性.png" alt="RPC-Client-Connection成员属性">  </p>
+<ul>
+<li><code>server</code>，远端服务器地址，包括服务器地址(IP或主机名)和端口；</li>
+<li><code>serverPrincipal</code>，服务器主体信息，用于鉴权；</li>
+<li><code>header</code>，连接头信息，主要包括协议，用户，鉴权方法等信息，一个连接对应一个连接头，在建立连接时发送到服务器；</li>
+<li><code>remoteId</code>，连接的标识；</li>
+<li><code>authMethod</code>,鉴权方法，枚举类型，包括<code>SIMPLE(80)</code>，<code>KERBEROS(81)</code>，<code>DIGEST(82)</code>三种，建立连接时发送对应的字节码到服务器；</li>
+<li><code>socket</code>，创建的socket对象；</li>
+<li><code>in</code>，输入流，其实是<code>Connection.PingInputStream</code>，read操作超时时会周期性发送ping到服务器端，以保持连接状态；</li>
+<li><code>out</code>,输出流；</li>
+<li><code>rpcTimeout</code>,同ConnectionId；</li>
+<li><code>maxIdleTime</code>，同ConnectionId；</li>
+<li><code>connectionRetryPolicy</code>，连接重试策略，默认情况下，连接服务器超时后，会重试10次，每次间隔1s；</li>
+<li><code>tcpNodelay</code>，同ConnectionId；</li>
+<li><code>pingInterval</code>，同ConnectionId；</li>
+<li><code>calls</code>，连接上所有未完成的远程方法调用，接收到返回值时移除。键为Client.Call对象的id，值为对应的Client.Call对象；</li>
+<li><code>lastActivity</code>，上次活动时间，每次读取到数据或发送了ping时更新，读数据超时时也是根据该值和ping周期来判断是否发送ping；</li>
+<li><code>shouldCloseConnection</code>，是否应该关闭连接；</li>
+<li><code>closeException</code>，关闭连接时的异常；</li>
+</ul>
+<p>Connection是线程，关于Connection的操作以及线程主流程，见后面具体过程分析。</p>
+<h5 id="PingInputStream">PingInputStream</h5><p>实际为客户端连接Client.Connection对应的输入流，在read操作超时时，异常中调用<code>handleTimeout</code>，而处理超时中，如果连接未关闭则判断<code>lastActivity</code><br>和发送ping的时间间隔，向服务器发送ping，以维持连接。<br>就是在正常的读操作过程中添加了超时处理逻辑，具体见后分析。  </p>
+<h3 id="Server">Server</h3><p>Server主要包括监听器Listener，处理器Handler和响应器Responder。<br>到来的连接由监听器处理，创建对应连接，并对请求的调用封装成<code>Server.Call</code>对象，放入阻塞队列<code>callQueue</code>中，处理器从阻塞队列中取出待处理的请求，<br>调用本地实现的方法进行处理，处理结果或者直接发送回客户端或者放入连接的响应队列<code>responseQueue</code>中，由响应器进行处理，具体哪种方式取决于<br>响应队列中待发送响应的数目。<br>这里使用了Java NIO中的通道和选择器配合，通道分别在选择器上注册accept，read和write操作，关于通道和选择器另见<a href="./通道和选择器.md">通道和选择器</a>。  </p>
+<p>相关类如下:<br><img src="../images/RPC-Server.png" alt="RPC-Server">  </p>
+<h4 id="成员属性-1">成员属性</h4><p>主要成员属性如下:<br><img src="../images/RPC-Server成员属性.png" alt="RPC-Server成员属性">  </p>
+<ul>
+<li><code>HEADER</code>,保存魔数<code>hrpc</code>，连接建立时客户端发送一个魔数到服务器，用于判断客户端魔数是否为<code>hrpc</code>；</li>
+<li><code>CURRENT_VERSION</code>,当前版本号4。连接建立时客户端先写魔数，然后是一个字节的版本号，一个字节的鉴权方法，再接着便是连接头信息了；</li>
+<li><code>IPC_SERVER_HANDLER_QUEUE_SIZE_KEY</code>，配置项<code>ipc.server.handler.queue.size</code>，默认100，处理器队列大小；</li>
+<li><code>IPC_SERVER_RPC_MAX_RESPONSE_SIZE_KEY</code>，配置项<code>ipc.server.max.response.size</code>，默认1024*1024(1MB)，响应器大小；</li>
+<li><code>SERVER</code>,TODO：用途</li>
+<li><code>PROTOCOL_CACHE</code>，键为协议名，值为对应的协议类，客户端发送过来的是协议名，查找配置conf创建相应的类，保存在缓冲中；</li>
+<li><code>CurCall</code>，当前处理的Server.Call，TODO:用途</li>
+<li><code>bindAddress</code>，本地绑定的地址；<code>port</code>，本地绑定的端口；</li>
+<li><code>handlerCount</code>,处理器个数；</li>
+<li><code>readThreads</code>，处理到达调用请求的读操作线程数目；</li>
+<li><code>paramClass</code>，客户端发送过来的参数类，即包含调用方法名，参数类型，参数值的序列化类，从Client可知为<code>Invocation</code>类；</li>
+<li><code>maxIdleTime</code>,客户端断开连接后最大空闲时间，为客户端连接最大空闲时间<code>ipc.client.connection.maxidletime</code>的两倍，不过客户端连接最大空闲时间<br>没设置时默认10s，而服务器默认1s。TODO:区别，用途  </li>
+<li><code>thresholdIdleConnections</code>，最大空闲连接数目，大于此值时对空闲连接进行清理；</li>
+<li><code>maxConnectionsToNuke</code>，清理空闲连接时，一次最多清理的数目；</li>
+<li><code>rpcMetrics</code>，统计信息；<code>conf</code>，配置；</li>
+<li><code>maxQueueSize</code>,<code>maxRespSize</code>，TODO</li>
+<li><code>socketSendBufferSize</code>,socket发送缓冲大小；<code>tcpNoDelay</code>,<code>Nagle</code>算法使能；</li>
+<li><code>running</code>，是否运行；</li>
+<li><code>callQueue</code>，生产者-消费者模型使用的阻塞队列，由监听器<code>listener</code>生产，处理器<code>handler</code>消费。队列中元素对应一个远程方法调用，监听器读取<br>到一个远程方法调用请求后封装成一个<code>Server.Call</code>对象，放到该队列中，由处理器线程进行处理；</li>
+<li><code>connectionList</code>,当前的连接；<code>numConnections</code>连接数目；</li>
+<li><code>listener</code>，监听器；<code>handlers</code>，处理器数组；<code>responder</code>，响应器；</li>
+</ul>
+<p>包含的内部类如下。</p>
+<h4 id="Listener">Listener</h4><p>监听器，监听到来的连接，监听器中主要有<code>Accept</code>和<code>Read</code>操作。Accept操作接受到来的连接并创建相应的SocketChannel，Read操作主要由Listener<br>的内部类<code>Reader</code>负责，首先读取魔数，版本号以及鉴权方法验证，然后读取连接头，创建指定协议的连接。接下来便是读取到来的远程调用请求了，对每一个请求封装<br>成一个<code>Server.Call</code>放到Server的<code>callQueue</code>队列中，然后由处理器负责处理。  </p>
+<p>主要成员属性如下:<br><img src="../images/RPC-Server-Listener成员属性.png" alt="RPC-Server-Listener成员属性">  </p>
+<ul>
+<li><code>acceptChannel</code>，服务器的ServerSocketChannel；</li>
+<li><code>selector</code>，用于注册<code>accept</code>操作的选择器，这里accept和接收调用请求的read操作的选择器是分开的，接受调用请求的read操作注册对应的选择器<br>在<code>Listener.Reader</code>中，Reader负责读取调用请求；</li>
+<li><code>readers</code>，读取调用请求的线程，数目为Server的<code>readThreads</code>；</li>
+<li><code>currentReader</code>,目前使用的Reader线程在readers数组中索引；</li>
+<li><code>address</code>，本地绑定的地址；</li>
+<li><code>lastCleanupRunTime</code>，上次空闲连接清理的运行时间；</li>
+<li><code>cleanupInterval</code>，空闲连接清理周期；</li>
+<li><code>backlogLength</code>，服务器端等待accept的连接数；</li>
+<li><code>readPool</code>，创建Reader线程的线程池，固定大小线程池；</li>
+</ul>
+<p>监听器创建时，将<code>acceptChannel</code>注册到<code>selector</code>中，且注册的操作为<code>OP_ACCEPT</code>。同时创建相应数量的Reader线程，每个线程关联一个选择器对象。<br>启动时，在线程中循环读取<code>selector</code>中已选择键集，对每一个到来的连接，执行<code>doAccept</code>创建连接相应的SocketChannel对象，从<code>readers</code>中选择<br>下一个(currentReader)Reader，将该SocketChannel注册到对应的Selector中，注册的操作为<code>OP_READ</code>。<br>同时，Reader线程的run函数中读取关联Selector的已选键集，对应SocketChannel上可以读时，执行<code>doRead</code>读取到来的数据(先是魔数，版本，鉴权方法，<br>连接头，然后才是请求的远程调用)进行处理。  </p>
+<h4 id="Handler">Handler</h4><p>处理器，处理<code>callQueue</code>中待处理的调用请求。处理器没有相关成员属性，循环在线程中读取阻塞队列<code>callQueue</code>的调用请求，调用本地相关实现方法<br>进行处理，处理结果放入相应连接(<code>Server.Connection</code>)的响应队列<code>responseQueue</code>中。若连接响应队列只有一个待发送的响应，则直接在本线程<br>(handler)中直接处理，而不是由响应器进行处理，避免了线程切换。否则本线程不予处理，等待响应器进行处理。每次处理时，若响应数据没有全部发送<br>完，则放到相应队列首等待下一次继续发送，同时对应的通道在响应器的选择器中注册写操作。  </p>
+<h4 id="Responder">Responder</h4><p>响应器，循环读取选择器中已选键集，若某个通道可写，则往通道中写响应数据，同样的一次没写完全部数据的，再次放回响应队列的队首下次处理，这里便<br>不需要注册选择器的写操作了，因为已经注册过了。<br>因此，通道的写操作在选择器上的注册只会发生在处理器中，对应的通道第一次没有写完所有的响应数据时，在选择器中进行注册写操作。之后只需要将相应<br>已经有返回值的Server.Call添加至该连接的响应队列即可。(一个连接对应一个通道，因此只需注册一次)  </p>
+<p>成员属性如下:<br><img src="../images/RPC-Server-Responder成员属性.png" alt="RPC-Server-Responder成员属性">  </p>
+<ul>
+<li><code>writeSelector</code>，为通道注册写操作的选择器；</li>
+<li><code>pending</code>，当前正要注册到选择器上的通道数；</li>
+<li><code>PURGE_INTERVAL</code>,清理空闲连接的周期，15min；</li>
+</ul>
+<h4 id="Call">Call</h4><p>为客户端远程调用在服务器端的实体，监听器listener处理完连接头后便是正常的调用请求数据，每一个调用请求数据发送的格式为:<br><code>长度+客户端Call id(也将是服务器端Call id)+Invocation序列化数据</code><br>因此，相应的listener读取正常请求数据也是长度，再读取id，然后读取Invocation数据。最终通过读取的id和Invocation创建Call对象，创建的Call对象<br>放入Server的<code>callQueue</code>中，等待处理器处理。  </p>
+<p>Call成员属性如下:<br><img src="../images/RPC-Server-Call成员属性.png" alt="RPC-Server-Call成员属性">  </p>
+<ul>
+<li><code>id</code>，与客户端一样，作为该调用的标识，不过客户端是通过成员<code>counter</code>递增而来，而服务器端则是客户端发送过来的id；</li>
+<li><code>param</code>，同客户端一致，为<code>Invocation</code>类；</li>
+<li><code>connection</code>，为服务器端该Call对应的连接；</li>
+<li><code>timestamp</code>,该Call创建的时间戳；</li>
+<li><code>response</code>，对应的响应，处理完由Call的<code>setResponse</code>填充；</li>
+</ul>
+<h4 id="Connection-1">Connection</h4><p>对应服务器端的一个连接，连接的建立在客户端的<code>setupConnection</code>发起，而在服务器端由<code>listener</code>中<code>selector</code>接收连接，相应的在<code>doAccept</code><br>中，ServerSocketChannel accept后得到一个SocketChannel，该SocketChannel关联新创建的连接。  </p>
+<p>Connection成员属性如下:<br><img src="../images/RPC-Server-Connection成员属性.png" alt="RPC-Server-Connection成员属性">  </p>
+<ul>
+<li><code>rpcHeaderRead</code>,如前描述，建立连接时，先发送4个字节的魔数<code>hrpc</code>，1个字节的版本号(当前为4),1个字节的鉴权方法码，服务器端首先要验证<br>魔数和版本号是否一致，然后根据不同的鉴权方法验证是否由权限执行该调用，该成员为true时表示已经验证了，否则没验证需要验证；</li>
+<li><code>headerRead</code>，如前所述，建立连接时，发送完上述所说的rpcHeader后，便是发送连接头<code>ConnectionHeader</code>了，格式为”长度+ConnectionHeader序列化数据”<br>，该成员为true表示已经接受了连接头并做了相应检查，否则应该接收连接头并检查；</li>
+<li><code>channel</code>，对应的SocketChannel，响应通过该通道送回客户端；</li>
+<li><code>data</code>，数据缓冲区，用于接收实际的调用请求数据；</li>
+<li><code>dataLengthBuffer</code>，数据长度缓冲，4个字节。<code>rpcHeaderRead</code>为false时，读到该缓冲区的是魔数<code>hrpc</code>(刚好4各字节)，接下来应该读取两个<br>字节数据到<code>rpcHeaderBuffer</code>中。否则为接下来应读取的数据长度，接下来的数据读取到<code>data</code>缓冲区中，data缓冲区长度为<code>dataLengthBuffer</code>的值；</li>
+<li><code>responseQueue</code>,一个连接的响应队列，<code>handler</code>处理完后，Call中<code>response</code>有值了，放入相应队列中等待发送到客户端；</li>
+<li><code>rpcCount</code>,当前正在处理的RPC请求量；</li>
+<li><code>lastContact</code>，该连接上上一次网络活动时间；</li>
+<li><code>dataLength</code>，读完rpcHeader后，开头的4个字节为接下来要读取的数据长度，对应<code>dataLengthBuffer</code>的值；</li>
+<li><code>socket</code>，该连接SocketChannel对应的Socket；</li>
+<li><p><code>hostAddress</code>，看注释:</p>
+  <figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">// <span class="operator"><span class="keyword">Cache</span> the remote host &amp; port info so that even <span class="keyword">if</span> the socket <span class="keyword">is</span> </span><br><span class="line">// disconnected, we can say <span class="keyword">where</span> it used <span class="keyword">to</span> <span class="keyword">connect</span> <span class="keyword">to</span>.</span></span><br></pre></td></tr></table></figure>
+<p>  即保存了客户端的主机和端口信息；</p>
+</li>
+<li><code>addr</code>，<code>socket</code>对应的IP地址；</li>
+<li><code>header</code>，反序列化客户端发送过来的连接头<code>ConnectionHeader</code>；</li>
+<li><code>protocol</code>，该连接对应的协议，由连接头可知协议信息；</li>
+<li><code>useSasl</code>，是否使用Sasl(简单认证与安全层)，鉴权相关；</li>
+<li><code>autoMethod</code>，与客户端对应，包括<code>SIMPLE</code>,<code>KERBEROS</code>,<code>DIGEST</code>三种方式；</li>
+<li><code>rpcHeaderBuffer</code>，2个字节的缓冲区，用于保存rpcHeader的版本，鉴权方法两个字节；</li>
+<li><code>user</code>,与客户端对应，客户端发送过来的用户和用户组信息；</li>
+<li><code>AUTHROIZATION_FAILED_CALLID</code>,-1。鉴权失败时的返回相应，客户端收到该响应时致命错误，将关闭客户端连接；</li>
+<li><code>authFailedCall</code>，鉴权失败对应的Call对象；</li>
+<li><code>autoFailedResponse</code>，鉴权失败响应序列化对应的流；</li>
+</ul>
+<p><code>RPC.Server</code>继承自<code>Server</code>，其中有具体的处理远程调用的方法<code>call</code>实现，具体见<code>RPC</code>。</p>
+<hr>
+<h3 id="RPC">RPC</h3><p><code>RPC</code>在<code>Client</code>和<code>Server</code>的基础上实现了Hadoop的RPC，包含客户端获取动态代理方法<code>getProxy</code>，获取客户端方法<code>getClient</code>以及获取服务器方法<br><code>getServer</code>，大部分都是静态方法，成员属性除了日志对象外，也只有保存所有客户端的<code>CLIENTS</code>:<br><figure class="highlight actionscript"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="keyword">static</span> ClientCache CLIENTS=<span class="keyword">new</span> ClientCache();</span><br></pre></td></tr></table></figure></p>
+<p>相关类如下:<br><img src="../images/RPC-RPC.png" alt="RPC-RPC"></p>
+<p>含有以下内部类。</p>
+<h4 id="Invocation">Invocation</h4><p>作为<code>Client.Call</code>对象的<code>param</code>成员类型，包含了一个远程调用的方法名，参数类型，参数值等信息，成员属性如下:<br><img src="../images/RPC-RPC-Invocation成员属性.png" alt="RPC-RPC-Invocation成员属性">  </p>
+<ul>
+<li><code>methodName</code>,该调用的方法名；</li>
+<li><code>parameterClasses</code>，调用方法参数分别对应的类型；</li>
+<li><code>parameters</code>，调用方法的参数值；</li>
+<li><code>conf</code>，配置；</li>
+</ul>
+<h4 id="ClientCache">ClientCache</h4><p>缓存所有客户端，当需要获取一个客户端时，先从该缓存中取，没有再创建并放入缓存。唯一成员属性:<br><figure class="highlight lasso"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="built_in">Map</span>&lt;SocketFactory, Client&gt; clients = <span class="literal">new</span> HashMap&lt;SocketFactory, Client&gt;();</span><br></pre></td></tr></table></figure></p>
+<p>键为客户端使用的Socket工厂，值为客户端。一般来说，客户端由<code>valueClass</code>即调用结果反序列化类和使用的Socket工厂决定，而目前<code>valueClass</code><br>只有<code>ObjectWritable</code>，即服务器端响应封装成ObjectWritable，客户端响应的也只能构建ObjectWritable反序列化。因此基本上一个Socket工厂<br>对应一个客户端。因此这里维护了”Socket从厂-客户端”键值对。  </p>
+<h4 id="VersionMismatch">VersionMismatch</h4><p>版本不匹配，创建代理时，可决定是否检查客户端和服务器版本(VersionedProtocol中<code>getProtocolVersion</code>)，若不匹配，抛出该异常。  </p>
+<h4 id="Invoker">Invoker</h4><p>为代理的调用处理器，成员如下:<br><img src="../images/RPC-RPC-Invoker.png" alt="RPC-RPC-Invoker成员属性">  </p>
+<ul>
+<li><code>remoteId</code>，该调用处理器负责转发的连接标识；</li>
+<li><code>client</code>，所属客户端；</li>
+<li><code>isClosed</code>，当前连接转发关闭；</li>
+</ul>
+<p>通过代理调用协议中的方法时，转发到Invoker的<code>invoke</code>方法中，在<code>invoke</code>方法中由所属客户端<code>client</code>的<code>call</code>方法执行调用，打开连接(如果还没打开)<br>,发送头数据，然后发送调用数据。  </p>
+<h4 id="Server-1">Server</h4><p><code>org.apache.hadoop.ipc.Server</code>的子类，成员属性如下:  </p>
+<ul>
+<li><code>instance</code>，协议实现类的实例，客户端的远程调用最终受理对象；</li>
+<li><code>verbose</code>,详细信息；</li>
+</ul>
+<p>作为<code>org.apache.hadoop.ipc.Server</code>的子类，增加了协议实现类的实例对象，由客户端传过来的协议，方法名以及参数信息，最终通过该实例调用指定<br>方法。<br>在<code>Server</code>的<code>handler</code>中对每一个<code>Call</code>会调用<code>Server</code>的:<br><figure class="highlight gradle"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">abstract</span> Writable <span class="keyword">call</span>(<span class="keyword">Class</span>&lt;?&gt; protocol, Writable param, <span class="keyword">long</span> receiveTime) <span class="keyword">throws</span> IOException;</span><br></pre></td></tr></table></figure></p>
+<p>方法，<code>param</code>对应为客户端包含调用方法，参数类型，参数值的<code>Invocation</code>类，而该方法在<code>org.apache.hadoop.ipc.Server</code>中没有实现，在<br><code>RPC.Server</code>中得以实现，从<code>param</code>中获取方法名，参数信息，通过反射调用实例<code>instance</code>上的方法返回。  </p>
+<hr>
+<h3 id="总结">总结</h3><p>一般来说，客户端通过<code>RPC.getProxy</code>创建指定协议的动态代理，服务器端通过<code>RPC.getServer</code>创建服务器对象，然后服务器<code>start</code>启动相关线程。  </p>
+<h4 id="客户端">客户端</h4><p>通过代理调用协议中方法时，会转发到代理的调用处理器<code>RPC.Invoker</code>的<code>invoke</code>方法中。在<code>invoke</code>方法中，将要调用的方法，参数信息封装<br>成<code>Invocation</code>对象，传入调用处理器所属客户端Client的<code>call</code>方法中执行调用。  </p>
+<p>在<code>call</code>方法中，如果缓存中没有到服务器的连接<code>Connection</code>则要创建连接，并发送<code>rpcHeader</code>给服务器进行验证以及鉴权，成功后发送连接头<br><code>ConnectionHeader</code>给服务器，发送成功后连接创建成功，鉴权失败时，服务器发送相应的响应，客户端视为致命错误，关闭连接，而缓存中有到服务器连接时直接复用。  </p>
+<p>连接创建成功后，便发送之前封装的<code>Invocation</code>对象给服务器，然后等待。这时，建立的<code>Connection</code>线程在等待读取服务器端的响应，读取到响应后<br>通知等待的线程，等待线程醒来后完成了远程调用，要么错误要么成功。  </p>
+<h4 id="服务器端">服务器端</h4><p>服务器的<code>handler</code>线程监听到来的客户端请求，有请求到达时，accept创建相应的SocketChannel，并创建服务器端的<code>Connection</code>。<br>然后选择一个Reader线程，将该通道注册到该Reader上面的选择器上，注册<code>读操作</code>，因此接下来便由该Reader处理该通道上到来的读请求。  </p>
+<p>Reader上有读请求到达时，如果还没处理<code>rpcHeader</code>，先读取<code>rpcHeader</code>信息并验证以及鉴权，鉴权失败发送失败对应的响应，客户端会视为致命错误<br>从而关闭连接。成功后读取<code>ConnectionHeader</code>，并根据发送过来的协议初始化之前创建的<code>Connection</code>的<code>protocol</code>，该连接便处理该协议的请求。<br><code>rpcHeader</code>和<code>ConnectionHeader</code>都处理完后，接下来Reader处理的便是实际的调用请求了。  </p>
+<p>实际的调用请求，对于发送过来的Call id以及<code>Invocation</code>反序列化，然后创建服务器端的<code>Call</code>对象放到Server的<code>callQueue</code>中，等待<code>handler</code>处理。  </p>
+<p><code>handler</code>每次从<code>callQueue</code>中读取一个未处理的<code>Call</code>，使用<code>call</code>方法通过反射最终调用实例<code>instance</code>上的对应方法，调用返回后返回值封装成<br><code>ObjectWritable</code>对象，保存在Call对象的<code>response</code>中，并将该Call放入对应<code>Connection</code>的响应队列<code>responseQueue</code>中。  </p>
+<p>若<code>responseQueue</code>中只有一个Call，则直接在<code>handler</code>线程中进行处理，将响应发送到客户端，节省了切换到<code>responder</code>线程的开销。<br>若一次性响应未发送完，则将<code>Connection</code>对应通道注册在<code>responder</code>的选择器中，注册<code>写操作</code>，等下一次通道可写时，由<code>responder</code>线程处理发送过程。<br>之后已经完成调用的Call因为对应的通道已经注册在<code>responder</code>上的选择器上了，只需添加到<code>responseQueue</code>中，无需再注册。  </p>
+<p>流程大致如上，具体见后源代码分析。  </p>
+<h4 id="关系梳理">关系梳理</h4><p>最后梳理下客户端<code>Client</code>，<code>Connection</code>，<code>Call</code>等关系。  </p>
+<p><code>RPC</code>中<code>CLIENTS</code>保存了现存的客户端缓存，一般来说，客户端由<code>valueClass</code>即调用结果反序列化类和使用的Socket工厂决定，而目前<code>valueClass</code><br>只有<code>ObjectWritable</code>，即服务器端响应封装成ObjectWritable，客户端响应的也只能构建ObjectWritable反序列化。因此基本上一个Socket工厂<br>对应一个客户端。所以，正常情况下，若创建代理时不提供SocketFactory使用默认的Socket工厂，则只有一个客户端。  </p>
+<p>一个客户端在成员<code>connections</code>中维护了多个连接<code>Connection</code>。一个连接由<code>ConnectionId</code>标识，由三元组<code>&lt;remoteAddress, protocol, ticket&gt;</code><br>决定。因此对同一个用户来说，不同的协议或者不同的服务器地址都能得到不同的连接。  </p>
+<p>同样的，一个<code>Connection</code>下可以有多个<code>Call</code>，即用户对同一服务器下的同一协议的不同方法调用由一个连接管理。  </p>
+<p>这样看来，一个客户端里面可能维护了多个用户的连接，而一个用户可能有对同一个服务器不同协议的多个连接，也可能有对不同服务器同一个协议或不同协议<br>的多个连接，客户端下维护的连接数为成员<code>refCount</code>。而具体到一个连接，则管理了具体用户，具体服务器，具体协议下所有调用<code>Call</code>。</p>
+<p>再来看看代理Proxy，通过<code>RPC.getProxy</code>获得的代理，其调用处理器<code>Invoker</code>管理了<code>ConnetionId</code>和所属的<code>Client</code>对象，因此一个代理只能<br>处理所属客户端<code>client</code>下的一个连接，如下:<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> <span class="function">VersionedProtocol <span class="title">getProxy</span><span class="params">(</span><br><span class="line">    Class&lt;? <span class="keyword">extends</span> VersionedProtocol&gt; protocol,</span><br><span class="line">    <span class="keyword">long</span> clientVersion, InetSocketAddress addr, Configuration conf)</span></span><br><span class="line">    <span class="keyword">throws</span> IOException </span>&#123;</span><br></pre></td></tr></table></figure></p>
+<p>该方法为最简单参数的getProxy方法，创建的代理所属的<code>Client</code>使用缺省的SocketFactory，代理负责处理的连接，其服务器地址由<code>addr</code>指定，<br>使用的协议为<code>protocol</code>，用户信息为当前用户。  </p>
+</span>
+      
+    </div>
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/Common/" rel="tag">#Common</a>
+          
+            <a href="/tags/Hadoop-1-2-1/" rel="tag">#Hadoop-1.2.1</a>
+          
+            <a href="/tags/RPC/" rel="tag">#RPC</a>
+          
+        </div>
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/配置相关RPC/" rel="next" title="Hadoop配置相关---RPC">
+                <i class="fa fa-chevron-left"></i> Hadoop配置相关---RPC
+              </a>
+            
+          </div>
+
+          <div class="post-nav-prev post-nav-item">
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </article>
+
+
+
+    <div class="post-spread">
+      
+        <!-- JiaThis Button BEGIN -->
+<div class="jiathis_style">
+  <a class="jiathis_button_tsina"></a>
+  <a class="jiathis_button_tqq"></a>
+  <a class="jiathis_button_weixin"></a>
+  <a class="jiathis_button_cqq"></a>
+  <a class="jiathis_button_douban"></a>
+  <a class="jiathis_button_renren"></a>
+  <a class="jiathis_button_qzone"></a>
+  <a class="jiathis_button_kaixin001"></a>
+  <a class="jiathis_button_copy"></a>
+  <a href="http://www.jiathis.com/share" class="jiathis jiathis_txt jiathis_separator jtico jtico_jiathis" target="_blank"></a>
+  <a class="jiathis_counter_style"></a>
+</div>
+<script type="text/javascript" >
+  var jiathis_config={
+    hideMore:false
+  }
+</script>
+<script type="text/javascript" src="http://v3.jiathis.com/code/jia.js" charset="utf-8"></script>
+<!-- JiaThis Button END -->
+
+      
+    </div>
+  </div>
+
+
+        </div>
+
+        
+
+
+        
+  <div class="comments" id="comments">
+    
+      <div class="ds-thread" data-thread-key="RPC概述/"
+           data-title="RPC源码阅读---概述" data-url="http://xiao-yun.github.io/RPC概述/">
+      </div>
+    
+  </div>
+
+
+      </div>
+
+      
+        
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap" >
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel ">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+          <img class="site-author-image" src="/images/hero.jpg" alt="xiaoyun" itemprop="image"/>
+          <p class="site-author-name" itemprop="name">xiaoyun</p>
+        </div>
+        <p class="site-description motion-element" itemprop="description">学习笔记，网上资源摘要等</p>
+        <nav class="site-state motion-element">
+          <div class="site-state-item site-state-posts">
+            <a href="/archives">
+              <span class="site-state-item-count">16</span>
+              <span class="site-state-item-name">日志</span>
+            </a>
+          </div>
+
+          <div class="site-state-item site-state-categories">
+            <a href="/categories">
+              <span class="site-state-item-count">18</span>
+              <span class="site-state-item-name">分类</span>
+              </a>
+          </div>
+
+          <div class="site-state-item site-state-tags">
+            <a href="/tags">
+              <span class="site-state-item-count">12</span>
+              <span class="site-state-item-name">标签</span>
+              </a>
+          </div>
+
+        </nav>
+
+        
+
+        <div class="links-of-author motion-element">
+          
+            
+              <span class="links-of-author-item">
+                <a href="https://github.com/xiao-yun" target="_blank">
+                  
+                    <i class="fa fa-globe"></i> github
+                  
+                </a>
+              </span>
+            
+          
+        </div>
+
+        
+        
+
+        <div class="links-of-author motion-element">
+          
+        </div>
+
+      </section>
+
+      
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc-indicator-top post-toc-indicator">
+            <i class="fa fa-angle-double-up"></i>
+          </div>
+          <div class="post-toc">
+            
+              
+            
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#辅助类"><span class="nav-number">1.</span> <span class="nav-text">辅助类</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Client"><span class="nav-number">2.</span> <span class="nav-text">Client</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#成员属性"><span class="nav-number">2.1.</span> <span class="nav-text">成员属性</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Client-Call"><span class="nav-number">2.2.</span> <span class="nav-text">Client.Call</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Client-ParallelCall"><span class="nav-number">2.3.</span> <span class="nav-text">Client.ParallelCall</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#ConnectionId"><span class="nav-number">2.4.</span> <span class="nav-text">ConnectionId</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Connection"><span class="nav-number">2.5.</span> <span class="nav-text">Connection</span></a><ol class="nav-child"><li class="nav-item nav-level-5"><a class="nav-link" href="#PingInputStream"><span class="nav-number">2.5.1.</span> <span class="nav-text">PingInputStream</span></a></li></ol></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Server"><span class="nav-number">3.</span> <span class="nav-text">Server</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#成员属性-1"><span class="nav-number">3.1.</span> <span class="nav-text">成员属性</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Listener"><span class="nav-number">3.2.</span> <span class="nav-text">Listener</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Handler"><span class="nav-number">3.3.</span> <span class="nav-text">Handler</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Responder"><span class="nav-number">3.4.</span> <span class="nav-text">Responder</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Call"><span class="nav-number">3.5.</span> <span class="nav-text">Call</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Connection-1"><span class="nav-number">3.6.</span> <span class="nav-text">Connection</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#RPC"><span class="nav-number">4.</span> <span class="nav-text">RPC</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#Invocation"><span class="nav-number">4.1.</span> <span class="nav-text">Invocation</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#ClientCache"><span class="nav-number">4.2.</span> <span class="nav-text">ClientCache</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#VersionMismatch"><span class="nav-number">4.3.</span> <span class="nav-text">VersionMismatch</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Invoker"><span class="nav-number">4.4.</span> <span class="nav-text">Invoker</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Server-1"><span class="nav-number">4.5.</span> <span class="nav-text">Server</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#总结"><span class="nav-number">5.</span> <span class="nav-text">总结</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#客户端"><span class="nav-number">5.1.</span> <span class="nav-text">客户端</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#服务器端"><span class="nav-number">5.2.</span> <span class="nav-text">服务器端</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#关系梳理"><span class="nav-number">5.3.</span> <span class="nav-text">关系梳理</span></a></li></ol></li></ol></div>
+            
+          </div>
+          <div class="post-toc-indicator-bottom post-toc-indicator">
+            <i class="fa fa-angle-double-down"></i>
+          </div>
+        </section>
+      
+
+    </div>
+  </aside>
+
+
+      
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright" >
+  
+  &copy; 
+  <span itemprop="copyrightYear">2015</span>
+  <span class="with-love">
+    <i class="icon-next-heart fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">xiaoyun</span>
+</div>
+
+<div class="powered-by">
+  由 <a class="theme-link" href="http://hexo.io">Hexo</a> 强力驱动
+</div>
+
+<div class="theme-info">
+  主题 -
+  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
+    NexT.Mist
+  </a>
+</div>
+
+
+
+      </div>
+    </footer>
+
+    <div class="back-to-top"></div>
+  </div>
+
+  <script type="text/javascript" src="/vendors/jquery/index.js?v=2.1.3"></script>
+
+  
+  
+
+  
+    
+
+  
+    
+  
+
+  <script type="text/javascript">
+    var duoshuoQuery = {short_name:"xiaoyuncom"};
+    (function() {
+      var ds = document.createElement('script');
+      ds.type = 'text/javascript';ds.async = true;
+      ds.id = 'duoshuo-script';
+      ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+      ds.charset = 'UTF-8';
+      (document.getElementsByTagName('head')[0]
+      || document.getElementsByTagName('body')[0]).appendChild(ds);
+    })();
+  </script>
+    
+     
+
+
+    
+  
+
+  
+  <script type="text/javascript" src="/vendors/fancybox/source/jquery.fancybox.pack.js"></script>
+  <script type="text/javascript" src="/js/fancy-box.js?v=0.4.5.2"></script>
+
+
+  <script type="text/javascript" src="/js/helpers.js?v=0.4.5.2"></script>
+  <script type="text/javascript" src="/vendors/velocity/velocity.min.js"></script>
+<script type="text/javascript" src="/vendors/velocity/velocity.ui.min.js"></script>
+
+<script type="text/javascript" src="/js/motion.js?v=0.4.5.2" id="motion.global"></script>
+
+
+  <script type="text/javascript" src="/vendors/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  <script type="text/javascript" src="/vendors/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  
+<script type="text/javascript" src="/js/bootstrap.scrollspy.js?v=0.4.5.2" id="bootstrap.scrollspy.custom"></script>
+
+
+<script type="text/javascript" id="sidebar.toc.highlight">
+  $(document).ready(function () {
+    var tocSelector = '.post-toc';
+    var $tocSelector = $(tocSelector);
+    var activeCurrentSelector = '.active-current';
+
+    $tocSelector
+      .on('activate.bs.scrollspy', function () {
+        var $currentActiveElement = $(tocSelector + ' .active').last();
+
+        removeCurrentActiveClass();
+        $currentActiveElement.addClass('active-current');
+
+        $tocSelector[0].scrollTop = $currentActiveElement.position().top;
+      })
+      .on('clear.bs.scrollspy', function () {
+        removeCurrentActiveClass();
+      });
+
+    function removeCurrentActiveClass () {
+      $(tocSelector + ' ' + activeCurrentSelector)
+        .removeClass(activeCurrentSelector.substring(1));
+    }
+
+    function processTOC () {
+      getTOCMaxHeight();
+      toggleTOCOverflowIndicators();
+    }
+
+    function getTOCMaxHeight () {
+      var height = $('.sidebar').height() -
+                   $tocSelector.position().top -
+                   $('.post-toc-indicator-bottom').height();
+
+      $tocSelector.css('height', height);
+
+      return height;
+    }
+
+    function toggleTOCOverflowIndicators () {
+      tocOverflowIndicator(
+        '.post-toc-indicator-top',
+        $tocSelector.scrollTop() > 0 ? 'show' : 'hide'
+      );
+
+      tocOverflowIndicator(
+        '.post-toc-indicator-bottom',
+        $tocSelector.scrollTop() >= $tocSelector.find('ol').height() - $tocSelector.height() ? 'hide' : 'show'
+      )
+    }
+
+    $(document).on('sidebar.motion.complete', function () {
+      processTOC();
+    });
+
+    $('body').scrollspy({ target: tocSelector });
+    $(window).on('resize', function () {
+      if ( $('.sidebar').hasClass('sidebar-active') ) {
+        processTOC();
+      }
+    });
+
+    onScroll($tocSelector);
+
+    function onScroll (element) {
+      element.on('mousewheel DOMMouseScroll', function (event) {
+          var oe = event.originalEvent;
+          var delta = oe.wheelDelta || -oe.detail;
+
+          this.scrollTop += ( delta < 0 ? 1 : -1 ) * 30;
+          event.preventDefault();
+
+          toggleTOCOverflowIndicators();
+      });
+    }
+
+    function tocOverflowIndicator (indicator, action) {
+      var $indicator = $(indicator);
+      var opacity = action === 'show' ? 1 : 0;
+      $indicator.velocity ?
+        $indicator.velocity('stop').velocity({
+          opacity: opacity
+        }, { duration: 100 }) :
+        $indicator.stop().animate({
+          opacity: opacity
+        }, 100);
+    }
+
+  });
+</script>
+
+<script type="text/javascript" id="sidebar.nav">
+  $(document).ready(function () {
+    var html = $('html');
+    var TAB_ANIMATE_DURATION = 200;
+    var hasVelocity = $.isFunction(html.velocity);
+
+    $('.sidebar-nav li').on('click', function () {
+      var item = $(this);
+      var activeTabClassName = 'sidebar-nav-active';
+      var activePanelClassName = 'sidebar-panel-active';
+      if (item.hasClass(activeTabClassName)) {
+        return;
+      }
+
+      var currentTarget = $('.' + activePanelClassName);
+      var target = $('.' + item.data('target'));
+
+      hasVelocity ?
+        currentTarget.velocity('transition.slideUpOut', TAB_ANIMATE_DURATION, function () {
+          target
+            .velocity('stop')
+            .velocity('transition.slideDownIn', TAB_ANIMATE_DURATION)
+            .addClass(activePanelClassName);
+        }) :
+        currentTarget.animate({ opacity: 0 }, TAB_ANIMATE_DURATION, function () {
+          currentTarget.hide();
+          target
+            .stop()
+            .css({'opacity': 0, 'display': 'block'})
+            .animate({ opacity: 1 }, TAB_ANIMATE_DURATION, function () {
+              currentTarget.removeClass(activePanelClassName);
+              target.addClass(activePanelClassName);
+            });
+        });
+
+      item.siblings().removeClass(activeTabClassName);
+      item.addClass(activeTabClassName);
+    });
+
+    $('.post-toc a').on('click', function (e) {
+      e.preventDefault();
+      var targetSelector = escapeSelector(this.getAttribute('href'));
+      var offset = $(targetSelector).offset().top;
+      hasVelocity ?
+        html.velocity('stop').velocity('scroll', {
+          offset: offset  + 'px',
+          mobileHA: false
+        }) :
+        $('html, body').stop().animate({
+          scrollTop: offset
+        }, 500);
+    });
+
+    // Expand sidebar on post detail page by default, when post has a toc.
+    motionMiddleWares.sidebar = function () {
+      var $tocContent = $('.post-toc-content');
+      if (CONFIG.sidebar === 'post') {
+        if ($tocContent.length > 0 && $tocContent.html().trim().length > 0) {
+          displaySidebar();
+        }
+      }
+    };
+  });
+</script>
+
+
+
+  <script type="text/javascript" src="/js/bootstrap.js"></script>
+
+  
+  
+
+  
+  
+
+</body>
+</html>

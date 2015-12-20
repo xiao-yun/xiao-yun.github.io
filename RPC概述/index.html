@@ -73,8 +73,8 @@ Hadoop RPC作为Hadoop节点间底层通信机制，简单来说便是客户端�
 <meta property="og:image" content="http://xiao-yun.github.io/../images/RPC-Server-Connection成员属性.png">
 <meta property="og:image" content="http://xiao-yun.github.io/../images/RPC-RPC.png">
 <meta property="og:image" content="http://xiao-yun.github.io/../images/RPC-RPC-Invocation成员属性.png">
-<meta property="og:image" content="http://xiao-yun.github.io/../images/RPC-RPC-Invoker.png">
-<meta property="og:updated_time" content="2015-12-20T14:32:04.471Z">
+<meta property="og:image" content="http://xiao-yun.github.io/../images/RPC-RPC-Invoker成员属性.png">
+<meta property="og:updated_time" content="2015-12-20T14:39:30.327Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="RPC源码阅读---概述">
 <meta name="twitter:description" content="Hadoop版本:Hadoop-1.2.1参考：《Hadoop技术内幕-深入解析Hadoop Common和HDFS架构设计与实现原理》,后文简称技术内幕RPC中用到的通道和选择器另见通道和选择器，缓冲区另见缓冲区,以及序列化(主要是ObjectWritable)另见序列化
@@ -270,7 +270,7 @@ Hadoop RPC作为Hadoop节点间底层通信机制，简单来说便是客户端�
         <div class="post-meta">
           <span class="post-time">
             发表于
-            <time itemprop="dateCreated" datetime="2015-12-20T22:32:04+08:00" content="2015-12-20">
+            <time itemprop="dateCreated" datetime="2015-12-20T22:39:30+08:00" content="2015-12-20">
               2015-12-20
             </time>
           </span>
@@ -419,7 +419,7 @@ Hadoop RPC作为Hadoop节点间底层通信机制，简单来说便是客户端�
 <p>当该调用完成时，调用<code>callComplete()</code>方法<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">protected</span> <span class="function"><span class="keyword">void</span> <span class="title">callComplete</span><span class="params">()</span> </span>&#123; results.callComplete(<span class="keyword">this</span>);&#125;</span><br></pre></td></tr></table></figure></p>
 <p>而ParallelResults中的callComplete方法如下:<br><figure class="highlight fortran"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> synchronized void callComplete(ParallelCall <span class="keyword">call</span>) &#123;</span><br><span class="line">  values[<span class="keyword">call</span>.<span class="built_in">index</span>] = <span class="keyword">call</span>.<span class="keyword">value</span>;            // store the <span class="keyword">value</span></span><br><span class="line">  <span class="built_in">count</span>++;                                    // <span class="built_in">count</span> it</span><br><span class="line">  <span class="keyword">if</span> (<span class="built_in">count</span> == <span class="built_in">size</span>)                          // <span class="keyword">if</span> <span class="built_in">all</span> values are <span class="type">in</span></span><br><span class="line">    notify();                                 // <span class="keyword">then</span> notify waiting caller</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
 <p>即更新第<code>index</code>结果值，增加已完成的调用数量，若所有调用已完成，则通知等待的调用者。  </p>
-<h4 id="ConnectionId">ConnectionId</h4><p>ConnectionId是客户端连接的标识，用于连接复用，客户端所有的连接保存在Client成员<code>connections</code>中(见上)。客户端到服务器的连接由</p>
+<h4 id="Client-ConnectionId">Client.ConnectionId</h4><p>ConnectionId是客户端连接的标识，用于连接复用，客户端所有的连接保存在Client成员<code>connections</code>中(见上)。客户端到服务器的连接由</p>
 <p><remoteaddress, protocol,="" ticket="">三个属性唯一标识，当请求的连接对应的这三个属性能够在connections中找到现有的连接时，直接使用该连接<br>而不用创建新的连接。  </remoteaddress,></p>
 <p>ConnectionId成员属性如下:<br><img src="../images/RPC-Client-ConnectionId成员属性.png" alt="RPC-Client-ConnectionId成员属性">  </p>
 <ul>
@@ -435,7 +435,7 @@ Hadoop RPC作为Hadoop节点间底层通信机制，简单来说便是客户端�
 <li><code>pingInterval</code>，read操作超时时发送ping数据的间隔，配置项<code>ipc.ping.interval</code>默认1min。当<code>rpcTimeout</code>不为0时，使用rpcTimeout覆盖此值。</li>
 </ul>
 <p>主要方法<code>getConnectionId</code>，通过指定的address，ticket，protocol和配置conf创建<code>ConnectionId</code>对象。  </p>
-<h4 id="Connection">Connection</h4><p>为客户端这边的一个连接，由上，客户端所有连接信息保存在客户端的<code>connections</code>成员中。<br>一个连接的成员属性如下:<br><img src="../images/RPC-Client-Connection成员属性.png" alt="RPC-Client-Connection成员属性">  </p>
+<h4 id="Client-Connection">Client.Connection</h4><p>为客户端这边的一个连接，由上，客户端所有连接信息保存在客户端的<code>connections</code>成员中。<br>一个连接的成员属性如下:<br><img src="../images/RPC-Client-Connection成员属性.png" alt="RPC-Client-Connection成员属性">  </p>
 <ul>
 <li><code>server</code>，远端服务器地址，包括服务器地址(IP或主机名)和端口；</li>
 <li><code>serverPrincipal</code>，服务器主体信息，用于鉴权；</li>
@@ -456,7 +456,7 @@ Hadoop RPC作为Hadoop节点间底层通信机制，简单来说便是客户端�
 <li><code>closeException</code>，关闭连接时的异常；</li>
 </ul>
 <p>Connection是线程，关于Connection的操作以及线程主流程，见后面具体过程分析。</p>
-<h5 id="PingInputStream">PingInputStream</h5><p>实际为客户端连接Client.Connection对应的输入流，在read操作超时时，异常中调用<code>handleTimeout</code>，而处理超时中，如果连接未关闭则判断<code>lastActivity</code><br>和发送ping的时间间隔，向服务器发送ping，以维持连接。<br>就是在正常的读操作过程中添加了超时处理逻辑，具体见后分析。  </p>
+<h5 id="Client-Connection-PingInputStream">Client.Connection.PingInputStream</h5><p>实际为客户端连接Client.Connection对应的输入流，在read操作超时时，异常中调用<code>handleTimeout</code>，而处理超时中，如果连接未关闭则判断<br><code>lastActivity</code>和发送ping的时间间隔，向服务器发送ping，以维持连接。<br>就是在正常的读操作过程中添加了超时处理逻辑，具体见后分析。  </p>
 <h3 id="Server">Server</h3><p>Server主要包括监听器Listener，处理器Handler和响应器Responder。<br>到来的连接由监听器处理，创建对应连接，并对请求的调用封装成<code>Server.Call</code>对象，放入阻塞队列<code>callQueue</code>中，处理器从阻塞队列中取出待处理的请求，<br>调用本地实现的方法进行处理，处理结果或者直接发送回客户端或者放入连接的响应队列<code>responseQueue</code>中，由响应器进行处理，具体哪种方式取决于<br>响应队列中待发送响应的数目。<br>这里使用了Java NIO中的通道和选择器配合，通道分别在选择器上注册accept，read和write操作，关于通道和选择器另见<a href="./通道和选择器.md">通道和选择器</a>。  </p>
 <p>相关类如下:<br><img src="../images/RPC-Server.png" alt="RPC-Server">  </p>
 <h4 id="成员属性-1">成员属性</h4><p>主要成员属性如下:<br><img src="../images/RPC-Server成员属性.png" alt="RPC-Server成员属性">  </p>
@@ -484,7 +484,7 @@ Hadoop RPC作为Hadoop节点间底层通信机制，简单来说便是客户端�
 <li><code>listener</code>，监听器；<code>handlers</code>，处理器数组；<code>responder</code>，响应器；</li>
 </ul>
 <p>包含的内部类如下。</p>
-<h4 id="Listener">Listener</h4><p>监听器，监听到来的连接，监听器中主要有<code>Accept</code>和<code>Read</code>操作。Accept操作接受到来的连接并创建相应的SocketChannel，Read操作主要由Listener<br>的内部类<code>Reader</code>负责，首先读取魔数，版本号以及鉴权方法验证，然后读取连接头，创建指定协议的连接。接下来便是读取到来的远程调用请求了，对每一个请求封装<br>成一个<code>Server.Call</code>放到Server的<code>callQueue</code>队列中，然后由处理器负责处理。  </p>
+<h4 id="Server-Listener">Server.Listener</h4><p>监听器，监听到来的连接，监听器中主要有<code>Accept</code>和<code>Read</code>操作。Accept操作接受到来的连接并创建相应的SocketChannel，Read操作主要由Listener<br>的内部类<code>Reader</code>负责，首先读取魔数，版本号以及鉴权方法验证，然后读取连接头，创建指定协议的连接。接下来便是读取到来的远程调用请求了，对每一个请求封装<br>成一个<code>Server.Call</code>放到Server的<code>callQueue</code>队列中，然后由处理器负责处理。  </p>
 <p>主要成员属性如下:<br><img src="../images/RPC-Server-Listener成员属性.png" alt="RPC-Server-Listener成员属性">  </p>
 <ul>
 <li><code>acceptChannel</code>，服务器的ServerSocketChannel；</li>
@@ -498,15 +498,15 @@ Hadoop RPC作为Hadoop节点间底层通信机制，简单来说便是客户端�
 <li><code>readPool</code>，创建Reader线程的线程池，固定大小线程池；</li>
 </ul>
 <p>监听器创建时，将<code>acceptChannel</code>注册到<code>selector</code>中，且注册的操作为<code>OP_ACCEPT</code>。同时创建相应数量的Reader线程，每个线程关联一个选择器对象。<br>启动时，在线程中循环读取<code>selector</code>中已选择键集，对每一个到来的连接，执行<code>doAccept</code>创建连接相应的SocketChannel对象，从<code>readers</code>中选择<br>下一个(currentReader)Reader，将该SocketChannel注册到对应的Selector中，注册的操作为<code>OP_READ</code>。<br>同时，Reader线程的run函数中读取关联Selector的已选键集，对应SocketChannel上可以读时，执行<code>doRead</code>读取到来的数据(先是魔数，版本，鉴权方法，<br>连接头，然后才是请求的远程调用)进行处理。  </p>
-<h4 id="Handler">Handler</h4><p>处理器，处理<code>callQueue</code>中待处理的调用请求。处理器没有相关成员属性，循环在线程中读取阻塞队列<code>callQueue</code>的调用请求，调用本地相关实现方法<br>进行处理，处理结果放入相应连接(<code>Server.Connection</code>)的响应队列<code>responseQueue</code>中。若连接响应队列只有一个待发送的响应，则直接在本线程<br>(handler)中直接处理，而不是由响应器进行处理，避免了线程切换。否则本线程不予处理，等待响应器进行处理。每次处理时，若响应数据没有全部发送<br>完，则放到相应队列首等待下一次继续发送，同时对应的通道在响应器的选择器中注册写操作。  </p>
-<h4 id="Responder">Responder</h4><p>响应器，循环读取选择器中已选键集，若某个通道可写，则往通道中写响应数据，同样的一次没写完全部数据的，再次放回响应队列的队首下次处理，这里便<br>不需要注册选择器的写操作了，因为已经注册过了。<br>因此，通道的写操作在选择器上的注册只会发生在处理器中，对应的通道第一次没有写完所有的响应数据时，在选择器中进行注册写操作。之后只需要将相应<br>已经有返回值的Server.Call添加至该连接的响应队列即可。(一个连接对应一个通道，因此只需注册一次)  </p>
+<h4 id="Server-Handler">Server.Handler</h4><p>处理器，处理<code>callQueue</code>中待处理的调用请求。处理器没有相关成员属性，循环在线程中读取阻塞队列<code>callQueue</code>的调用请求，调用本地相关实现方法<br>进行处理，处理结果放入相应连接(<code>Server.Connection</code>)的响应队列<code>responseQueue</code>中。若连接响应队列只有一个待发送的响应，则直接在本线程<br>(handler)中直接处理，而不是由响应器进行处理，避免了线程切换。否则本线程不予处理，等待响应器进行处理。每次处理时，若响应数据没有全部发送<br>完，则放到相应队列首等待下一次继续发送，同时对应的通道在响应器的选择器中注册写操作。  </p>
+<h4 id="Server-Responder">Server.Responder</h4><p>响应器，循环读取选择器中已选键集，若某个通道可写，则往通道中写响应数据，同样的一次没写完全部数据的，再次放回响应队列的队首下次处理，这里便<br>不需要注册选择器的写操作了，因为已经注册过了。<br>因此，通道的写操作在选择器上的注册只会发生在处理器中，对应的通道第一次没有写完所有的响应数据时，在选择器中进行注册写操作。之后只需要将相应<br>已经有返回值的Server.Call添加至该连接的响应队列即可。(一个连接对应一个通道，因此只需注册一次)  </p>
 <p>成员属性如下:<br><img src="../images/RPC-Server-Responder成员属性.png" alt="RPC-Server-Responder成员属性">  </p>
 <ul>
 <li><code>writeSelector</code>，为通道注册写操作的选择器；</li>
 <li><code>pending</code>，当前正要注册到选择器上的通道数；</li>
 <li><code>PURGE_INTERVAL</code>,清理空闲连接的周期，15min；</li>
 </ul>
-<h4 id="Call">Call</h4><p>为客户端远程调用在服务器端的实体，监听器listener处理完连接头后便是正常的调用请求数据，每一个调用请求数据发送的格式为:<br><code>长度+客户端Call id(也将是服务器端Call id)+Invocation序列化数据</code><br>因此，相应的listener读取正常请求数据也是长度，再读取id，然后读取Invocation数据。最终通过读取的id和Invocation创建Call对象，创建的Call对象<br>放入Server的<code>callQueue</code>中，等待处理器处理。  </p>
+<h4 id="Server-Call">Server.Call</h4><p>为客户端远程调用在服务器端的实体，监听器listener处理完连接头后便是正常的调用请求数据，每一个调用请求数据发送的格式为:<br><code>长度+客户端Call id(也将是服务器端Call id)+Invocation序列化数据</code><br>因此，相应的listener读取正常请求数据也是长度，再读取id，然后读取Invocation数据。最终通过读取的id和Invocation创建Call对象，创建的Call对象<br>放入Server的<code>callQueue</code>中，等待处理器处理。  </p>
 <p>Call成员属性如下:<br><img src="../images/RPC-Server-Call成员属性.png" alt="RPC-Server-Call成员属性">  </p>
 <ul>
 <li><code>id</code>，与客户端一样，作为该调用的标识，不过客户端是通过成员<code>counter</code>递增而来，而服务器端则是客户端发送过来的id；</li>
@@ -515,7 +515,7 @@ Hadoop RPC作为Hadoop节点间底层通信机制，简单来说便是客户端�
 <li><code>timestamp</code>,该Call创建的时间戳；</li>
 <li><code>response</code>，对应的响应，处理完由Call的<code>setResponse</code>填充；</li>
 </ul>
-<h4 id="Connection-1">Connection</h4><p>对应服务器端的一个连接，连接的建立在客户端的<code>setupConnection</code>发起，而在服务器端由<code>listener</code>中<code>selector</code>接收连接，相应的在<code>doAccept</code><br>中，ServerSocketChannel accept后得到一个SocketChannel，该SocketChannel关联新创建的连接。  </p>
+<h4 id="Server-Connection">Server.Connection</h4><p>对应服务器端的一个连接，连接的建立在客户端的<code>setupConnection</code>发起，而在服务器端由<code>listener</code>中<code>selector</code>接收连接，相应的在<code>doAccept</code><br>中，ServerSocketChannel accept后得到一个SocketChannel，该SocketChannel关联新创建的连接。  </p>
 <p>Connection成员属性如下:<br><img src="../images/RPC-Server-Connection成员属性.png" alt="RPC-Server-Connection成员属性">  </p>
 <ul>
 <li><code>rpcHeaderRead</code>,如前描述，建立连接时，先发送4个字节的魔数<code>hrpc</code>，1个字节的版本号(当前为4),1个字节的鉴权方法码，服务器端首先要验证<br>魔数和版本号是否一致，然后根据不同的鉴权方法验证是否由权限执行该调用，该成员为true时表示已经验证了，否则没验证需要验证；</li>
@@ -548,24 +548,24 @@ Hadoop RPC作为Hadoop节点间底层通信机制，简单来说便是客户端�
 <h3 id="RPC">RPC</h3><p><code>RPC</code>在<code>Client</code>和<code>Server</code>的基础上实现了Hadoop的RPC，包含客户端获取动态代理方法<code>getProxy</code>，获取客户端方法<code>getClient</code>以及获取服务器方法<br><code>getServer</code>，大部分都是静态方法，成员属性除了日志对象外，也只有保存所有客户端的<code>CLIENTS</code>:<br><figure class="highlight actionscript"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="keyword">static</span> ClientCache CLIENTS=<span class="keyword">new</span> ClientCache();</span><br></pre></td></tr></table></figure></p>
 <p>相关类如下:<br><img src="../images/RPC-RPC.png" alt="RPC-RPC"></p>
 <p>含有以下内部类。</p>
-<h4 id="Invocation">Invocation</h4><p>作为<code>Client.Call</code>对象的<code>param</code>成员类型，包含了一个远程调用的方法名，参数类型，参数值等信息，成员属性如下:<br><img src="../images/RPC-RPC-Invocation成员属性.png" alt="RPC-RPC-Invocation成员属性">  </p>
+<h4 id="RPC-Invocation">RPC.Invocation</h4><p>作为<code>Client.Call</code>对象的<code>param</code>成员类型，包含了一个远程调用的方法名，参数类型，参数值等信息，成员属性如下:<br><img src="../images/RPC-RPC-Invocation成员属性.png" alt="RPC-RPC-Invocation成员属性">  </p>
 <ul>
 <li><code>methodName</code>,该调用的方法名；</li>
 <li><code>parameterClasses</code>，调用方法参数分别对应的类型；</li>
 <li><code>parameters</code>，调用方法的参数值；</li>
 <li><code>conf</code>，配置；</li>
 </ul>
-<h4 id="ClientCache">ClientCache</h4><p>缓存所有客户端，当需要获取一个客户端时，先从该缓存中取，没有再创建并放入缓存。唯一成员属性:<br><figure class="highlight lasso"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="built_in">Map</span>&lt;SocketFactory, Client&gt; clients = <span class="literal">new</span> HashMap&lt;SocketFactory, Client&gt;();</span><br></pre></td></tr></table></figure></p>
+<h4 id="RPC-ClientCache">RPC.ClientCache</h4><p>缓存所有客户端，当需要获取一个客户端时，先从该缓存中取，没有再创建并放入缓存。唯一成员属性:<br><figure class="highlight lasso"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="built_in">Map</span>&lt;SocketFactory, Client&gt; clients = <span class="literal">new</span> HashMap&lt;SocketFactory, Client&gt;();</span><br></pre></td></tr></table></figure></p>
 <p>键为客户端使用的Socket工厂，值为客户端。一般来说，客户端由<code>valueClass</code>即调用结果反序列化类和使用的Socket工厂决定，而目前<code>valueClass</code><br>只有<code>ObjectWritable</code>，即服务器端响应封装成ObjectWritable，客户端响应的也只能构建ObjectWritable反序列化。因此基本上一个Socket工厂<br>对应一个客户端。因此这里维护了”Socket从厂-客户端”键值对。  </p>
-<h4 id="VersionMismatch">VersionMismatch</h4><p>版本不匹配，创建代理时，可决定是否检查客户端和服务器版本(VersionedProtocol中<code>getProtocolVersion</code>)，若不匹配，抛出该异常。  </p>
-<h4 id="Invoker">Invoker</h4><p>为代理的调用处理器，成员如下:<br><img src="../images/RPC-RPC-Invoker.png" alt="RPC-RPC-Invoker成员属性">  </p>
+<h4 id="RPC-VersionMismatch">RPC.VersionMismatch</h4><p>版本不匹配，创建代理时，可决定是否检查客户端和服务器版本(VersionedProtocol中<code>getProtocolVersion</code>)，若不匹配，抛出该异常。  </p>
+<h4 id="RPC-Invoker">RPC.Invoker</h4><p>为代理的调用处理器，成员如下:<br><img src="../images/RPC-RPC-Invoker成员属性.png" alt="RPC-RPC-Invoker成员属性">  </p>
 <ul>
 <li><code>remoteId</code>，该调用处理器负责转发的连接标识；</li>
 <li><code>client</code>，所属客户端；</li>
 <li><code>isClosed</code>，当前连接转发关闭；</li>
 </ul>
 <p>通过代理调用协议中的方法时，转发到Invoker的<code>invoke</code>方法中，在<code>invoke</code>方法中由所属客户端<code>client</code>的<code>call</code>方法执行调用，打开连接(如果还没打开)<br>,发送头数据，然后发送调用数据。  </p>
-<h4 id="Server-1">Server</h4><p><code>org.apache.hadoop.ipc.Server</code>的子类，成员属性如下:  </p>
+<h4 id="RPC-Server">RPC.Server</h4><p><code>org.apache.hadoop.ipc.Server</code>的子类，成员属性如下:  </p>
 <ul>
 <li><code>instance</code>，协议实现类的实例，客户端的远程调用最终受理对象；</li>
 <li><code>verbose</code>,详细信息；</li>
@@ -768,7 +768,7 @@ Hadoop RPC作为Hadoop节点间底层通信机制，简单来说便是客户端�
               
             
             
-              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#辅助类"><span class="nav-number">1.</span> <span class="nav-text">辅助类</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Client"><span class="nav-number">2.</span> <span class="nav-text">Client</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#成员属性"><span class="nav-number">2.1.</span> <span class="nav-text">成员属性</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Client-Call"><span class="nav-number">2.2.</span> <span class="nav-text">Client.Call</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Client-ParallelCall"><span class="nav-number">2.3.</span> <span class="nav-text">Client.ParallelCall</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#ConnectionId"><span class="nav-number">2.4.</span> <span class="nav-text">ConnectionId</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Connection"><span class="nav-number">2.5.</span> <span class="nav-text">Connection</span></a><ol class="nav-child"><li class="nav-item nav-level-5"><a class="nav-link" href="#PingInputStream"><span class="nav-number">2.5.1.</span> <span class="nav-text">PingInputStream</span></a></li></ol></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Server"><span class="nav-number">3.</span> <span class="nav-text">Server</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#成员属性-1"><span class="nav-number">3.1.</span> <span class="nav-text">成员属性</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Listener"><span class="nav-number">3.2.</span> <span class="nav-text">Listener</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Handler"><span class="nav-number">3.3.</span> <span class="nav-text">Handler</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Responder"><span class="nav-number">3.4.</span> <span class="nav-text">Responder</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Call"><span class="nav-number">3.5.</span> <span class="nav-text">Call</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Connection-1"><span class="nav-number">3.6.</span> <span class="nav-text">Connection</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#RPC"><span class="nav-number">4.</span> <span class="nav-text">RPC</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#Invocation"><span class="nav-number">4.1.</span> <span class="nav-text">Invocation</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#ClientCache"><span class="nav-number">4.2.</span> <span class="nav-text">ClientCache</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#VersionMismatch"><span class="nav-number">4.3.</span> <span class="nav-text">VersionMismatch</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Invoker"><span class="nav-number">4.4.</span> <span class="nav-text">Invoker</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Server-1"><span class="nav-number">4.5.</span> <span class="nav-text">Server</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#总结"><span class="nav-number">5.</span> <span class="nav-text">总结</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#客户端"><span class="nav-number">5.1.</span> <span class="nav-text">客户端</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#服务器端"><span class="nav-number">5.2.</span> <span class="nav-text">服务器端</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#关系梳理"><span class="nav-number">5.3.</span> <span class="nav-text">关系梳理</span></a></li></ol></li></ol></div>
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#辅助类"><span class="nav-number">1.</span> <span class="nav-text">辅助类</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Client"><span class="nav-number">2.</span> <span class="nav-text">Client</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#成员属性"><span class="nav-number">2.1.</span> <span class="nav-text">成员属性</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Client-Call"><span class="nav-number">2.2.</span> <span class="nav-text">Client.Call</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Client-ParallelCall"><span class="nav-number">2.3.</span> <span class="nav-text">Client.ParallelCall</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Client-ConnectionId"><span class="nav-number">2.4.</span> <span class="nav-text">Client.ConnectionId</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Client-Connection"><span class="nav-number">2.5.</span> <span class="nav-text">Client.Connection</span></a><ol class="nav-child"><li class="nav-item nav-level-5"><a class="nav-link" href="#Client-Connection-PingInputStream"><span class="nav-number">2.5.1.</span> <span class="nav-text">Client.Connection.PingInputStream</span></a></li></ol></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Server"><span class="nav-number">3.</span> <span class="nav-text">Server</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#成员属性-1"><span class="nav-number">3.1.</span> <span class="nav-text">成员属性</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Server-Listener"><span class="nav-number">3.2.</span> <span class="nav-text">Server.Listener</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Server-Handler"><span class="nav-number">3.3.</span> <span class="nav-text">Server.Handler</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Server-Responder"><span class="nav-number">3.4.</span> <span class="nav-text">Server.Responder</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Server-Call"><span class="nav-number">3.5.</span> <span class="nav-text">Server.Call</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Server-Connection"><span class="nav-number">3.6.</span> <span class="nav-text">Server.Connection</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#RPC"><span class="nav-number">4.</span> <span class="nav-text">RPC</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#RPC-Invocation"><span class="nav-number">4.1.</span> <span class="nav-text">RPC.Invocation</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#RPC-ClientCache"><span class="nav-number">4.2.</span> <span class="nav-text">RPC.ClientCache</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#RPC-VersionMismatch"><span class="nav-number">4.3.</span> <span class="nav-text">RPC.VersionMismatch</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#RPC-Invoker"><span class="nav-number">4.4.</span> <span class="nav-text">RPC.Invoker</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#RPC-Server"><span class="nav-number">4.5.</span> <span class="nav-text">RPC.Server</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#总结"><span class="nav-number">5.</span> <span class="nav-text">总结</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#客户端"><span class="nav-number">5.1.</span> <span class="nav-text">客户端</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#服务器端"><span class="nav-number">5.2.</span> <span class="nav-text">服务器端</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#关系梳理"><span class="nav-number">5.3.</span> <span class="nav-text">关系梳理</span></a></li></ol></li></ol></div>
             
           </div>
           <div class="post-toc-indicator-bottom post-toc-indicator">

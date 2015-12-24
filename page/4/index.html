@@ -133,7 +133,7 @@
   
 
   
-    <ul id="menu" class="menu menu-left">
+    <ul id="menu" class="menu ">
       
         
         <li class="menu-item menu-item-home">
@@ -192,27 +192,6 @@
   
 
   
-    <div class="site-search">
-      
-  
-  <form class="site-search-form">
-    <input type="text" id="st-search-input" class="st-search-input st-default-search-input" />
-  </form>
-
-
-<script type="text/javascript">
-  (function(w,d,t,u,n,s,e){w['SwiftypeObject']=n;w[n]=w[n]||function(){
-    (w[n].q=w[n].q||[]).push(arguments);};s=d.createElement(t);
-    e=d.getElementsByTagName(t)[0];s.async=1;s.src=u;e.parentNode.insertBefore(s,e);
-  })(window,document,'script','//s.swiftypecdn.com/install/v2/st.js','_st');
-
-  _st('install', 'Nq1MdxGEF4xQgzakv9MC','2.0.0');
-</script>
-
-
-
-    </div>
-  
 </nav>
 
  </div>
@@ -228,6 +207,304 @@
 
     
     
+      
+      
+
+      
+    
+
+    
+      
+
+  
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                
+                <a class="post-title-link" href="/ParallelStreamReader/" itemprop="url">
+                  RaidNode源码阅读---辅助类之ParallelStreamReader
+                </a>
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            发表于
+            <time itemprop="dateCreated" datetime="2015-12-12T17:04:51+08:00" content="2015-12-12">
+              2015-12-12
+            </time>
+          </span>
+
+          
+            <span class="post-category" >
+              &nbsp; | &nbsp; 分类于
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Hadoop-0-20/" itemprop="url" rel="index">
+                    <span itemprop="name">Hadoop-0.20</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Hadoop-0-20/RaidNode/" itemprop="url" rel="index">
+                    <span itemprop="name">RaidNode</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Hadoop-0-20/RaidNode/源码阅读/" itemprop="url" rel="index">
+                    <span itemprop="name">源码阅读</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Hadoop-0-20/RaidNode/源码阅读/RaidNode源码阅读/" itemprop="url" rel="index">
+                    <span itemprop="name">RaidNode源码阅读</span>
+                  </a>
+                </span>
+
+                
+                
+
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                &nbsp; | &nbsp;
+                <a href="/ParallelStreamReader/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="ParallelStreamReader/" itemprop="commentsCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+
+        </div>
+      </header>
+    
+
+
+    <div class="post-body">
+
+      
+      
+
+      
+        
+          <span itemprop="articleBody">
+            
+            
+Hadoop版本:hadoop-20-master
+
+ParallelStreamReader一个Stripe对应一个ParallelStreamReader,管理n个输入流的字节缓冲.  
+编码过程对应的n为stripeLength,将这n个输入流编码成parityLength个输出流.修复损坏
+            ...
+          </span>
+          <div class="post-more-link text-center">
+            <a class="btn" href="/ParallelStreamReader/#more" rel="contents">
+              阅读全文 &raquo;
+            </a>
+          </div>
+        
+      
+    </div>
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </article>
+
+
+    
+      
+
+  
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                
+                <a class="post-title-link" href="/CorruptMonitor/" itemprop="url">
+                  RaidNode源码阅读---损坏区块修复CorruptMonitor(LocalBlockIntegerityMonitor)
+                </a>
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            发表于
+            <time itemprop="dateCreated" datetime="2015-12-12T16:43:27+08:00" content="2015-12-12">
+              2015-12-12
+            </time>
+          </span>
+
+          
+            <span class="post-category" >
+              &nbsp; | &nbsp; 分类于
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Hadoop-0-20/" itemprop="url" rel="index">
+                    <span itemprop="name">Hadoop-0.20</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Hadoop-0-20/RaidNode/" itemprop="url" rel="index">
+                    <span itemprop="name">RaidNode</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Hadoop-0-20/RaidNode/源码阅读/" itemprop="url" rel="index">
+                    <span itemprop="name">源码阅读</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Hadoop-0-20/RaidNode/源码阅读/RaidNode源码阅读/" itemprop="url" rel="index">
+                    <span itemprop="name">RaidNode源码阅读</span>
+                  </a>
+                </span>
+
+                
+                
+
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                &nbsp; | &nbsp;
+                <a href="/CorruptMonitor/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="CorruptMonitor/" itemprop="commentsCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+
+        </div>
+      </header>
+    
+
+
+    <div class="post-body">
+
+      
+      
+
+      
+        
+          <span itemprop="articleBody">
+            
+            
+Hadoop版本:hadoop-20-master
+
+LocalBlockIntegrityMonitor没有提供丢失区块修复功能,损坏区块的修复类就是LocalBlockIngerityMonitor,参见辅助类.LocalBlockIntegrityMonitor主线程:1234while (
+            ...
+          </span>
+          <div class="post-more-link text-center">
+            <a class="btn" href="/CorruptMonitor/#more" rel="contents">
+              阅读全文 &raquo;
+            </a>
+          </div>
+        
+      
+    </div>
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </article>
+
 
     
       
@@ -414,7 +691,7 @@ fs.raid
         <nav class="site-state motion-element">
           <div class="site-state-item site-state-posts">
             <a href="/archives">
-              <span class="site-state-item-count">16</span>
+              <span class="site-state-item-count">18</span>
               <span class="site-state-item-name">日志</span>
             </a>
           </div>

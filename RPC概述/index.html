@@ -74,7 +74,7 @@ Hadoop RPC作为Hadoop节点间底层通信机制，简单来说便是客户端�
 <meta property="og:image" content="http://xiao-yun.github.io/../images/RPC-RPC.png">
 <meta property="og:image" content="http://xiao-yun.github.io/../images/RPC-RPC-Invocation成员属性.png">
 <meta property="og:image" content="http://xiao-yun.github.io/../images/RPC-RPC-Invoker成员属性.png">
-<meta property="og:updated_time" content="2015-12-20T14:39:30.327Z">
+<meta property="og:updated_time" content="2015-12-24T03:23:57.272Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="RPC源码阅读---概述">
 <meta name="twitter:description" content="Hadoop版本:Hadoop-1.2.1参考：《Hadoop技术内幕-深入解析Hadoop Common和HDFS架构设计与实现原理》,后文简称技术内幕RPC中用到的通道和选择器另见通道和选择器，缓冲区另见缓冲区,以及序列化(主要是ObjectWritable)另见序列化
@@ -150,7 +150,7 @@ Hadoop RPC作为Hadoop节点间底层通信机制，简单来说便是客户端�
   
 
   
-    <ul id="menu" class="menu menu-left">
+    <ul id="menu" class="menu ">
       
         
         <li class="menu-item menu-item-home">
@@ -209,27 +209,6 @@ Hadoop RPC作为Hadoop节点间底层通信机制，简单来说便是客户端�
   
 
   
-    <div class="site-search">
-      
-  
-  <form class="site-search-form">
-    <input type="text" id="st-search-input" class="st-search-input st-default-search-input" />
-  </form>
-
-
-<script type="text/javascript">
-  (function(w,d,t,u,n,s,e){w['SwiftypeObject']=n;w[n]=w[n]||function(){
-    (w[n].q=w[n].q||[]).push(arguments);};s=d.createElement(t);
-    e=d.getElementsByTagName(t)[0];s.async=1;s.src=u;e.parentNode.insertBefore(s,e);
-  })(window,document,'script','//s.swiftypecdn.com/install/v2/st.js','_st');
-
-  _st('install', 'Nq1MdxGEF4xQgzakv9MC','2.0.0');
-</script>
-
-
-
-    </div>
-  
 </nav>
 
  </div>
@@ -270,8 +249,8 @@ Hadoop RPC作为Hadoop节点间底层通信机制，简单来说便是客户端�
         <div class="post-meta">
           <span class="post-time">
             发表于
-            <time itemprop="dateCreated" datetime="2015-12-20T22:39:30+08:00" content="2015-12-20">
-              2015-12-20
+            <time itemprop="dateCreated" datetime="2015-12-24T11:23:57+08:00" content="2015-12-24">
+              2015-12-24
             </time>
           </span>
 
@@ -443,7 +422,7 @@ Hadoop RPC作为Hadoop节点间底层通信机制，简单来说便是客户端�
 <li><code>remoteId</code>，连接的标识；</li>
 <li><code>authMethod</code>,鉴权方法，枚举类型，包括<code>SIMPLE(80)</code>，<code>KERBEROS(81)</code>，<code>DIGEST(82)</code>三种，建立连接时发送对应的字节码到服务器；</li>
 <li><code>socket</code>，创建的socket对象；</li>
-<li><code>in</code>，输入流，其实是<code>Connection.PingInputStream</code>，read操作超时时会周期性发送ping到服务器端，以保持连接状态；</li>
+<li><code>in</code>，输入流，其实是<code>Connection.PingInputStream</code>，read操作超时时默认会周期性发送ping到服务器端，以保持连接状态；</li>
 <li><code>out</code>,输出流；</li>
 <li><code>rpcTimeout</code>,同ConnectionId；</li>
 <li><code>maxIdleTime</code>，同ConnectionId；</li>
@@ -456,7 +435,9 @@ Hadoop RPC作为Hadoop节点间底层通信机制，简单来说便是客户端�
 <li><code>closeException</code>，关闭连接时的异常；</li>
 </ul>
 <p>Connection是线程，关于Connection的操作以及线程主流程，见后面具体过程分析。</p>
-<h5 id="Client-Connection-PingInputStream">Client.Connection.PingInputStream</h5><p>实际为客户端连接Client.Connection对应的输入流，在read操作超时时，异常中调用<code>handleTimeout</code>，而处理超时中，如果连接未关闭则判断<br><code>lastActivity</code>和发送ping的时间间隔，向服务器发送ping，以维持连接。<br>就是在正常的读操作过程中添加了超时处理逻辑，具体见后分析。  </p>
+<h5 id="Client-Connection-PingInputStream">Client.Connection.PingInputStream</h5><p>实际为客户端连接Client.Connection对应的输入流，在read操作超时时，异常中调用<code>handleTimeout</code>。read操作超时时间，在<code>rpcTimeout</code>不大于0<br>(rpcTimeout在getProxy中指定)时，为pingInterval(ipc.ping.interval，默认1min)，rpcTimeout大于0时，pingInterval和超时时间都为rpcTimeout。  </p>
+<p>处理超时中，如果连接未关闭且<code>rpcTimeout</code>(rpcTimeout在getProxy中指定)不大于0，则判断<code>lastActivity</code>和发送ping的时间间隔，向服务器<br>发送ping，以维持连接。这时如果服务器端连接关闭，客户端发送ping时抛出异常，导致客户端连接关闭。<br>而如果rpcTimeout大于0，则read超时时直接抛出异常，关闭连接。  </p>
+<p>具体见后分析。</p>
 <h3 id="Server">Server</h3><p>Server主要包括监听器Listener，处理器Handler和响应器Responder。<br>到来的连接由监听器处理，创建对应连接，并对请求的调用封装成<code>Server.Call</code>对象，放入阻塞队列<code>callQueue</code>中，处理器从阻塞队列中取出待处理的请求，<br>调用本地实现的方法进行处理，处理结果或者直接发送回客户端或者放入连接的响应队列<code>responseQueue</code>中，由响应器进行处理，具体哪种方式取决于<br>响应队列中待发送响应的数目。<br>这里使用了Java NIO中的通道和选择器配合，通道分别在选择器上注册accept，read和write操作，关于通道和选择器另见<a href="./通道和选择器.md">通道和选择器</a>。  </p>
 <p>相关类如下:<br><img src="../images/RPC-Server.png" alt="RPC-Server">  </p>
 <h4 id="成员属性-1">成员属性</h4><p>主要成员属性如下:<br><img src="../images/RPC-Server成员属性.png" alt="RPC-Server成员属性">  </p>
@@ -589,7 +570,7 @@ Hadoop RPC作为Hadoop节点间底层通信机制，简单来说便是客户端�
 <p>同样的，一个<code>Connection</code>下可以有多个<code>Call</code>，即用户对同一服务器下的同一协议的不同方法调用由一个连接管理。  </p>
 <p>这样看来，一个客户端里面可能维护了多个用户的连接，而一个用户可能有对同一个服务器不同协议的多个连接，也可能有对不同服务器同一个协议或不同协议<br>的多个连接，客户端下维护的连接数为成员<code>refCount</code>。而具体到一个连接，则管理了具体用户，具体服务器，具体协议下所有调用<code>Call</code>。</p>
 <p>再来看看代理Proxy，通过<code>RPC.getProxy</code>获得的代理，其调用处理器<code>Invoker</code>管理了<code>ConnetionId</code>和所属的<code>Client</code>对象，因此一个代理只能<br>处理所属客户端<code>client</code>下的一个连接，如下:<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> <span class="function">VersionedProtocol <span class="title">getProxy</span><span class="params">(</span><br><span class="line">    Class&lt;? <span class="keyword">extends</span> VersionedProtocol&gt; protocol,</span><br><span class="line">    <span class="keyword">long</span> clientVersion, InetSocketAddress addr, Configuration conf)</span></span><br><span class="line">    <span class="keyword">throws</span> IOException </span>&#123;</span><br></pre></td></tr></table></figure></p>
-<p>该方法为最简单参数的getProxy方法，创建的代理所属的<code>Client</code>使用缺省的SocketFactory，代理负责处理的连接，其服务器地址由<code>addr</code>指定，<br>使用的协议为<code>protocol</code>，用户信息为当前用户。  </p>
+<p>该方法为最简单参数的getProxy方法，创建的代理所属的<code>Client</code>使用缺省的SocketFactory，代理负责处理的连接，其服务器地址由<code>addr</code>指定，<br>使用的协议为<code>protocol</code>，用户信息为当前用户，rpcTimeout为0。  </p>
 </span>
       
     </div>
@@ -611,13 +592,17 @@ Hadoop RPC作为Hadoop节点间底层通信机制，简单来说便是客户端�
         <div class="post-nav">
           <div class="post-nav-next post-nav-item">
             
-              <a href="/配置相关RPC/" rel="next" title="Hadoop配置相关---RPC">
-                <i class="fa fa-chevron-left"></i> Hadoop配置相关---RPC
+              <a href="/Socket选项/" rel="next" title="TCP Socket选项">
+                <i class="fa fa-chevron-left"></i> TCP Socket选项
               </a>
             
           </div>
 
           <div class="post-nav-prev post-nav-item">
+            
+              <a href="/RPC源码分析上篇/" rel="prev" title="RPC源码阅读---源码分析上篇">
+                RPC源码阅读---源码分析上篇 <i class="fa fa-chevron-right"></i>
+              </a>
             
           </div>
         </div>
@@ -712,7 +697,7 @@ Hadoop RPC作为Hadoop节点间底层通信机制，简单来说便是客户端�
         <nav class="site-state motion-element">
           <div class="site-state-item site-state-posts">
             <a href="/archives">
-              <span class="site-state-item-count">16</span>
+              <span class="site-state-item-count">18</span>
               <span class="site-state-item-name">日志</span>
             </a>
           </div>

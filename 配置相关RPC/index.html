@@ -69,12 +69,10 @@ socket连接Nagel算法
 
 ipc.client.connection.maxidletime
 10000(10s)
-连接最大空闲时间，超过该时间的空闲连接将关闭
+连接最大空闲时间，超过该时间的空闲连接将关闭，服务器端空闲时间为该值两倍，不过没设置时服务器默认1s
 
 
-ipc.client.connect.max.retries
-10
-连接最">
+ipc.clien">
 <meta property="og:type" content="article">
 <meta property="og:title" content="Hadoop配置相关---RPC">
 <meta property="og:url" content="http://xiao-yun.github.io/配置相关RPC/index.html">
@@ -97,13 +95,11 @@ socket连接Nagel算法
 
 ipc.client.connection.maxidletime
 10000(10s)
-连接最大空闲时间，超过该时间的空闲连接将关闭
+连接最大空闲时间，超过该时间的空闲连接将关闭，服务器端空闲时间为该值两倍，不过没设置时服务器默认1s
 
 
-ipc.client.connect.max.retries
-10
-连接最">
-<meta property="og:updated_time" content="2015-12-20T07:48:28.658Z">
+ipc.clien">
+<meta property="og:updated_time" content="2015-12-24T03:23:57.316Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="Hadoop配置相关---RPC">
 <meta name="twitter:description" content="Hadoop版本:Hadoop-1.2.1  
@@ -124,12 +120,10 @@ socket连接Nagel算法
 
 ipc.client.connection.maxidletime
 10000(10s)
-连接最大空闲时间，超过该时间的空闲连接将关闭
+连接最大空闲时间，超过该时间的空闲连接将关闭，服务器端空闲时间为该值两倍，不过没设置时服务器默认1s
 
 
-ipc.client.connect.max.retries
-10
-连接最">
+ipc.clien">
 
 
 
@@ -201,7 +195,7 @@ ipc.client.connect.max.retries
   
 
   
-    <ul id="menu" class="menu menu-left">
+    <ul id="menu" class="menu ">
       
         
         <li class="menu-item menu-item-home">
@@ -260,27 +254,6 @@ ipc.client.connect.max.retries
   
 
   
-    <div class="site-search">
-      
-  
-  <form class="site-search-form">
-    <input type="text" id="st-search-input" class="st-search-input st-default-search-input" />
-  </form>
-
-
-<script type="text/javascript">
-  (function(w,d,t,u,n,s,e){w['SwiftypeObject']=n;w[n]=w[n]||function(){
-    (w[n].q=w[n].q||[]).push(arguments);};s=d.createElement(t);
-    e=d.getElementsByTagName(t)[0];s.async=1;s.src=u;e.parentNode.insertBefore(s,e);
-  })(window,document,'script','//s.swiftypecdn.com/install/v2/st.js','_st');
-
-  _st('install', 'Nq1MdxGEF4xQgzakv9MC','2.0.0');
-</script>
-
-
-
-    </div>
-  
 </nav>
 
  </div>
@@ -321,8 +294,8 @@ ipc.client.connect.max.retries
         <div class="post-meta">
           <span class="post-time">
             发表于
-            <time itemprop="dateCreated" datetime="2015-12-20T15:48:28+08:00" content="2015-12-20">
-              2015-12-20
+            <time itemprop="dateCreated" datetime="2015-12-24T11:23:57+08:00" content="2015-12-24">
+              2015-12-24
             </time>
           </span>
 
@@ -409,7 +382,7 @@ ipc.client.connect.max.retries
 <tr>
 <td style="text-align:center">ipc.client.connection.maxidletime</td>
 <td style="text-align:center">10000(10s)</td>
-<td style="text-align:center">连接最大空闲时间，超过该时间的空闲连接将关闭</td>
+<td style="text-align:center">连接最大空闲时间，超过该时间的空闲连接将关闭，服务器端空闲时间为该值两倍，不过没设置时服务器默认1s</td>
 </tr>
 <tr>
 <td style="text-align:center">ipc.client.connect.max.retries</td>
@@ -435,12 +408,32 @@ ipc.client.connect.max.retries
 <tr>
 <td style="text-align:center">ipc.server.handler.queue.size</td>
 <td style="text-align:center">100</td>
-<td style="text-align:center"></td>
+<td style="text-align:center">处理器队列callQueue最大大小</td>
 </tr>
 <tr>
 <td style="text-align:center">ipc.server.max.response.size</td>
 <td style="text-align:center">1024*1024(1MB)</td>
-<td style="text-align:center"></td>
+<td style="text-align:center">每一个响应的临时最大缓冲大小，超出时日志记录并将该临时缓冲重置为10KB大小(每次写响应到该缓冲都会自动扩容，handler线程中)</td>
+</tr>
+<tr>
+<td style="text-align:center">ipc.server.read.threadpool.size</td>
+<td style="text-align:center">1</td>
+<td style="text-align:center">监听器Reader线程数</td>
+</tr>
+<tr>
+<td style="text-align:center">ipc.client.kill.max</td>
+<td style="text-align:center">10</td>
+<td style="text-align:center">清理空闲连接时一次最多清理的连接个数</td>
+</tr>
+<tr>
+<td style="text-align:center">ipc.client.idlethreshold</td>
+<td style="text-align:center">4000</td>
+<td style="text-align:center">空闲连接的阈值，超过此值时listener清理空闲连接，释放资源</td>
+</tr>
+<tr>
+<td style="text-align:center">ipc.server.tcpnodelay</td>
+<td style="text-align:center">false</td>
+<td style="text-align:center">false时开启Nagle算法</td>
 </tr>
 </tbody>
 </table>
@@ -465,16 +458,16 @@ ipc.client.connect.max.retries
         <div class="post-nav">
           <div class="post-nav-next post-nav-item">
             
-              <a href="/序列化/" rel="next" title="Common源码阅读---序列化">
-                <i class="fa fa-chevron-left"></i> Common源码阅读---序列化
+              <a href="/RPC源码分析上篇/" rel="next" title="RPC源码阅读---源码分析上篇">
+                <i class="fa fa-chevron-left"></i> RPC源码阅读---源码分析上篇
               </a>
             
           </div>
 
           <div class="post-nav-prev post-nav-item">
             
-              <a href="/RPC概述/" rel="prev" title="RPC源码阅读---概述">
-                RPC源码阅读---概述 <i class="fa fa-chevron-right"></i>
+              <a href="/RPC源码分析下篇/" rel="prev" title="RPC源码阅读---源码分析下篇">
+                RPC源码阅读---源码分析下篇 <i class="fa fa-chevron-right"></i>
               </a>
             
           </div>
@@ -570,7 +563,7 @@ ipc.client.connect.max.retries
         <nav class="site-state motion-element">
           <div class="site-state-item site-state-posts">
             <a href="/archives">
-              <span class="site-state-item-count">16</span>
+              <span class="site-state-item-count">18</span>
               <span class="site-state-item-name">日志</span>
             </a>
           </div>

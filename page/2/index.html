@@ -235,8 +235,8 @@
             
               
                 
-                <a class="post-title-link" href="/缓冲区/" itemprop="url">
-                  Java NIO---缓冲区
+                <a class="post-title-link" href="/Socket选项/" itemprop="url">
+                  TCP Socket选项
                 </a>
               
             
@@ -256,20 +256,8 @@
               &nbsp; | &nbsp; 分类于
               
                 <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
-                  <a href="/categories/Java/" itemprop="url" rel="index">
-                    <span itemprop="name">Java</span>
-                  </a>
-                </span>
-
-                
-                
-                  ， 
-                
-
-              
-                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
-                  <a href="/categories/Java/Hadoop/" itemprop="url" rel="index">
-                    <span itemprop="name">Hadoop</span>
+                  <a href="/categories/网络编程/" itemprop="url" rel="index">
+                    <span itemprop="name">网络编程</span>
                   </a>
                 </span>
 
@@ -284,8 +272,8 @@
             
               <span class="post-comments-count">
                 &nbsp; | &nbsp;
-                <a href="/缓冲区/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="缓冲区/" itemprop="commentsCount"></span>
+                <a href="/Socket选项/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="Socket选项/" itemprop="commentsCount"></span>
                 </a>
               </span>
             
@@ -307,12 +295,12 @@
         
           <span itemprop="articleBody">
             
-            先看ByteBuffer的父类Buffer
-Buffer(java.nio)成员12345// Invariants: mark &lt;= position &lt;= limit &lt;= capacityprivate int mark = -1;//若设置，则reset时postion变为
+            SO_KEEPALIVE(参考SO_KEEPALIVE)socket保活选项。  
+设置该选项后，服务器在保活定时器时间到达(tcp_keepalive_time设置，默认2h,期间任何一方没有数据交换，有交换时定时器重置)时，会向客户端发送一定次数(tcp_keepalive_probes设置，默
             ...
           </span>
           <div class="post-more-link text-center">
-            <a class="btn" href="/缓冲区/#more" rel="contents">
+            <a class="btn" href="/Socket选项/#more" rel="contents">
               阅读全文 &raquo;
             </a>
           </div>
@@ -864,21 +852,21 @@ Buffer(java.nio)成员12345// Invariants: mark &lt;= position &lt;= limit &lt;= 
         <nav class="site-state motion-element">
           <div class="site-state-item site-state-posts">
             <a href="/archives">
-              <span class="site-state-item-count">18</span>
+              <span class="site-state-item-count">19</span>
               <span class="site-state-item-name">日志</span>
             </a>
           </div>
 
           <div class="site-state-item site-state-categories">
             <a href="/categories">
-              <span class="site-state-item-count">18</span>
+              <span class="site-state-item-count">19</span>
               <span class="site-state-item-name">分类</span>
               </a>
           </div>
 
           <div class="site-state-item site-state-tags">
             <a href="/tags">
-              <span class="site-state-item-count">12</span>
+              <span class="site-state-item-count">13</span>
               <span class="site-state-item-name">标签</span>
               </a>
           </div>

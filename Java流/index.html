@@ -1,0 +1,880 @@
+<!doctype html>
+<html class="theme-next   use-motion ">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+  <link href="/vendors/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css"/>
+
+
+
+
+  <link href="//fonts.googleapis.com/css?family=Lato:300,400,700,400italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+
+
+
+<link href="/vendors/font-awesome/css/font-awesome.min.css?v=4.4.0" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=0.4.5.2" rel="stylesheet" type="text/css" />
+
+
+  <meta name="keywords" content="Java,Java基础," />
+
+
+
+
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=0.4.5.2" />
+
+
+
+
+
+
+<meta name="description" content="Java输入流常用输入流的类图:主要包括ByteArrayInputStream，FileInputStream，SocketInputStream以及url.openStream获得的从不同来源读取数据的底层流。ByteArrayInputStream从其包裹的字节数组中读取数据，字节数组中的数据在构建时初始化，该流对象记录了字节数组的当前读取位置，最大可读取位置等信息。FileInputStr">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Java流">
+<meta property="og:url" content="http://xiao-yun.github.io/Java流/index.html">
+<meta property="og:site_name" content="xiaoyun">
+<meta property="og:description" content="Java输入流常用输入流的类图:主要包括ByteArrayInputStream，FileInputStream，SocketInputStream以及url.openStream获得的从不同来源读取数据的底层流。ByteArrayInputStream从其包裹的字节数组中读取数据，字节数组中的数据在构建时初始化，该流对象记录了字节数组的当前读取位置，最大可读取位置等信息。FileInputStr">
+<meta property="og:image" content="http://xiao-yun.github.io/../images/InputStream.png">
+<meta property="og:image" content="http://xiao-yun.github.io/../images/InputStream方法.png">
+<meta property="og:image" content="http://xiao-yun.github.io/../images/ByteArrayInputStream成员属性.png">
+<meta property="og:image" content="http://xiao-yun.github.io/../images/BufferedInputStream成员属性.png">
+<meta property="og:image" content="http://xiao-yun.github.io/../images/DataInput方法.png">
+<meta property="og:image" content="http://xiao-yun.github.io/../images/OutputStream.png">
+<meta property="og:updated_time" content="2015-12-26T09:21:03.145Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Java流">
+<meta name="twitter:description" content="Java输入流常用输入流的类图:主要包括ByteArrayInputStream，FileInputStream，SocketInputStream以及url.openStream获得的从不同来源读取数据的底层流。ByteArrayInputStream从其包裹的字节数组中读取数据，字节数组中的数据在构建时初始化，该流对象记录了字节数组的当前读取位置，最大可读取位置等信息。FileInputStr">
+
+
+
+<script type="text/javascript" id="hexo.configuration">
+  var CONFIG = {
+    scheme: 'Mist',
+    sidebar: 'hide',
+    motion: true
+  };
+</script>
+
+  <title> Java流 | xiaoyun </title>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  <!--[if lte IE 8]>
+  <div style=' clear: both; height: 59px; padding:0 0 0 15px; position: relative;margin:0 auto;'>
+    <a href="http://windows.microsoft.com/en-US/internet-explorer/products/ie/home?ocid=ie6_countdown_bannercode">
+      <img src="http://7u2nvr.com1.z0.glb.clouddn.com/picouterie.jpg" border="0" height="42" width="820"
+           alt="You are using an outdated browser. For a faster, safer browsing experience, upgrade for free today or use other browser ,like chrome firefox safari."
+           style='margin-left:auto;margin-right:auto;display: block;'/>
+    </a>
+  </div>
+<![endif]-->
+  
+
+
+
+  <script type="text/javascript">
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "//hm.baidu.com/hm.js?caeb4129c91d1e6fb3d562d35fedef0d";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+  <div class="container one-column page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-meta ">
+  
+
+  <div class="custom-logo-site-title">
+    <a href="/"  class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <span class="site-title">xiaoyun</span>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+  <p class="site-subtitle"></p>
+</div>
+
+<div class="site-nav-toggle">
+  <button>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+  </button>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu ">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-home fa-fw"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives" rel="section">
+            
+              <i class="menu-item-icon fa fa-archive fa-fw"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories" rel="section">
+            
+              <i class="menu-item-icon fa fa-th fa-fw"></i> <br />
+            
+            分类
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+              <i class="menu-item-icon fa fa-tags fa-fw"></i> <br />
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about" rel="section">
+            
+              <i class="menu-item-icon fa fa-user fa-fw"></i> <br />
+            
+            关于
+          </a>
+        </li>
+      
+
+      
+      
+    </ul>
+  
+
+  
+</nav>
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div id="content" class="content">
+          
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                Java流
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            发表于
+            <time itemprop="dateCreated" datetime="2015-12-26T17:21:03+08:00" content="2015-12-26">
+              2015-12-26
+            </time>
+          </span>
+
+          
+            <span class="post-category" >
+              &nbsp; | &nbsp; 分类于
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Java/" itemprop="url" rel="index">
+                    <span itemprop="name">Java</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Java/Java基础/" itemprop="url" rel="index">
+                    <span itemprop="name">Java基础</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Java/Java基础/源码阅读/" itemprop="url" rel="index">
+                    <span itemprop="name">源码阅读</span>
+                  </a>
+                </span>
+
+                
+                
+
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                &nbsp; | &nbsp;
+                <a href="/Java流/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="Java流/" itemprop="commentsCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+
+        </div>
+      </header>
+    
+
+
+    <div class="post-body">
+
+      
+      
+
+      
+        <span itemprop="articleBody"><h1 id="Java输入流">Java输入流</h1><p>常用输入流的类图:<br><img src="../images/InputStream.png" alt="InputStream"><br>主要包括<code>ByteArrayInputStream</code>，<code>FileInputStream</code>，<code>SocketInputStream</code>以及<code>url.openStream</code>获得的从不同来源读取数据的底层流。<br><code>ByteArrayInputStream</code>从其包裹的字节数组中读取数据，字节数组中的数据在构建时初始化，该流对象记录了字节数组的当前读取位置，最大可读取位置<br>等信息。<br><code>FileInputStream</code>从文件中读取数据，这依赖于系统。<br><code>SocketInputStream</code>在依赖于Socket通信的网络中读取数据。<br>而URL打开的输入流则通过<code>URLConnection</code>读取数据。<br>这些都是不同的数据来源。  </p>
+<p>而<code>FilterInputStream</code>子类为基础流的封装，实现了更加丰富的功能。<br><code>BufferedInputStream</code>维护了一个字节数组缓冲，当读取数据时，如果字节数组中有之前读取到缓冲区的数据，直接从缓冲区中读取数据。而如果字节数组<br>缓冲中没有数据，需要从底层流中读取数据到缓冲区中，然后从缓冲区中读取。中间还涉及缓冲的拷贝，扩容等。<br><code>DataInputStream</code>实现了<code>DataInput</code>接口，因此支持read*等一次性读int，long等数据的功能，实际上在底层流中相应的读取对应字节长度的数据，够造成<br>对应的数据类型。<br><code>DataInputBuffer</code>是Hadoop中的一个数据读取缓冲区，底层流是其内部类Buffer，而Buffer又是ByteArrayInputStream的子类，只不过允许重新设置<br>底层的输入字节数组(reset)。而DataInputBuffer又实现了DataInput接口，因此支持从底层字节数组中进行read*等读操作，且支持reset操作。  </p>
+<p><code>ObjectInputStream</code>为Java反序列化相关，可以封装底层流，然后使用ObjectInputStream的readObject方法反序列化底层流的数据为一个对象。  </p>
+<p>另外，所有的流实现了AutoCloseable接口，即支持在try语句中打开流时，会自动在try-catch-finally结束时调用close方法关闭。</p>
+<hr>
+<h2 id="InputStream">InputStream</h2><p>首先看下抽象类InputStream支持的方法:<br><img src="../images/InputStream方法.png" alt="InputStream方法">  </p>
+<ul>
+<li><code>read</code>，读取一个字节，或者读取指定长度的字节到字节数组，当读取到流尾部时返回-1，会阻塞  </li>
+<li><code>skip</code>，从当前流位置跳过指定长度，可能因为种种原因(如到达流末尾)跳过的字节数不为指定的字节数，实际跳过的字节数为返回值。如果指定的长度<br>为负数，则返回0且不执行跳过操作，子类可以对此有不同的实现。在该类中，只是简单的读取指定长度的数据到临时字节数组中来达到效果，子类可以有更<br>高效的实现。</li>
+<li><code>available</code>，返回流中剩余的字节数，在InputStream中永远返回0，子类应该实现该方法</li>
+<li>close，关闭输入流，释放相应的系统资源</li>
+<li><code>mark(limit)</code>，标记当前位置以便之后通过reset方法从标记位置重新读取，limit为标记后最大可读取的字节数，如果流中当前读取到的位置position<br>>mark值+limit，则标记无效，无法通过reset重新从标记处读取。<br>其实可以猜测，如果我们从Socket中读取数据并标记在当前位置，那么之后要想reset到标记位置读取数据，应该在标记后每次读取都缓存，那么这个缓存<br>大小便是有限的，有限值便是limit。  </li>
+<li><code>reset</code>，重置当前读取位置到最近mark方法调用的位置处。  <ul>
+<li>支持标记，即markSupported为true<ul>
+<li>没有标记，即从流创建后没有调用mark方法,或者当前位置position&gt;mark+limit，即当前读取位置超过了最近一次标记所允许的限制，抛出IOException</li>
+<li>如果没有抛出异常，则会将读取位置重置到最近一次标记位置处开始读取</li>
+</ul>
+</li>
+<li>不支持标记，即markSupported为false<ul>
+<li>可能抛出IOException异常</li>
+<li>如果没有抛出异常，则可能重置为固定的状态，这依赖于具体的流以及流创建的方式，同时接下来读取到的数据也依赖于具体的流</li>
+</ul>
+</li>
+</ul>
+</li>
+<li><code>markSupported</code>，是否支持mark和reset方法，与实际的流有关，InputStream返回false</li>
+</ul>
+<hr>
+<h2 id="ByteArrayInputStream">ByteArrayInputStream</h2><p>字节数组输入流，从该流中读取的数据保存在字节数组成员中，流对象记录了字节数组当前读取的位置以及可以允许读取的最大位置等信息，字节数组在创建<br>流时初始化。<br>成员属性如下:<br><img src="../images/ByteArrayInputStream成员属性.png" alt="ByteArrayInputStream成员属性">  </p>
+<ul>
+<li><code>buf</code>,保存数据的字节数组，流数据来源</li>
+<li><code>pos</code>，下一个读取字节在buf中的位置，即下一个读取的字节为<code>buf[pos]</code></li>
+<li><code>mark</code>，当前标记的位置，创建时标记在0处</li>
+<li><code>count</code>,输入流合法字节的下一个位置</li>
+</ul>
+<h3 id="构造">构造</h3><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="title">ByteArrayInputStream</span><span class="params">(<span class="keyword">byte</span> buf[])</span> </span>&#123;<span class="comment">//通过完整的字节数组构造</span></span><br><span class="line">    <span class="keyword">this</span>.buf = buf;</span><br><span class="line">    <span class="keyword">this</span>.pos = <span class="number">0</span>;</span><br><span class="line">    <span class="keyword">this</span>.count = buf.length;</span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="title">ByteArrayInputStream</span><span class="params">(<span class="keyword">byte</span> buf[], <span class="keyword">int</span> offset, <span class="keyword">int</span> length)</span> </span>&#123;<span class="comment">//字节数组buf，从offset开始的length长度数据</span></span><br><span class="line">    <span class="keyword">this</span>.buf = buf;</span><br><span class="line">    <span class="keyword">this</span>.pos = offset;</span><br><span class="line">    <span class="keyword">this</span>.count = Math.min(offset + length, buf.length);</span><br><span class="line">    <span class="keyword">this</span>.mark = offset;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="数据读取read">数据读取read</h3><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> synchronized <span class="keyword">int</span> <span class="title">read</span><span class="params">()</span> </span>&#123;<span class="comment">//读取到流尾部返回-1</span></span><br><span class="line">    <span class="keyword">return</span> (pos &lt; count) ? (buf[pos++] &amp; <span class="number">0xff</span>) : -<span class="number">1</span>;</span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">public</span> synchronized <span class="keyword">int</span> <span class="title">read</span><span class="params">(byte b[], <span class="keyword">int</span> off, <span class="keyword">int</span> len)</span> </span>&#123;<span class="comment">//读取到的长度为len和(count-pos)的最小值，已经到达流末尾则返回-1</span></span><br><span class="line">    <span class="keyword">if</span> (b == null) &#123;</span><br><span class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> NullPointerException();</span><br><span class="line">    &#125; <span class="keyword">else</span> <span class="keyword">if</span> (off &lt; <span class="number">0</span> || len &lt; <span class="number">0</span> || len &gt; b.length - off) &#123;</span><br><span class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> IndexOutOfBoundsException();</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> (pos &gt;= count) &#123;</span><br><span class="line">        <span class="keyword">return</span> -<span class="number">1</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">int</span> avail = count - pos;</span><br><span class="line">    <span class="keyword">if</span> (len &gt; avail) &#123;</span><br><span class="line">        len = avail;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> (len &lt;= <span class="number">0</span>) &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    System.arraycopy(buf, pos, b, off, len);</span><br><span class="line">    pos += len;</span><br><span class="line">    <span class="keyword">return</span> len;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>如上，读取指定长度的数据时，如果当前已经到达流末尾则返回-1，否则读取min(len,(count-pos))大小的数据</p>
+<h3 id="跳过skip">跳过skip</h3><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> synchronized <span class="keyword">long</span> <span class="title">skip</span><span class="params">(<span class="keyword">long</span> n)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">long</span> k = count - pos;</span><br><span class="line">    <span class="keyword">if</span> (n &lt; k) &#123;</span><br><span class="line">        k = n &lt; <span class="number">0</span> ? <span class="number">0</span> : n;</span><br><span class="line">    &#125;</span><br><span class="line">    pos += k;</span><br><span class="line">    <span class="keyword">return</span> k;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>如上，因为数据保存在字节数组中，因此只需改变pos的位置即可，而不用像InputStream中读取数据到临时字节数组中。<br>n小于0时不变，否则跳过的大小为min(n,(count-pos))</p>
+<h3 id="标记mark">标记mark</h3><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">void</span> <span class="title">mark</span><span class="params">(<span class="keyword">int</span> readAheadLimit)</span> </span>&#123;</span><br><span class="line">    mark = pos;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>记录当前位置pos在mark中，这里注意的是readAheadLimit没有影响，因为所有的数据就在字节数组buf中</p>
+<h3 id="关闭close">关闭close</h3><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">void</span> <span class="title">close</span><span class="params">()</span> <span class="keyword">throws</span> IOException </span>&#123;&#125;</span><br></pre></td></tr></table></figure>
+<p>关闭ByteArrayInputStream对该流没有影响</p>
+<h3 id="其他">其他</h3><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">synchronized</span> <span class="function"><span class="keyword">int</span> <span class="title">available</span><span class="params">()</span> </span>&#123; <span class="keyword">return</span> count - pos; &#125;</span><br><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">boolean</span> <span class="title">markSupported</span><span class="params">()</span> </span>&#123; <span class="keyword">return</span> <span class="keyword">true</span>; &#125;</span><br><span class="line"><span class="keyword">public</span> <span class="keyword">synchronized</span> <span class="function"><span class="keyword">void</span> <span class="title">reset</span><span class="params">()</span> </span>&#123; pos = mark; &#125;</span><br></pre></td></tr></table></figure>
+<hr>
+<h2 id="FileInputStream">FileInputStream</h2><h3 id="成员属性">成员属性</h3><figure class="highlight processing"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//文件描述符对象，用于处理打开的文件，可被多个文件输入流共享</span></span><br><span class="line"><span class="keyword">private</span> <span class="keyword">final</span> FileDescriptor fd;</span><br><span class="line"></span><br><span class="line"><span class="comment">//文件路径，当通过文件描述符创建流时，为null</span></span><br><span class="line"><span class="keyword">private</span> <span class="keyword">final</span> <span class="keyword">String</span> path;</span><br><span class="line"></span><br><span class="line"><span class="comment">//文件通道，可通过getChannel获取，没有使用时为null</span></span><br><span class="line"><span class="keyword">private</span> FileChannel channel = <span class="keyword">null</span>;</span><br><span class="line"><span class="comment">//关闭时使用的锁</span></span><br><span class="line"><span class="keyword">private</span> <span class="keyword">final</span> <span class="keyword">Object</span> closeLock = <span class="keyword">new</span> <span class="keyword">Object</span>();</span><br><span class="line"><span class="keyword">private</span> <span class="keyword">volatile</span> <span class="built_in">boolean</span> closed = <span class="keyword">false</span>;</span><br></pre></td></tr></table></figure>
+<h3 id="构造-1">构造</h3><p><strong>通过文件名或文件对象构建</strong><br><figure class="highlight processing"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> FileInputStream(<span class="keyword">String</span> name) <span class="keyword">throws</span> FileNotFoundException &#123;</span><br><span class="line">    <span class="keyword">this</span>(name != <span class="keyword">null</span> ? <span class="keyword">new</span> File(name) : <span class="keyword">null</span>);</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">public</span> FileInputStream(File file) <span class="keyword">throws</span> FileNotFoundException &#123;</span><br><span class="line">    ...<span class="comment">//安全性，合法性检查</span></span><br><span class="line">    fd = <span class="keyword">new</span> FileDescriptor();<span class="comment">//创建文件描述符</span></span><br><span class="line">    fd.attach(<span class="keyword">this</span>);<span class="comment">//文件描述符和流绑定</span></span><br><span class="line">    path = name;</span><br><span class="line">    <span class="built_in">open</span>(name);<span class="comment">//打开文件</span></span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">private</span> <span class="keyword">void</span> <span class="built_in">open</span>(<span class="keyword">String</span> name) <span class="keyword">throws</span> FileNotFoundException &#123;</span><br><span class="line">    open0(name);</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">private</span> <span class="keyword">native</span> <span class="keyword">void</span> open0(<span class="keyword">String</span> name) <span class="keyword">throws</span> FileNotFoundException;</span><br></pre></td></tr></table></figure></p>
+<p>可见，主要创建了文件描述符对象，然后通过本地实现打开文件</p>
+<p><strong>通过其他文件描述符对象构建</strong><br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="title">FileInputStream</span><span class="params">(FileDescriptor fdObj)</span> </span>&#123;</span><br><span class="line">    ...<span class="comment">//安全性合法性检查</span></span><br><span class="line">    fd = fdObj;</span><br><span class="line">    path = <span class="keyword">null</span>;<span class="comment">//路径为null</span></span><br><span class="line">    <span class="comment">//文件描述符被多个文件输入流共享</span></span><br><span class="line">    fd.attach(<span class="keyword">this</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<h3 id="关闭">关闭</h3><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">void</span> <span class="title">close</span><span class="params">()</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">    <span class="keyword">synchronized</span> (closeLock) &#123;</span><br><span class="line">        <span class="keyword">if</span> (closed) &#123;</span><br><span class="line">            <span class="keyword">return</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        closed = <span class="keyword">true</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> (channel != <span class="keyword">null</span>) &#123;<span class="comment">//如果打开了通道，则关闭通道</span></span><br><span class="line">       channel.close();</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    fd.closeAll(<span class="keyword">new</span> Closeable() &#123;<span class="comment">//关闭所有共享文件描述符的文件输入流</span></span><br><span class="line">        <span class="keyword">public</span> <span class="function"><span class="keyword">void</span> <span class="title">close</span><span class="params">()</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">           close0();</span><br><span class="line">       &#125;</span><br><span class="line">    &#125;);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>如果打开了文件通道，则关闭文件通道，同时关闭共享同一文件描述符的所有文件输入流，最终的关闭通过本地方法close0来实现</p>
+<h3 id="本地方法">本地方法</h3><p>文件输入流的大部分操作都是通过本地方法来实现<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">native</span> <span class="function"><span class="keyword">int</span> <span class="title">available</span><span class="params">()</span> <span class="keyword">throws</span> IOException</span>;</span><br><span class="line"><span class="keyword">public</span> <span class="keyword">native</span> <span class="function"><span class="keyword">long</span> <span class="title">skip</span><span class="params">(<span class="keyword">long</span> n)</span> <span class="keyword">throws</span> IOException</span>;</span><br><span class="line"><span class="keyword">private</span> <span class="keyword">native</span> <span class="function"><span class="keyword">int</span> <span class="title">readBytes</span><span class="params">(<span class="keyword">byte</span> b[], <span class="keyword">int</span> off, <span class="keyword">int</span> len)</span> <span class="keyword">throws</span> IOException</span>;<span class="comment">//指定长度的read方法调用</span></span><br><span class="line"><span class="keyword">private</span> <span class="keyword">native</span> <span class="function"><span class="keyword">int</span> <span class="title">read0</span><span class="params">()</span> <span class="keyword">throws</span> IOException</span>;<span class="comment">//被read()方法调用</span></span><br><span class="line"><span class="keyword">private</span> <span class="keyword">native</span> <span class="function"><span class="keyword">void</span> <span class="title">open0</span><span class="params">(String name)</span> <span class="keyword">throws</span> FileNotFoundException</span>;<span class="comment">//打开文件</span></span><br><span class="line"><span class="keyword">private</span> <span class="keyword">native</span> <span class="function"><span class="keyword">void</span> <span class="title">close0</span><span class="params">()</span> <span class="keyword">throws</span> IOException</span>;</span><br></pre></td></tr></table></figure></p>
+<hr>
+<h2 id="FilterInputStream">FilterInputStream</h2><p><code>FilterInputStream</code>在底层流的基础上实现更加丰富的功能，该类本身所有方法都是直接调用底层流的方法。<br>底层输入流:<br><figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">protected</span> <span class="keyword">volatile</span> InputStream <span class="keyword">in</span>;</span><br></pre></td></tr></table></figure></p>
+<p>构造:<br><figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">protected</span> <span class="title">FilterInputStream</span>(<span class="params">InputStream <span class="keyword">in</span></span>) </span>&#123; <span class="keyword">this</span>.<span class="keyword">in</span> = <span class="keyword">in</span>; &#125;</span><br></pre></td></tr></table></figure></p>
+<p>方法和InputStream一样，通过调用底层输入流in的相应方法，如<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">int</span> <span class="title">read</span><span class="params">()</span> <span class="keyword">throws</span> IOException </span>&#123; <span class="function"><span class="keyword">return</span> in.<span class="title">read</span><span class="params">()</span></span>; &#125;</span><br></pre></td></tr></table></figure></p>
+<p>其他类似。  </p>
+<hr>
+<h2 id="BufferedInputStream">BufferedInputStream</h2><p>BufferedInputStream实现了FilterInputStream，在底层流的基础上添加了额外的功能，能够缓存输入数据并且支持mark和reset操作。<br>当BufferedInputStream创建时，同时会创建一个内部缓冲数组。当从中读取或者skip数据时，可能会从底层流中重新填充内部缓冲数组，一次填充大量<br>字节。  </p>
+<h3 id="成员属性-1">成员属性</h3><p><img src="../images/BufferedInputStream成员属性.png" alt="BufferedInputStream成员属性">  </p>
+<ul>
+<li><code>DEFAULT_BUFFER_SIZE</code>，内部缓冲数组缺省大小，8KB</li>
+<li><code>MAX_BUFFER_SIZE</code>，缓冲数组最大大小，Integer.MAX_VALUE-8，超出此值时可能抛出OutofMemoryError异常</li>
+<li><code>buf</code>,内部缓冲数组</li>
+<li><code>bufUpdater</code>，保存每次内部缓冲大小的改变</li>
+<li><code>count</code>，最后一个合法字节在缓冲数组位置+1</li>
+<li><code>pos</code>，下一个要读取字节在缓冲数组位置</li>
+<li><code>markpos</code>，标记位置</li>
+<li><code>marklimit</code>，标记后最大可读偏移量，当pos-markpos&gt;marklimit时，标记位置无效</li>
+</ul>
+<p>[0,markpos-1]为无效数据，可以覆盖，[markpos,count-1]为可以通过reset重新读取的区域，[pos,count-1]为有效数据，当前可以读取</p>
+<h3 id="构造-2">构造</h3><figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="title">BufferedInputStream</span>(<span class="params">InputStream <span class="keyword">in</span></span>) </span>&#123; <span class="keyword">this</span>(<span class="keyword">in</span>, DEFAULT_BUFFER_SIZE); &#125;</span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="title">BufferedInputStream</span>(<span class="params">InputStream <span class="keyword">in</span>, <span class="keyword">int</span> size</span>) </span>&#123;</span><br><span class="line">    super(<span class="keyword">in</span>);</span><br><span class="line">    <span class="keyword">if</span> (size &lt;= <span class="number">0</span>) &#123; <span class="keyword">throw</span> <span class="keyword">new</span> IllegalArgumentException(<span class="string">"Buffer size &lt;= 0"</span>); &#125;</span><br><span class="line">    buf = <span class="keyword">new</span> <span class="keyword">byte</span>[size];</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>使用给定的输入流初始化底层流，然后构建大小为size的内部数组</p>
+<h3 id="数据读取">数据读取</h3><h4 id="单个字节读取">单个字节读取</h4><figure class="highlight gradle"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">synchronized</span> <span class="keyword">int</span> <span class="keyword">read</span>() <span class="keyword">throws</span> IOException &#123;</span><br><span class="line">    <span class="keyword">if</span> (pos &gt;= <span class="keyword">count</span>) &#123;<span class="comment">//内部缓冲没有剩余数据</span></span><br><span class="line">        fill();<span class="comment">//重新从底层流中填充</span></span><br><span class="line">        <span class="keyword">if</span> (pos &gt;= <span class="keyword">count</span>)<span class="comment">//输入流也没有数据，返回-1</span></span><br><span class="line">            <span class="keyword">return</span> -<span class="number">1</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> getBufIfOpen()[pos++] &amp; <span class="number">0</span>xff;<span class="comment">//从内部缓冲获取数据</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>如上，如果内部缓冲中没有可用数据，则需要通过<code>fill</code>从底层流中读取数据到内部缓冲中，进行填充后内部缓冲还是没有数据，则表明底层流没有数据返回-1。<br>当内部缓冲有数据时，从内部缓冲中读取下一个可读取的字节返回。<br><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">fill</span><span class="params">()</span> throws IOException </span>&#123;</span><br><span class="line">    byte[] buffer = getBufIfOpen();<span class="comment">//获取内部缓冲buf</span></span><br><span class="line">    <span class="keyword">if</span> (markpos &lt; <span class="number">0</span>)<span class="comment">//没有标记，即我们不需要回溯到之前读取的位置重新读取，pos之前的数据已经没用了，直接pos=0，重用内部缓冲</span></span><br><span class="line">        pos = <span class="number">0</span>;            <span class="comment">/* no mark: throw away the buffer */</span></span><br><span class="line">    <span class="keyword">else</span> <span class="keyword">if</span> (pos &gt;= buffer.length) <span class="comment">//内部缓冲没有剩余空间</span></span><br><span class="line">        <span class="keyword">if</span> (markpos &gt; <span class="number">0</span>) &#123;<span class="comment">//此时从0-markpos部分数据没用了，将markpos-pos部分数据拷贝到0开始处，pos=pos-markpos，重用部分内部缓冲</span></span><br><span class="line">            <span class="keyword">int</span> sz = pos - markpos;</span><br><span class="line">            System.arraycopy(buffer, markpos, buffer, <span class="number">0</span>, sz);</span><br><span class="line">            pos = sz;</span><br><span class="line">            markpos = <span class="number">0</span>;</span><br><span class="line">        &#125; <span class="keyword">else</span> <span class="keyword">if</span> (buffer.length &gt;= marklimit) &#123;此时markpos=<span class="number">0</span>，pos-markpos&gt;=marklimit，markpos无效，清除，pos置<span class="number">0</span>，重用整个内部缓冲</span><br><span class="line">            markpos = -<span class="number">1</span>;   <span class="comment">/* buffer got too big, invalidate mark */</span></span><br><span class="line">            pos = <span class="number">0</span>;        <span class="comment">/* drop buffer contents */</span></span><br><span class="line">        &#125; <span class="keyword">else</span> <span class="keyword">if</span> (buffer.length &gt;= MAX_BUFFER_SIZE) &#123;<span class="comment">//内部缓冲超出了最大限制，抛出异常</span></span><br><span class="line">            <span class="keyword">throw</span> <span class="keyword">new</span> OutOfMemoryError(<span class="string">"Required array size too large"</span>);</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;<span class="comment">//即无法重用内部缓冲，且pos到markpos没有超出marklimit限制，缓冲区没有超出最大限制，重新分配一个更大的内部缓冲</span></span><br><span class="line">            <span class="comment">//扩大1倍还没达到最大限制，则扩大一倍，否则为最大限制</span></span><br><span class="line">            <span class="keyword">int</span> nsz = (pos &lt;= MAX_BUFFER_SIZE - pos) ? pos * <span class="number">2</span> : MAX_BUFFER_SIZE;</span><br><span class="line">            <span class="keyword">if</span> (nsz &gt; marklimit) nsz = marklimit;</span><br><span class="line">            byte nbuf[] = <span class="keyword">new</span> byte[nsz];</span><br><span class="line">            System.arraycopy(buffer, <span class="number">0</span>, nbuf, <span class="number">0</span>, pos);<span class="comment">//拷贝原来数据到新缓冲区中</span></span><br><span class="line">            <span class="keyword">if</span> (!bufUpdater.compareAndSet(<span class="keyword">this</span>, buffer, nbuf)) &#123;</span><br><span class="line">                <span class="comment">// Can't replace buf if there was an async close.</span></span><br><span class="line">                <span class="comment">// <span class="doctag">Note:</span> This would need to be changed if fill()</span></span><br><span class="line">                <span class="comment">// is ever made accessible to multiple threads.</span></span><br><span class="line">                <span class="comment">// But for now, the only way CAS can fail is via close.</span></span><br><span class="line">                <span class="comment">// assert buf == null;</span></span><br><span class="line">                <span class="keyword">throw</span> <span class="keyword">new</span> IOException(<span class="string">"Stream closed"</span>);</span><br><span class="line">            &#125;</span><br><span class="line">            buffer = nbuf;</span><br><span class="line">        &#125;</span><br><span class="line">    count = pos;</span><br><span class="line">    <span class="keyword">int</span> n = getInIfOpen().read(buffer, pos, buffer.length - pos);<span class="comment">//从底层流读取新的数据到缓冲区</span></span><br><span class="line">    <span class="keyword">if</span> (n &gt; <span class="number">0</span>)</span><br><span class="line">        count = n + pos;<span class="comment">//更新count值</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，如果没有标记，则pos之前的数据不会用到，直接将pos置为0，重用该内部缓冲区即可。<br>而如果markpos大于0，则[0,markpos-1]部分数据无用，将[markpos-pos]间数据拷贝到[0,markpos-pos-1]，markpos置为0，然后从底层流中读取数据<br>填充后面部分。<br>而当markpos为0时，pos=pos-markpos，如果没有超过marklimit限制，分配两倍大小空间，拷贝原来数据到新缓冲区，从底层流中读取数据到新缓冲区<br>拷贝位置之后。否则超过了marklimit了，清除markpos标识，pos置0，重用该空间。可见，其实如果marklimit小于缓冲区最大限制的话，缓冲区最大<br>就是marklimit的大小，不会扩容到缓冲区最大限制。  </p>
+<h4 id="指定长度数据读取">指定长度数据读取</h4><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> synchronized <span class="keyword">int</span> <span class="title">read</span><span class="params">(byte b[], <span class="keyword">int</span> off, <span class="keyword">int</span> len)</span> throws IOException </span>&#123;</span><br><span class="line">    ...<span class="comment">//安全性检查        </span></span><br><span class="line">    <span class="keyword">int</span> n = <span class="number">0</span>;</span><br><span class="line">    <span class="keyword">for</span> (;;) &#123;</span><br><span class="line">        <span class="keyword">int</span> nread = read1(b, off + n, len - n);</span><br><span class="line">        <span class="keyword">if</span> (nread &lt;= <span class="number">0</span>)<span class="comment">//读取到流尾部，返回</span></span><br><span class="line">            <span class="keyword">return</span> (n == <span class="number">0</span>) ? nread : n;</span><br><span class="line">        n += nread;</span><br><span class="line">        <span class="keyword">if</span> (n &gt;= len)<span class="comment">//读取完成，返回</span></span><br><span class="line">            <span class="keyword">return</span> n;</span><br><span class="line">        <span class="comment">// if not closed but no bytes available, return</span></span><br><span class="line">        InputStream input = in;</span><br><span class="line">        <span class="keyword">if</span> (input != null &amp;&amp; input.available() &lt;= <span class="number">0</span>)</span><br><span class="line">            <span class="keyword">return</span> n;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">int</span> <span class="title">read1</span><span class="params">(byte[] b, <span class="keyword">int</span> off, <span class="keyword">int</span> len)</span> throws IOException </span>&#123;</span><br><span class="line">    <span class="keyword">int</span> avail = count - pos;</span><br><span class="line">    <span class="keyword">if</span> (avail &lt;= <span class="number">0</span>) &#123;<span class="comment">//内部缓冲没有可读取数据</span></span><br><span class="line">        <span class="comment">//如果请求的长度大于缓冲区长度，且没有标记，直接从流中读取而不进行缓冲</span></span><br><span class="line">        <span class="keyword">if</span> (len &gt;= getBufIfOpen().length &amp;&amp; markpos &lt; <span class="number">0</span>) &#123;</span><br><span class="line">            <span class="keyword">return</span> getInIfOpen().read(b, off, len);</span><br><span class="line">        &#125;</span><br><span class="line">        fill();<span class="comment">//缓冲</span></span><br><span class="line">        avail = count - pos;</span><br><span class="line">        <span class="keyword">if</span> (avail &lt;= <span class="number">0</span>) <span class="keyword">return</span> -<span class="number">1</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">int</span> cnt = (avail &lt; len) ? avail : len;</span><br><span class="line">    System.arraycopy(getBufIfOpen(), pos, b, off, cnt);<span class="comment">//从内部缓冲拷贝到输出数组b</span></span><br><span class="line">    pos += cnt;</span><br><span class="line">    <span class="keyword">return</span> cnt;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>如上，循环通过<code>read1</code>读取一定长度的数据，直到读取到指定长度数据或到达流末尾，或者流关闭。<br>在read1中，内部缓冲区有可读数据则直接拷贝，否则如果我们请求的长度大于内部缓冲长度，则如果此时没有标记的话，没必要先从流中读到内部缓冲，再<br>将内部缓冲中刚才读取的<code>全部</code>数据拷贝到输出数组b中，直接从底层流中读取数据到输出数组。而如果有标记则不能直接从流中读取，否则若reset的话，<br>中间部分数据丢失了。</p>
+<h4 id="skip">skip</h4><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> synchronized <span class="keyword">long</span> <span class="title">skip</span><span class="params">(<span class="keyword">long</span> n)</span> throws IOException </span>&#123;</span><br><span class="line">    getBufIfOpen(); <span class="comment">// Check for closed stream</span></span><br><span class="line">    <span class="keyword">if</span> (n &lt;= <span class="number">0</span>) &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">long</span> avail = count - pos;</span><br><span class="line">    <span class="keyword">if</span> (avail &lt;= <span class="number">0</span>) &#123;<span class="comment">//内部缓冲没有可跳过数据</span></span><br><span class="line">        <span class="comment">// If no mark position set then don't keep in buffer</span></span><br><span class="line">        <span class="keyword">if</span> (markpos &lt;<span class="number">0</span>)<span class="comment">//如果没有设置标记，直接从底层流中跳过</span></span><br><span class="line">            <span class="keyword">return</span> getInIfOpen().skip(n);</span><br><span class="line"></span><br><span class="line">        <span class="comment">// Fill in buffer to save bytes for reset</span></span><br><span class="line">        fill();<span class="comment">//如果有标记，则需缓冲要跳过的数据以便reset重新读取，填充</span></span><br><span class="line">        avail = count - pos;</span><br><span class="line">        <span class="keyword">if</span> (avail &lt;= <span class="number">0</span>)<span class="comment">//到达流末尾，返回0</span></span><br><span class="line">            <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">long</span> skipped = (avail &lt; n) ? avail : n;<span class="comment">//要跳过的值，可能小于n</span></span><br><span class="line">    pos += skipped;<span class="comment">//pos往前移</span></span><br><span class="line">    <span class="keyword">return</span> skipped;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>如上，如果内部缓冲还有可跳过(读)的数据，将pos往前移即可。否则，如果没有设置标记，则直接从底层流中跳过，而不进行缓存，如果设置了标记便不能<br>从流中跳过，需要填充到内部缓冲中，因为之后可能reset重新读取这部分数据。跳过的数据为指定的值和内部缓冲有效数据的最小值，可能实际跳过的值<br>小于指定的值n，实际跳过的值为返回值。  </p>
+<h4 id="available">available</h4><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">synchronized</span> <span class="function"><span class="keyword">int</span> <span class="title">available</span><span class="params">()</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">    <span class="keyword">int</span> n = count - pos;</span><br><span class="line">    <span class="keyword">int</span> avail = getInIfOpen().available();</span><br><span class="line">    <span class="keyword">return</span> n &gt; (Integer.MAX_VALUE - avail) ? Integer.MAX_VALUE : n + avail;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>返回的是内部缓冲可用值和底层流可用值之和，两者大于Integer.MAX_VALUE时，返回Integer.MAX_VALUE。</p>
+<h4 id="其他-1">其他</h4><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">synchronized</span> <span class="function"><span class="keyword">void</span> <span class="title">mark</span><span class="params">(<span class="keyword">int</span> readlimit)</span> </span>&#123;</span><br><span class="line">    marklimit = readlimit;</span><br><span class="line">    markpos = pos;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>简单的设置marklimit和markpos的值。那么markSupported肯定返回true<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">boolean</span> <span class="title">markSupported</span><span class="params">()</span> </span>&#123; <span class="keyword">return</span> <span class="keyword">true</span>; &#125;</span><br></pre></td></tr></table></figure></p>
+<p>重置也是简单的将pos设置为markpos<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">synchronized</span> <span class="function"><span class="keyword">void</span> <span class="title">reset</span><span class="params">()</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">    getBufIfOpen(); <span class="comment">// Cause exception if closed</span></span><br><span class="line">    <span class="keyword">if</span> (markpos &lt; <span class="number">0</span>) <span class="keyword">throw</span> <span class="keyword">new</span> IOException(<span class="string">"Resetting to invalid mark"</span>);</span><br><span class="line">    pos = markpos;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>还有两个安全性检查的方法，获取内部缓冲，底层输入流异常时抛出IOException<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="keyword">byte</span>[] getBufIfOpen() <span class="keyword">throws</span> IOException &#123;</span><br><span class="line">    <span class="keyword">byte</span>[] buffer = buf;</span><br><span class="line">    <span class="keyword">if</span> (buffer == <span class="keyword">null</span>) <span class="keyword">throw</span> <span class="keyword">new</span> IOException(<span class="string">"Stream closed"</span>);</span><br><span class="line">    <span class="keyword">return</span> buffer;</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">private</span> <span class="function">InputStream <span class="title">getInIfOpen</span><span class="params">()</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">    InputStream input = in;</span><br><span class="line">    <span class="keyword">if</span> (input == <span class="keyword">null</span>) <span class="keyword">throw</span> <span class="keyword">new</span> IOException(<span class="string">"Stream closed"</span>);</span><br><span class="line">    <span class="keyword">return</span> input;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<hr>
+<h2 id="DataInput">DataInput</h2><p>该接口提供了从输入流中读取系列字节，然后构造成基本类型，或者字符串的方法。<br>提供的方法如下:<br><img src="../images/DataInput方法.png" alt="DataInput方法">  </p>
+<ul>
+<li><code>readFully</code>，正常情况读取指定长度数据到字节数组中(循环判断读取)</li>
+<li><code>skipBytes</code>，跳过指定字节</li>
+<li><code>read*</code>，读取指定长度的字节，构造相应的基本类型</li>
+<li><code>readLine</code>,从流中读取一行，遇到行结束符或文件结束符时结束一行读取,没有读取到一个字节时返回null，其中每一个字符都小于256</li>
+<li><code>readUTF</code>，从流中读取字符串，流中的数据为UTF-8编码格式。<br>首先，通过<code>readUnsignedShort</code>方法读取两个字节，值为字符串的UTF-8编码长度。然后:<ul>
+<li>如果第一个字节满足<code>0xxxxxxx</code>的形式，那么该字符串仅有一个字节</li>
+<li>如果第一个字节满足<code>110xxxxx</code>的形式，那么该字符串有两个字节，如果第二个字节不存在或者不是<code>10xxxxxx</code>的形式，那么抛出<br><code>UTFDataFormtException</code>异常，该字符串为<code>(char)(((a &amp; 0x1F) &lt;&lt; 6) | (b &amp; 0x3F))</code></li>
+<li>如果第一个字节满足<code>1110xxxx</code>，那么该字符串有3个字节，如果第三个字节不存在或者第二个/第三个字节不满足<code>10xxxxxx</code>的形式，那么抛出<br><code>UTFDataFormtException</code>异常，否则该字符串为<code>(char)(((a &amp; 0x0F) &lt;&lt; 12) | ((b &amp; 0x3F) &lt;&lt; 6) | (c &amp; 0x3F))</code></li>
+<li>如果第一个字节满足<code>1111xxxx</code>或<code>10xxxxxx</code>的形式，抛出<code>UTFDataFormtException</code>异常。</li>
+<li>如果在处理过程中到达了文件尾，抛出<code>EOFException</code>异常  </li>
+</ul>
+</li>
+</ul>
+<p>对应UTF-8的编码过程。</p>
+<hr>
+<h2 id="DataInputStream">DataInputStream</h2><p>DataInputStream继承FilterInputStream基础上实现了DataInput接口，即为底层流实现了read*系列功能。  </p>
+<h3 id="成员和构造">成员和构造</h3><p>成员主要为使用的缓冲区<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="keyword">byte</span> bytearr[] = <span class="keyword">new</span> <span class="keyword">byte</span>[<span class="number">80</span>];<span class="comment">//readUTF使用的缓冲，将实际字节读到该缓冲区</span></span><br><span class="line"><span class="keyword">private</span> <span class="keyword">char</span> chararr[] = <span class="keyword">new</span> <span class="keyword">char</span>[<span class="number">80</span>];<span class="comment">//readUTF使用的缓冲，解码出来的字符</span></span><br><span class="line"><span class="keyword">private</span> <span class="keyword">char</span> lineBuffer[];<span class="comment">//readLine使用的缓冲，除结束符外读到该缓冲，转换为字符</span></span><br><span class="line"><span class="keyword">private</span> <span class="keyword">byte</span> readBuffer[] = <span class="keyword">new</span> <span class="keyword">byte</span>[<span class="number">8</span>];<span class="comment">//readLong使用的缓冲，8个字节</span></span><br></pre></td></tr></table></figure></p>
+<p>构造函数简单的将给定的底层流传给FilterInputStream<br><figure class="highlight actionscript"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> DataInputStream(InputStream <span class="keyword">in</span>) &#123; <span class="keyword">super</span>(<span class="keyword">in</span>); &#125;</span><br></pre></td></tr></table></figure></p>
+<h3 id="基本类型数据读取">基本类型数据读取</h3><h4 id="read指定长度字节">read指定长度字节</h4><p>指定长度字节的read直接使用底层流<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">final</span> <span class="function"><span class="keyword">int</span> <span class="title">read</span><span class="params">(<span class="keyword">byte</span> b[])</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">return</span> in.<span class="title">read</span><span class="params">(b, <span class="number">0</span>, b.length)</span></span>;</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">public</span> <span class="keyword">final</span> <span class="function"><span class="keyword">int</span> <span class="title">read</span><span class="params">(<span class="keyword">byte</span> b[], <span class="keyword">int</span> off, <span class="keyword">int</span> len)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">return</span> in.<span class="title">read</span><span class="params">(b, off, len)</span></span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<h4 id="readFully和skipBytes">readFully和skipBytes</h4><p>提供了readFully，尽量读取指定长度数据，除非流末尾，这对BufferedInputStream这种底层流有效果(一次read完内部缓冲区可用数据，没达到指定<br>长度，继续从流中读取数据到内部缓冲，然后读取)<br><figure class="highlight gradle"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">final</span> <span class="keyword">void</span> readFully(<span class="keyword">byte</span> b[]) <span class="keyword">throws</span> IOException &#123;</span><br><span class="line">    readFully(b, <span class="number">0</span>, b.length);</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">public</span> <span class="keyword">final</span> <span class="keyword">void</span> readFully(<span class="keyword">byte</span> b[], <span class="keyword">int</span> off, <span class="keyword">int</span> len) <span class="keyword">throws</span> IOException &#123;</span><br><span class="line">    <span class="keyword">if</span> (len &lt; <span class="number">0</span>) <span class="keyword">throw</span> <span class="keyword">new</span> IndexOutOfBoundsException();</span><br><span class="line">    <span class="keyword">int</span> n = <span class="number">0</span>;</span><br><span class="line">    <span class="keyword">while</span> (n &lt; len) &#123;<span class="comment">//循环读取，直到流末尾，抛出EOFException异常</span></span><br><span class="line">        <span class="keyword">int</span> <span class="keyword">count</span> = in.<span class="keyword">read</span>(b, off + n, len - n);</span><br><span class="line">        <span class="keyword">if</span> (<span class="keyword">count</span> &lt; <span class="number">0</span>) <span class="keyword">throw</span> <span class="keyword">new</span> EOFException();</span><br><span class="line">        n += <span class="keyword">count</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>而与readFully类似，提供了skipBytes，尽量跳过指定字节，除非流末尾<br><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> final <span class="keyword">int</span> <span class="title">skipBytes</span><span class="params">(<span class="keyword">int</span> n)</span> throws IOException </span>&#123;</span><br><span class="line">    <span class="keyword">int</span> total = <span class="number">0</span>;</span><br><span class="line">    <span class="keyword">int</span> cur = <span class="number">0</span>;</span><br><span class="line">    <span class="keyword">while</span> ((total&lt;n) &amp;&amp; ((cur = (<span class="keyword">int</span>) in.skip(n-total)) &gt; <span class="number">0</span>)) &#123;<span class="comment">//循环skip</span></span><br><span class="line">        total += cur;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> total;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<h4 id="read*系列读取基本类型">read*系列读取基本类型</h4><p>基本思想就是读取指定长度的数据，如Boolean 1字节，Byte 1字节，Short 2字节，Char 2字节，Int 4字节，Long 8字节，Float 4字节，Double 8字节。<br>每个字节使用int值存储，这样如果对应int为-1表示到达流末尾，抛出异常。正常数据将读取到的n个字节转换为对应的类型。<br>整型1个字节的直接转换，大于1个字节的按字节序平移转换。<br>浮点型，Float读取4个字节转换为int然后通过<code>Float.intBitsToFloat(int)</code>转换为float，Double读取8个字节转换为Long然后通过<code>Double.longBitsToDouble(long)</code><br>转换为double。<br>另外，还支持读取无符号型的整数，包括<code>readUnsignedByte</code>和<code>readUnsignedShort</code>，读取字节数一样，只不过因为Java所有的整型值为有符号型，<br>因此通过int值保存转换后的byte或short值，读取该int值即为对应的无符号值。  </p>
+<p>代码不全贴了，示例:<br><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> final <span class="keyword">short</span> <span class="title">readShort</span><span class="params">()</span> throws IOException </span>&#123;</span><br><span class="line">    <span class="keyword">int</span> ch1 = in.read();</span><br><span class="line">    <span class="keyword">int</span> ch2 = in.read();<span class="comment">//读取两个字节</span></span><br><span class="line">    <span class="keyword">if</span> ((ch1 | ch2) &lt; <span class="number">0</span>) <span class="keyword">throw</span> <span class="keyword">new</span> EOFException();<span class="comment">//检查是否到达流尾部</span></span><br><span class="line">    <span class="keyword">return</span> (<span class="keyword">short</span>)((ch1 &lt;&lt; <span class="number">8</span>) + (ch2 &lt;&lt; <span class="number">0</span>));<span class="comment">//转换</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<h4 id="readLine和readUTF">readLine和readUTF</h4><p>readLine一次读取一行数据转换为String，只是简单的将除行结束符和文件结束符之外的每一个读取到的字节转换为字符，遇到行结束符或文件结束符即结束<br>读取，目前该方法已经被声明为<code>Deprecated</code>了，且代码简单，这里不再分析。<br>readUTF读取时，流中的数据为UTF8编码的字节数据，首先两个字节为编码数据长度，然后才是实际编码数据，将这些编码数据解码输出为字符串。<br>具体格式见上<code>DataInput</code>接口对该方法的说明<br><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> final String <span class="title">readUTF</span><span class="params">()</span> throws IOException </span>&#123;</span><br><span class="line">    <span class="keyword">return</span> readUTF(<span class="keyword">this</span>);</span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">public</span> final <span class="keyword">static</span> String <span class="title">readUTF</span><span class="params">(DataInput in)</span> throws IOException </span>&#123;</span><br><span class="line">    <span class="keyword">int</span> utflen = in.readUnsignedShort();<span class="comment">//两个字节的长度</span></span><br><span class="line">    byte[] bytearr = null;</span><br><span class="line">    <span class="keyword">char</span>[] chararr = null;</span><br><span class="line">    ...<span class="comment">//分配缓冲，如果in为DataInputStream，可能用到in的成员</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">int</span> c, char2, char3;<span class="comment">//3个临时值，一个UTF8字符编码最多3个字节</span></span><br><span class="line">    <span class="keyword">int</span> count = <span class="number">0</span>;<span class="comment">//字节计数</span></span><br><span class="line">    <span class="keyword">int</span> chararr_count=<span class="number">0</span>;<span class="comment">//字符计数</span></span><br><span class="line"></span><br><span class="line">    in.readFully(bytearr, <span class="number">0</span>, utflen);<span class="comment">//从流中读取编码长度的数据到bytearr中</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">while</span> (count &lt; utflen) &#123;<span class="comment">//处理开始部分的1个字节的编码数据</span></span><br><span class="line">        c = (<span class="keyword">int</span>) bytearr[count] &amp; <span class="number">0xff</span>;</span><br><span class="line">        <span class="keyword">if</span> (c &gt; <span class="number">127</span>) <span class="keyword">break</span>;</span><br><span class="line">        count++;</span><br><span class="line">        chararr[chararr_count++]=(<span class="keyword">char</span>)c;<span class="comment">//小于127，为0<span class="label">xxx xxxx格式，该字符只有这一个字节，直接转换为字符</span></span></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">while</span> (count &lt; utflen) &#123;</span><br><span class="line">        c = (<span class="keyword">int</span>) bytearr[count] &amp; <span class="number">0xff</span>;</span><br><span class="line">        <span class="keyword">switch</span> (c &gt;&gt; <span class="number">4</span>) &#123;</span><br><span class="line">            <span class="keyword">case</span> <span class="number">0</span>: <span class="keyword">case</span> <span class="number">1</span>: <span class="keyword">case</span> <span class="number">2</span>: <span class="keyword">case</span> <span class="number">3</span>: <span class="keyword">case</span> <span class="number">4</span>: <span class="keyword">case</span> <span class="number">5</span>: <span class="keyword">case</span> <span class="number">6</span>: <span class="keyword">case</span> <span class="number">7</span>:<span class="comment">//只有一个字节，直接转换为字符</span></span><br><span class="line">                <span class="comment">/* 0xxxxxxx*/</span></span><br><span class="line">                count++;</span><br><span class="line">                chararr[chararr_count++]=(<span class="keyword">char</span>)c;<span class="comment">//直接转换</span></span><br><span class="line">                <span class="keyword">break</span>;</span><br><span class="line">            <span class="keyword">case</span> <span class="number">12</span>: <span class="keyword">case</span> <span class="number">13</span>:<span class="comment">//两个字节</span></span><br><span class="line">                <span class="comment">/* 110x xxxx   10xx xxxx*/</span></span><br><span class="line">                count += <span class="number">2</span>;</span><br><span class="line">                <span class="keyword">if</span> (count &gt; utflen)<span class="comment">//第二个字节不存在，抛出UTFDataFormatException异常</span></span><br><span class="line">                    <span class="keyword">throw</span> <span class="keyword">new</span> UTFDataFormatException(</span><br><span class="line">                        <span class="string">"malformed input: partial character at end"</span>);</span><br><span class="line">                char2 = (<span class="keyword">int</span>) bytearr[count-<span class="number">1</span>];<span class="comment">//第二个字节</span></span><br><span class="line">                <span class="keyword">if</span> ((char2 &amp; <span class="number">0xC0</span>) != <span class="number">0x80</span>)<span class="comment">//第二个字节不是10xx <span class="label">xxxx格式，抛出UTFDataFormatException异常</span></span></span><br><span class="line">                    <span class="keyword">throw</span> <span class="keyword">new</span> UTFDataFormatException(<span class="string">"malformed input around byte "</span> + count);</span><br><span class="line">                chararr[chararr_count++]=(<span class="keyword">char</span>)(((c &amp; <span class="number">0x1F</span>) &lt;&lt; <span class="number">6</span>) | (char2 &amp; <span class="number">0x3F</span>));<span class="comment">//正常数据，转换</span></span><br><span class="line">                <span class="keyword">break</span>;</span><br><span class="line">            <span class="keyword">case</span> <span class="number">14</span>:<span class="comment">//三个字节</span></span><br><span class="line">                <span class="comment">/* 1110 xxxx  10xx xxxx  10xx xxxx */</span></span><br><span class="line">                count += <span class="number">3</span>;</span><br><span class="line">                <span class="keyword">if</span> (count &gt; utflen)<span class="comment">//第3个字节不存在，抛出UTFDataFormatException异常</span></span><br><span class="line">                    <span class="keyword">throw</span> <span class="keyword">new</span> UTFDataFormatException(<span class="string">"malformed input: partial character at end"</span>);</span><br><span class="line">                char2 = (<span class="keyword">int</span>) bytearr[count-<span class="number">2</span>];<span class="comment">//第二个字节</span></span><br><span class="line">                char3 = (<span class="keyword">int</span>) bytearr[count-<span class="number">1</span>];<span class="comment">//第三个字节</span></span><br><span class="line">                <span class="keyword">if</span> (((char2 &amp; <span class="number">0xC0</span>) != <span class="number">0x80</span>) || ((char3 &amp; <span class="number">0xC0</span>) != <span class="number">0x80</span>))<span class="comment">//第二个或第三个字节不是10xx <span class="label">xxxx格式，抛出UTFDataFormatException异常</span></span></span><br><span class="line">                    <span class="keyword">throw</span> <span class="keyword">new</span> UTFDataFormatException( <span class="string">"malformed input around byte "</span> + (count-<span class="number">1</span>));</span><br><span class="line">                <span class="comment">//正常数据，转换</span></span><br><span class="line">                chararr[chararr_count++]=(<span class="keyword">char</span>)(((c     &amp; <span class="number">0x0F</span>) &lt;&lt; <span class="number">12</span>) |</span><br><span class="line">                                                ((char2 &amp; <span class="number">0x3F</span>) &lt;&lt; <span class="number">6</span>)  |</span><br><span class="line">                                                ((char3 &amp; <span class="number">0x3F</span>) &lt;&lt; <span class="number">0</span>));</span><br><span class="line">                <span class="keyword">break</span>;</span><br><span class="line">            <span class="keyword">default</span>:<span class="comment">//第一个字节为10xx <span class="label">xxxx或1111 xxxx格式，抛出UTFDataFormatException异常</span></span></span><br><span class="line">                <span class="comment">/* 10xx xxxx,  1111 xxxx */</span></span><br><span class="line">                <span class="keyword">throw</span> <span class="keyword">new</span> UTFDataFormatException( <span class="string">"malformed input around byte "</span> + count);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">new</span> String(chararr, <span class="number">0</span>, chararr_count);<span class="comment">//解码出来的字符数组构建String对象，返回</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，流程与上面DataInput对readUTF8格式完全吻合，只不过这里预先处理开始部分只有一个字节的字符情况，如果所有字符都是只有一个字节则全部数据<br>在第一个循环中处理完。  </p>
+<hr>
+<h2 id="DataInputBuffer">DataInputBuffer</h2><p>从内存缓冲中读取数据的可重用DataInput接口实现，继承自DataInputStream  </p>
+<h3 id="成员属性-2">成员属性</h3><p>成员为内部类<code>DataInputBuffer.Buffer</code><br><figure class="highlight vhdl"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">private <span class="keyword">Buffer</span> <span class="keyword">buffer</span>;</span><br></pre></td></tr></table></figure></p>
+<p>Buffer其实为可重用的ByteArrayInputStream<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="keyword">static</span> <span class="class"><span class="keyword">class</span> <span class="title">Buffer</span> <span class="keyword">extends</span> <span class="title">ByteArrayInputStream</span> </span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="title">Buffer</span><span class="params">()</span> </span>&#123;</span><br><span class="line">      <span class="keyword">super</span>(<span class="keyword">new</span> <span class="keyword">byte</span>[] &#123;&#125;);</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">reset</span><span class="params">(<span class="keyword">byte</span>[] input, <span class="keyword">int</span> start, <span class="keyword">int</span> length)</span> </span>&#123;</span><br><span class="line">      <span class="keyword">this</span>.buf = input;</span><br><span class="line">      <span class="keyword">this</span>.count = start+length;</span><br><span class="line">      <span class="keyword">this</span>.mark = start;</span><br><span class="line">      <span class="keyword">this</span>.pos = start;</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">byte</span>[] getData() &#123; <span class="keyword">return</span> buf; &#125;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">int</span> <span class="title">getPosition</span><span class="params">()</span> </span>&#123; <span class="keyword">return</span> pos; &#125;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">int</span> <span class="title">getLength</span><span class="params">()</span> </span>&#123; <span class="keyword">return</span> count; &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>我们知道ByteArrayInputStream的内部缓冲在创建时指定，无法修改，这里通过reset方法重新设置其内部缓冲，达到重用该流的效果。  </p>
+<h3 id="构造-3">构造</h3><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="title">DataInputBuffer</span><span class="params">()</span> </span>&#123; <span class="keyword">this</span>(<span class="keyword">new</span> Buffer()); &#125;</span><br><span class="line"><span class="function"><span class="keyword">private</span> <span class="title">DataInputBuffer</span><span class="params">(Buffer buffer)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">super</span>(buffer);</span><br><span class="line">    <span class="keyword">this</span>.buffer = buffer;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>因此，底层输入流为Buffer对象，即为ByteArrayInputStream，数据保存在字节数组中</p>
+<h3 id="其他方法">其他方法</h3><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">void</span> <span class="title">reset</span><span class="params">(<span class="keyword">byte</span>[] input, <span class="keyword">int</span> length)</span> </span>&#123; buffer.reset(input, <span class="number">0</span>, length); &#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">void</span> <span class="title">reset</span><span class="params">(<span class="keyword">byte</span>[] input, <span class="keyword">int</span> start, <span class="keyword">int</span> length)</span> </span>&#123; buffer.reset(input, start, length); &#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">byte</span>[] getData() &#123; <span class="function"><span class="keyword">return</span> buffer.<span class="title">getData</span><span class="params">()</span></span>; &#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">int</span> <span class="title">getPosition</span><span class="params">()</span> </span>&#123; <span class="function"><span class="keyword">return</span> buffer.<span class="title">getPosition</span><span class="params">()</span></span>; &#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">int</span> <span class="title">getLength</span><span class="params">()</span> </span>&#123; <span class="function"><span class="keyword">return</span> buffer.<span class="title">getLength</span><span class="params">()</span></span>; &#125;</span><br></pre></td></tr></table></figure>
+<p>我们在创建DataInputBuffer后，可重复设置底层的字节数组来重用创建的DataInputBuffer对象，想这样<br><figure class="highlight r"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">while</span> (<span class="keyword">...</span> loop condition <span class="keyword">...</span>) &#123;</span><br><span class="line">    byte[] data = <span class="keyword">...</span> get data <span class="keyword">...</span>;</span><br><span class="line">    int dataLength = <span class="keyword">...</span> get data length <span class="keyword">...</span>;</span><br><span class="line">    buffer.reset(data, dataLength);</span><br><span class="line">    <span class="keyword">...</span> read buffer using DataInput methods <span class="keyword">...</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<hr>
+<h2 id="ObjectInputStream">ObjectInputStream</h2><p>对象反序列化使用的流，从流中反序列化数据为一个对象。相应的对象必须实现<code>Serializable</code>或<code>Externalizable</code>。<br>反序列化包括对象的类，类签名，类的所有非暂态(transient)和非静态成员。<br>反序列化基本类型可使用<code>DataInput</code>的相关方法，反序列化对象<code>readObject</code>方法。<br>典型使用:<br><figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//序列化</span></span><br><span class="line"><span class="type">SomeClass</span> <span class="class"><span class="keyword">object</span>=</span>...<span class="comment">//实现Serializable</span></span><br><span class="line"><span class="type">ObjectOutputStream</span> output=<span class="keyword">new</span> <span class="type">ObjectOutputStream</span>(otherOutput);<span class="comment">//otherOutput为序列化输出的流，可以为文件流，字节流等</span></span><br><span class="line">output.writeObject(<span class="class"><span class="keyword">object</span>);</span></span><br><span class="line"></span><br><span class="line"><span class="comment">//反序列化</span></span><br><span class="line"><span class="type">ObjectInputStream</span> input=<span class="keyword">new</span> <span class="type">ObjectInputStream</span>(otherInput);<span class="comment">//otherInput为序列化输出流对应构建的输入流</span></span><br><span class="line"><span class="type">SomeClass</span> <span class="class"><span class="keyword">object</span>=</span>(<span class="type">SomeClass</span>)input.readObject();</span><br></pre></td></tr></table></figure></p>
+<p>具体代码不再分析。</p>
+<hr>
+<h1 id="Java输出流">Java输出流</h1><p>与前面分析的输入流对应的输出流类图如下:<br><img src="../images/OutputStream.png" alt="OutputStream"><br>各流对应功能原理类似，不再具体分析源代码</p>
+</span>
+      
+    </div>
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/Java/" rel="tag">#Java</a>
+          
+            <a href="/tags/Java基础/" rel="tag">#Java基础</a>
+          
+        </div>
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/RPC源码分析下篇/" rel="next" title="RPC源码阅读---源码分析下篇">
+                <i class="fa fa-chevron-left"></i> RPC源码阅读---源码分析下篇
+              </a>
+            
+          </div>
+
+          <div class="post-nav-prev post-nav-item">
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </article>
+
+
+
+    <div class="post-spread">
+      
+        <!-- JiaThis Button BEGIN -->
+<div class="jiathis_style">
+  <a class="jiathis_button_tsina"></a>
+  <a class="jiathis_button_tqq"></a>
+  <a class="jiathis_button_weixin"></a>
+  <a class="jiathis_button_cqq"></a>
+  <a class="jiathis_button_douban"></a>
+  <a class="jiathis_button_renren"></a>
+  <a class="jiathis_button_qzone"></a>
+  <a class="jiathis_button_kaixin001"></a>
+  <a class="jiathis_button_copy"></a>
+  <a href="http://www.jiathis.com/share" class="jiathis jiathis_txt jiathis_separator jtico jtico_jiathis" target="_blank"></a>
+  <a class="jiathis_counter_style"></a>
+</div>
+<script type="text/javascript" >
+  var jiathis_config={
+    hideMore:false
+  }
+</script>
+<script type="text/javascript" src="http://v3.jiathis.com/code/jia.js" charset="utf-8"></script>
+<!-- JiaThis Button END -->
+
+      
+    </div>
+  </div>
+
+
+        </div>
+
+        
+
+
+        
+  <div class="comments" id="comments">
+    
+      <div class="ds-thread" data-thread-key="Java流/"
+           data-title="Java流" data-url="http://xiao-yun.github.io/Java流/">
+      </div>
+    
+  </div>
+
+
+      </div>
+
+      
+        
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap" >
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel ">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+          <img class="site-author-image" src="/images/hero.jpg" alt="xiaoyun" itemprop="image"/>
+          <p class="site-author-name" itemprop="name">xiaoyun</p>
+        </div>
+        <p class="site-description motion-element" itemprop="description">学习笔记，网上资源摘要等</p>
+        <nav class="site-state motion-element">
+          <div class="site-state-item site-state-posts">
+            <a href="/archives">
+              <span class="site-state-item-count">19</span>
+              <span class="site-state-item-name">日志</span>
+            </a>
+          </div>
+
+          <div class="site-state-item site-state-categories">
+            <a href="/categories">
+              <span class="site-state-item-count">19</span>
+              <span class="site-state-item-name">分类</span>
+              </a>
+          </div>
+
+          <div class="site-state-item site-state-tags">
+            <a href="/tags">
+              <span class="site-state-item-count">13</span>
+              <span class="site-state-item-name">标签</span>
+              </a>
+          </div>
+
+        </nav>
+
+        
+
+        <div class="links-of-author motion-element">
+          
+            
+              <span class="links-of-author-item">
+                <a href="https://github.com/xiao-yun" target="_blank">
+                  
+                    <i class="fa fa-globe"></i> github
+                  
+                </a>
+              </span>
+            
+          
+        </div>
+
+        
+        
+
+        <div class="links-of-author motion-element">
+          
+        </div>
+
+      </section>
+
+      
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc-indicator-top post-toc-indicator">
+            <i class="fa fa-angle-double-up"></i>
+          </div>
+          <div class="post-toc">
+            
+              
+            
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#Java输入流"><span class="nav-number">1.</span> <span class="nav-text">Java输入流</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#InputStream"><span class="nav-number">1.1.</span> <span class="nav-text">InputStream</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#ByteArrayInputStream"><span class="nav-number">1.2.</span> <span class="nav-text">ByteArrayInputStream</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#构造"><span class="nav-number">1.2.1.</span> <span class="nav-text">构造</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#数据读取read"><span class="nav-number">1.2.2.</span> <span class="nav-text">数据读取read</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#跳过skip"><span class="nav-number">1.2.3.</span> <span class="nav-text">跳过skip</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#标记mark"><span class="nav-number">1.2.4.</span> <span class="nav-text">标记mark</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#关闭close"><span class="nav-number">1.2.5.</span> <span class="nav-text">关闭close</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#其他"><span class="nav-number">1.2.6.</span> <span class="nav-text">其他</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#FileInputStream"><span class="nav-number">1.3.</span> <span class="nav-text">FileInputStream</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#成员属性"><span class="nav-number">1.3.1.</span> <span class="nav-text">成员属性</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#构造-1"><span class="nav-number">1.3.2.</span> <span class="nav-text">构造</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#关闭"><span class="nav-number">1.3.3.</span> <span class="nav-text">关闭</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#本地方法"><span class="nav-number">1.3.4.</span> <span class="nav-text">本地方法</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#FilterInputStream"><span class="nav-number">1.4.</span> <span class="nav-text">FilterInputStream</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#BufferedInputStream"><span class="nav-number">1.5.</span> <span class="nav-text">BufferedInputStream</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#成员属性-1"><span class="nav-number">1.5.1.</span> <span class="nav-text">成员属性</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#构造-2"><span class="nav-number">1.5.2.</span> <span class="nav-text">构造</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#数据读取"><span class="nav-number">1.5.3.</span> <span class="nav-text">数据读取</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#单个字节读取"><span class="nav-number">1.5.3.1.</span> <span class="nav-text">单个字节读取</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#指定长度数据读取"><span class="nav-number">1.5.3.2.</span> <span class="nav-text">指定长度数据读取</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#skip"><span class="nav-number">1.5.3.3.</span> <span class="nav-text">skip</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#available"><span class="nav-number">1.5.3.4.</span> <span class="nav-text">available</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#其他-1"><span class="nav-number">1.5.3.5.</span> <span class="nav-text">其他</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#DataInput"><span class="nav-number">1.6.</span> <span class="nav-text">DataInput</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#DataInputStream"><span class="nav-number">1.7.</span> <span class="nav-text">DataInputStream</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#成员和构造"><span class="nav-number">1.7.1.</span> <span class="nav-text">成员和构造</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#基本类型数据读取"><span class="nav-number">1.7.2.</span> <span class="nav-text">基本类型数据读取</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#read指定长度字节"><span class="nav-number">1.7.2.1.</span> <span class="nav-text">read指定长度字节</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#readFully和skipBytes"><span class="nav-number">1.7.2.2.</span> <span class="nav-text">readFully和skipBytes</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#read*系列读取基本类型"><span class="nav-number">1.7.2.3.</span> <span class="nav-text">read*系列读取基本类型</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#readLine和readUTF"><span class="nav-number">1.7.2.4.</span> <span class="nav-text">readLine和readUTF</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#DataInputBuffer"><span class="nav-number">1.8.</span> <span class="nav-text">DataInputBuffer</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#成员属性-2"><span class="nav-number">1.8.1.</span> <span class="nav-text">成员属性</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#构造-3"><span class="nav-number">1.8.2.</span> <span class="nav-text">构造</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#其他方法"><span class="nav-number">1.8.3.</span> <span class="nav-text">其他方法</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#ObjectInputStream"><span class="nav-number">1.9.</span> <span class="nav-text">ObjectInputStream</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Java输出流"><span class="nav-number">2.</span> <span class="nav-text">Java输出流</span></a></li></ol></div>
+            
+          </div>
+          <div class="post-toc-indicator-bottom post-toc-indicator">
+            <i class="fa fa-angle-double-down"></i>
+          </div>
+        </section>
+      
+
+    </div>
+  </aside>
+
+
+      
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright" >
+  
+  &copy; 
+  <span itemprop="copyrightYear">2015</span>
+  <span class="with-love">
+    <i class="icon-next-heart fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">xiaoyun</span>
+</div>
+
+<div class="powered-by">
+  由 <a class="theme-link" href="http://hexo.io">Hexo</a> 强力驱动
+</div>
+
+<div class="theme-info">
+  主题 -
+  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
+    NexT.Mist
+  </a>
+</div>
+
+
+
+      </div>
+    </footer>
+
+    <div class="back-to-top"></div>
+  </div>
+
+  <script type="text/javascript" src="/vendors/jquery/index.js?v=2.1.3"></script>
+
+  
+  
+
+  
+    
+
+  
+    
+  
+
+  <script type="text/javascript">
+    var duoshuoQuery = {short_name:"xiaoyuncom"};
+    (function() {
+      var ds = document.createElement('script');
+      ds.type = 'text/javascript';ds.async = true;
+      ds.id = 'duoshuo-script';
+      ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+      ds.charset = 'UTF-8';
+      (document.getElementsByTagName('head')[0]
+      || document.getElementsByTagName('body')[0]).appendChild(ds);
+    })();
+  </script>
+    
+     
+
+
+    
+  
+
+  
+  <script type="text/javascript" src="/vendors/fancybox/source/jquery.fancybox.pack.js"></script>
+  <script type="text/javascript" src="/js/fancy-box.js?v=0.4.5.2"></script>
+
+
+  <script type="text/javascript" src="/js/helpers.js?v=0.4.5.2"></script>
+  <script type="text/javascript" src="/vendors/velocity/velocity.min.js"></script>
+<script type="text/javascript" src="/vendors/velocity/velocity.ui.min.js"></script>
+
+<script type="text/javascript" src="/js/motion.js?v=0.4.5.2" id="motion.global"></script>
+
+
+  <script type="text/javascript" src="/vendors/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  <script type="text/javascript" src="/vendors/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  
+<script type="text/javascript" src="/js/bootstrap.scrollspy.js?v=0.4.5.2" id="bootstrap.scrollspy.custom"></script>
+
+
+<script type="text/javascript" id="sidebar.toc.highlight">
+  $(document).ready(function () {
+    var tocSelector = '.post-toc';
+    var $tocSelector = $(tocSelector);
+    var activeCurrentSelector = '.active-current';
+
+    $tocSelector
+      .on('activate.bs.scrollspy', function () {
+        var $currentActiveElement = $(tocSelector + ' .active').last();
+
+        removeCurrentActiveClass();
+        $currentActiveElement.addClass('active-current');
+
+        $tocSelector[0].scrollTop = $currentActiveElement.position().top;
+      })
+      .on('clear.bs.scrollspy', function () {
+        removeCurrentActiveClass();
+      });
+
+    function removeCurrentActiveClass () {
+      $(tocSelector + ' ' + activeCurrentSelector)
+        .removeClass(activeCurrentSelector.substring(1));
+    }
+
+    function processTOC () {
+      getTOCMaxHeight();
+      toggleTOCOverflowIndicators();
+    }
+
+    function getTOCMaxHeight () {
+      var height = $('.sidebar').height() -
+                   $tocSelector.position().top -
+                   $('.post-toc-indicator-bottom').height();
+
+      $tocSelector.css('height', height);
+
+      return height;
+    }
+
+    function toggleTOCOverflowIndicators () {
+      tocOverflowIndicator(
+        '.post-toc-indicator-top',
+        $tocSelector.scrollTop() > 0 ? 'show' : 'hide'
+      );
+
+      tocOverflowIndicator(
+        '.post-toc-indicator-bottom',
+        $tocSelector.scrollTop() >= $tocSelector.find('ol').height() - $tocSelector.height() ? 'hide' : 'show'
+      )
+    }
+
+    $(document).on('sidebar.motion.complete', function () {
+      processTOC();
+    });
+
+    $('body').scrollspy({ target: tocSelector });
+    $(window).on('resize', function () {
+      if ( $('.sidebar').hasClass('sidebar-active') ) {
+        processTOC();
+      }
+    });
+
+    onScroll($tocSelector);
+
+    function onScroll (element) {
+      element.on('mousewheel DOMMouseScroll', function (event) {
+          var oe = event.originalEvent;
+          var delta = oe.wheelDelta || -oe.detail;
+
+          this.scrollTop += ( delta < 0 ? 1 : -1 ) * 30;
+          event.preventDefault();
+
+          toggleTOCOverflowIndicators();
+      });
+    }
+
+    function tocOverflowIndicator (indicator, action) {
+      var $indicator = $(indicator);
+      var opacity = action === 'show' ? 1 : 0;
+      $indicator.velocity ?
+        $indicator.velocity('stop').velocity({
+          opacity: opacity
+        }, { duration: 100 }) :
+        $indicator.stop().animate({
+          opacity: opacity
+        }, 100);
+    }
+
+  });
+</script>
+
+<script type="text/javascript" id="sidebar.nav">
+  $(document).ready(function () {
+    var html = $('html');
+    var TAB_ANIMATE_DURATION = 200;
+    var hasVelocity = $.isFunction(html.velocity);
+
+    $('.sidebar-nav li').on('click', function () {
+      var item = $(this);
+      var activeTabClassName = 'sidebar-nav-active';
+      var activePanelClassName = 'sidebar-panel-active';
+      if (item.hasClass(activeTabClassName)) {
+        return;
+      }
+
+      var currentTarget = $('.' + activePanelClassName);
+      var target = $('.' + item.data('target'));
+
+      hasVelocity ?
+        currentTarget.velocity('transition.slideUpOut', TAB_ANIMATE_DURATION, function () {
+          target
+            .velocity('stop')
+            .velocity('transition.slideDownIn', TAB_ANIMATE_DURATION)
+            .addClass(activePanelClassName);
+        }) :
+        currentTarget.animate({ opacity: 0 }, TAB_ANIMATE_DURATION, function () {
+          currentTarget.hide();
+          target
+            .stop()
+            .css({'opacity': 0, 'display': 'block'})
+            .animate({ opacity: 1 }, TAB_ANIMATE_DURATION, function () {
+              currentTarget.removeClass(activePanelClassName);
+              target.addClass(activePanelClassName);
+            });
+        });
+
+      item.siblings().removeClass(activeTabClassName);
+      item.addClass(activeTabClassName);
+    });
+
+    $('.post-toc a').on('click', function (e) {
+      e.preventDefault();
+      var targetSelector = escapeSelector(this.getAttribute('href'));
+      var offset = $(targetSelector).offset().top;
+      hasVelocity ?
+        html.velocity('stop').velocity('scroll', {
+          offset: offset  + 'px',
+          mobileHA: false
+        }) :
+        $('html, body').stop().animate({
+          scrollTop: offset
+        }, 500);
+    });
+
+    // Expand sidebar on post detail page by default, when post has a toc.
+    motionMiddleWares.sidebar = function () {
+      var $tocContent = $('.post-toc-content');
+      if (CONFIG.sidebar === 'post') {
+        if ($tocContent.length > 0 && $tocContent.html().trim().length > 0) {
+          displaySidebar();
+        }
+      }
+    };
+  });
+</script>
+
+
+
+  <script type="text/javascript" src="/js/bootstrap.js"></script>
+
+  
+  
+
+  
+  
+
+</body>
+</html>

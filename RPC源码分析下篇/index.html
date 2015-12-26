@@ -59,7 +59,7 @@
 <meta property="og:description" content="Hadoop版本:Hadoop-1.2.1参考：《Hadoop技术内幕-深入解析Hadoop Common和HDFS架构设计与实现原理》,后文简称技术内幕RPC中用到的通道和选择器另见通道和选择器，缓冲区另见缓冲区,以及序列化(主要是ObjectWritable)另见序列化下文所说的[概述]为上篇RPC源码分析—概述本文不涉及SIMPLE，DIGEST，KERBEROS三种鉴权方式的鉴权过程分析">
 <meta property="og:image" content="http://xiao-yun.github.io/../images/markClosed.png">
 <meta property="og:image" content="http://xiao-yun.github.io/../images/closeConnection.png">
-<meta property="og:updated_time" content="2015-12-24T06:46:37.936Z">
+<meta property="og:updated_time" content="2015-12-26T09:16:07.777Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="RPC源码阅读---源码分析下篇">
 <meta name="twitter:description" content="Hadoop版本:Hadoop-1.2.1参考：《Hadoop技术内幕-深入解析Hadoop Common和HDFS架构设计与实现原理》,后文简称技术内幕RPC中用到的通道和选择器另见通道和选择器，缓冲区另见缓冲区,以及序列化(主要是ObjectWritable)另见序列化下文所说的[概述]为上篇RPC源码分析—概述本文不涉及SIMPLE，DIGEST，KERBEROS三种鉴权方式的鉴权过程分析">
@@ -233,8 +233,8 @@
         <div class="post-meta">
           <span class="post-time">
             发表于
-            <time itemprop="dateCreated" datetime="2015-12-24T14:46:37+08:00" content="2015-12-24">
-              2015-12-24
+            <time itemprop="dateCreated" datetime="2015-12-26T17:16:07+08:00" content="2015-12-26">
+              2015-12-26
             </time>
           </span>
 
@@ -343,8 +343,9 @@
 <hr>
 <p>本文所属<code>RPC源码分析</code>，按照调用请求的步骤对源码进行分析，限于篇幅分为上下两篇。  </p>
 <p>上篇分析了”客户端代理创建”，”服务器创建启动”，”客户端服务器连接建立”，”客户端头数据发送”，”服务器对头数据验证，鉴权”，至此连接已经建立验证，<br>可以发送正常的调用请求了。上篇另见<a href="./RPC源码分析上篇">RPC源码分析上篇</a>。  </p>
-<p>而下篇分析了”客户端调用请求”，”服务器对调用请求的处理响应”，”客户端接收响应”，”客户端服务器连接的关闭”，”客户端关闭”，”服务器关闭”等过程，</p>
-<h2 id="本文即为下篇。">本文即为下篇。</h2><h2 id="方法调用请求和响应">方法调用请求和响应</h2><p>上篇<strong>&lt;建立连接&gt;</strong>部分分析了建立连接过程中，客户端的连接请求和头数据发送，服务器端的连接接收以及头数据处理鉴权等过程。</p>
+<p>而下篇分析了”客户端调用请求”，”服务器对调用请求的处理响应”，”客户端接收响应”，”客户端服务器连接的关闭”，”客户端关闭”，”服务器关闭”等过程，本文即为下篇。</p>
+<hr>
+<h2 id="方法调用请求和响应">方法调用请求和响应</h2><p>上篇<strong>&lt;建立连接&gt;</strong>部分分析了建立连接过程中，客户端的连接请求和头数据发送，服务器端的连接接收以及头数据处理鉴权等过程。</p>
 <p>对于客户端来说<code>getConnection</code>返回时表明连接已经创建，且头数据已经发送，而关于服务器对头数据的异常响应在客户端Connection线程中。<br>对getConnection要注意的是，复用Connection时，如果连接已经建立且头数据已经发送<code>setupIOstreams</code>直接返回。<br>而对于服务器端来说，监听器的Reader线程已经处理了头数据，接下来等待实际的调用请求。  </p>
 <p>下面分析客户端的实际调用请求和服务器对请求的响应</p>
 <h3 id="客户端调用请求">客户端调用请求</h3><p>由上，<code>getConnection</code>之后，通过连接对象的<code>sendParam</code>方法发起调用请求，具体见前面分析<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">connection.sendParam(<span class="operator"><span class="keyword">call</span>);</span></span><br></pre></td></tr></table></figure></p>
@@ -495,7 +496,7 @@
 <p>在客户端接收响应时，因为连接是一个线程，就算多个线程在该连接上远程调用，这些线程调用完后阻塞，是通过这一个连接线程通知响应到达的，只能一帧<br>一帧数据接收，接受完后通知调用线程，因此无需同步便能得到完整的一帧数据。</p>
 <hr>
 <h2 id="疑问">疑问</h2><ul>
-<li>客户端的输入流通过<code>socket.getInputStream</code>或创建SocketInputStream创建底层输入流，然后封装PingInputStream以及相应的流。<br>输出流通过<code>socket.getOutputStream</code>或创建SocketOutputStream创建底层输出流，然后封装相应的流。这样读写操作便不会对客户端关闭时连接的中断<br>进行响应，也就是说读操作要等待读超时(rpcTimeout大于0)或ping异常(服务器连接关闭)，而写操作要等待写超时才会关闭该连接，是否会有问题？</li>
+<li>客户端的输入流通过<code>socket.getInputStream</code>或创建SocketInputStream创建底层输入流，然后封装PingInputStream以及相应的流。<br>输出流通过<code>socket.getOutputStream</code>或创建SocketOutputStream创建底层输出流，然后封装相应的流。这样读写操作便不会对客户端关闭时连接的中断<br>进行响应，也就是说读操作要等待读超时(rpcTimeout大于0)或ping异常(服务器连接关闭)，而写操作要等待写超时才会关闭该连接，关闭客户端是否会有很大延迟？</li>
 </ul>
 </span>
       
@@ -518,13 +519,17 @@
         <div class="post-nav">
           <div class="post-nav-next post-nav-item">
             
-              <a href="/配置相关RPC/" rel="next" title="Hadoop配置相关---RPC">
-                <i class="fa fa-chevron-left"></i> Hadoop配置相关---RPC
+              <a href="/RPC源码分析上篇/" rel="next" title="RPC源码阅读---源码分析上篇">
+                <i class="fa fa-chevron-left"></i> RPC源码阅读---源码分析上篇
               </a>
             
           </div>
 
           <div class="post-nav-prev post-nav-item">
+            
+              <a href="/Java流/" rel="prev" title="Java流">
+                Java流 <i class="fa fa-chevron-right"></i>
+              </a>
             
           </div>
         </div>
@@ -619,21 +624,21 @@
         <nav class="site-state motion-element">
           <div class="site-state-item site-state-posts">
             <a href="/archives">
-              <span class="site-state-item-count">18</span>
+              <span class="site-state-item-count">19</span>
               <span class="site-state-item-name">日志</span>
             </a>
           </div>
 
           <div class="site-state-item site-state-categories">
             <a href="/categories">
-              <span class="site-state-item-count">18</span>
+              <span class="site-state-item-count">19</span>
               <span class="site-state-item-name">分类</span>
               </a>
           </div>
 
           <div class="site-state-item site-state-tags">
             <a href="/tags">
-              <span class="site-state-item-count">12</span>
+              <span class="site-state-item-count">13</span>
               <span class="site-state-item-name">标签</span>
               </a>
           </div>
@@ -675,7 +680,7 @@
               
             
             
-              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#本文即为下篇。"><span class="nav-number">1.</span> <span class="nav-text">本文即为下篇。</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#方法调用请求和响应"><span class="nav-number">2.</span> <span class="nav-text">方法调用请求和响应</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#客户端调用请求"><span class="nav-number">2.1.</span> <span class="nav-text">客户端调用请求</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#服务器端调用请求的响应"><span class="nav-number">2.2.</span> <span class="nav-text">服务器端调用请求的响应</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#监听器处理"><span class="nav-number">2.2.1.</span> <span class="nav-text">监听器处理</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#处理器处理"><span class="nav-number">2.2.2.</span> <span class="nav-text">处理器处理</span></a><ol class="nav-child"><li class="nav-item nav-level-5"><a class="nav-link" href="#主程序"><span class="nav-number">2.2.2.1.</span> <span class="nav-text">主程序</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#call"><span class="nav-number">2.2.2.2.</span> <span class="nav-text">call</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#setupResponse"><span class="nav-number">2.2.2.3.</span> <span class="nav-text">setupResponse</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#doRespond"><span class="nav-number">2.2.2.4.</span> <span class="nav-text">doRespond</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#processResponse"><span class="nav-number">2.2.2.5.</span> <span class="nav-text">processResponse</span></a></li></ol></li><li class="nav-item nav-level-4"><a class="nav-link" href="#响应器处理"><span class="nav-number">2.2.3.</span> <span class="nav-text">响应器处理</span></a><ol class="nav-child"><li class="nav-item nav-level-5"><a class="nav-link" href="#等待通道注册"><span class="nav-number">2.2.3.1.</span> <span class="nav-text">等待通道注册</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#doAsyncWrite"><span class="nav-number">2.2.3.2.</span> <span class="nav-text">doAsyncWrite</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#doPurge"><span class="nav-number">2.2.3.3.</span> <span class="nav-text">doPurge</span></a></li></ol></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#客户端接收响应"><span class="nav-number">3.</span> <span class="nav-text">客户端接收响应</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#连接的关闭"><span class="nav-number">4.</span> <span class="nav-text">连接的关闭</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#客户端连接关闭"><span class="nav-number">4.1.</span> <span class="nav-text">客户端连接关闭</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#服务器连接的关闭"><span class="nav-number">4.2.</span> <span class="nav-text">服务器连接的关闭</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#服务器资源清理"><span class="nav-number">5.</span> <span class="nav-text">服务器资源清理</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#监听器清理连接"><span class="nav-number">5.1.</span> <span class="nav-text">监听器清理连接</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#响应器清理连接"><span class="nav-number">5.2.</span> <span class="nav-text">响应器清理连接</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#客户端关闭"><span class="nav-number">6.</span> <span class="nav-text">客户端关闭</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#服务器关闭"><span class="nav-number">7.</span> <span class="nav-text">服务器关闭</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#整帧数据的读写"><span class="nav-number">8.</span> <span class="nav-text">整帧数据的读写</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#疑问"><span class="nav-number">9.</span> <span class="nav-text">疑问</span></a></li></ol></div>
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#方法调用请求和响应"><span class="nav-number">1.</span> <span class="nav-text">方法调用请求和响应</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#客户端调用请求"><span class="nav-number">1.1.</span> <span class="nav-text">客户端调用请求</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#服务器端调用请求的响应"><span class="nav-number">1.2.</span> <span class="nav-text">服务器端调用请求的响应</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#监听器处理"><span class="nav-number">1.2.1.</span> <span class="nav-text">监听器处理</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#处理器处理"><span class="nav-number">1.2.2.</span> <span class="nav-text">处理器处理</span></a><ol class="nav-child"><li class="nav-item nav-level-5"><a class="nav-link" href="#主程序"><span class="nav-number">1.2.2.1.</span> <span class="nav-text">主程序</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#call"><span class="nav-number">1.2.2.2.</span> <span class="nav-text">call</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#setupResponse"><span class="nav-number">1.2.2.3.</span> <span class="nav-text">setupResponse</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#doRespond"><span class="nav-number">1.2.2.4.</span> <span class="nav-text">doRespond</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#processResponse"><span class="nav-number">1.2.2.5.</span> <span class="nav-text">processResponse</span></a></li></ol></li><li class="nav-item nav-level-4"><a class="nav-link" href="#响应器处理"><span class="nav-number">1.2.3.</span> <span class="nav-text">响应器处理</span></a><ol class="nav-child"><li class="nav-item nav-level-5"><a class="nav-link" href="#等待通道注册"><span class="nav-number">1.2.3.1.</span> <span class="nav-text">等待通道注册</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#doAsyncWrite"><span class="nav-number">1.2.3.2.</span> <span class="nav-text">doAsyncWrite</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#doPurge"><span class="nav-number">1.2.3.3.</span> <span class="nav-text">doPurge</span></a></li></ol></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#客户端接收响应"><span class="nav-number">2.</span> <span class="nav-text">客户端接收响应</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#连接的关闭"><span class="nav-number">3.</span> <span class="nav-text">连接的关闭</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#客户端连接关闭"><span class="nav-number">3.1.</span> <span class="nav-text">客户端连接关闭</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#服务器连接的关闭"><span class="nav-number">3.2.</span> <span class="nav-text">服务器连接的关闭</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#服务器资源清理"><span class="nav-number">4.</span> <span class="nav-text">服务器资源清理</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#监听器清理连接"><span class="nav-number">4.1.</span> <span class="nav-text">监听器清理连接</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#响应器清理连接"><span class="nav-number">4.2.</span> <span class="nav-text">响应器清理连接</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#客户端关闭"><span class="nav-number">5.</span> <span class="nav-text">客户端关闭</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#服务器关闭"><span class="nav-number">6.</span> <span class="nav-text">服务器关闭</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#整帧数据的读写"><span class="nav-number">7.</span> <span class="nav-text">整帧数据的读写</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#疑问"><span class="nav-number">8.</span> <span class="nav-text">疑问</span></a></li></ol></div>
             
           </div>
           <div class="post-toc-indicator-bottom post-toc-indicator">

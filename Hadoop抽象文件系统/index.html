@@ -1,0 +1,955 @@
+<!doctype html>
+<html class="theme-next   use-motion ">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+  <link href="/vendors/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css"/>
+
+
+
+
+  <link href="//fonts.googleapis.com/css?family=Lato:300,400,700,400italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+
+
+
+<link href="/vendors/font-awesome/css/font-awesome.min.css?v=4.4.0" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=0.4.5.2" rel="stylesheet" type="text/css" />
+
+
+  <meta name="keywords" content="HDFS,Hadoop,Java," />
+
+
+
+
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=0.4.5.2" />
+
+
+
+
+
+
+<meta name="description" content="Hadoop版本:Hadoop-1.2.1参考：《Hadoop技术内幕-深入解析Hadoop Common和HDFS架构设计与实现原理》  
+
+一. 成员属性成员属性如下:  
+
+FS_DEFAULT_NAME_KEY，配置项fs.default.name，缺省文件系统uri
+CACHE，静态成员，文件系统缓存，为Cache对象，具体见下
+key，Cache.Key对象，为当前文件系统在CACHE">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Hadoop抽象文件系统">
+<meta property="og:url" content="http://xiao-yun.github.io/Hadoop抽象文件系统/index.html">
+<meta property="og:site_name" content="xiaoyun">
+<meta property="og:description" content="Hadoop版本:Hadoop-1.2.1参考：《Hadoop技术内幕-深入解析Hadoop Common和HDFS架构设计与实现原理》  
+
+一. 成员属性成员属性如下:  
+
+FS_DEFAULT_NAME_KEY，配置项fs.default.name，缺省文件系统uri
+CACHE，静态成员，文件系统缓存，为Cache对象，具体见下
+key，Cache.Key对象，为当前文件系统在CACHE">
+<meta property="og:image" content="http://xiao-yun.github.io/../images/FileSystem成员属性.png">
+<meta property="og:image" content="http://xiao-yun.github.io/../images/Statistics成员方法.png">
+<meta property="og:image" content="http://xiao-yun.github.io/../images/FileStatus成员属性.png">
+<meta property="og:image" content="http://xiao-yun.github.io/../images/FSStream.png">
+<meta property="og:updated_time" content="2015-12-27T08:36:57.271Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Hadoop抽象文件系统">
+<meta name="twitter:description" content="Hadoop版本:Hadoop-1.2.1参考：《Hadoop技术内幕-深入解析Hadoop Common和HDFS架构设计与实现原理》  
+
+一. 成员属性成员属性如下:  
+
+FS_DEFAULT_NAME_KEY，配置项fs.default.name，缺省文件系统uri
+CACHE，静态成员，文件系统缓存，为Cache对象，具体见下
+key，Cache.Key对象，为当前文件系统在CACHE">
+
+
+
+<script type="text/javascript" id="hexo.configuration">
+  var CONFIG = {
+    scheme: 'Mist',
+    sidebar: 'hide',
+    motion: true
+  };
+</script>
+
+  <title> Hadoop抽象文件系统 | xiaoyun </title>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  <!--[if lte IE 8]>
+  <div style=' clear: both; height: 59px; padding:0 0 0 15px; position: relative;margin:0 auto;'>
+    <a href="http://windows.microsoft.com/en-US/internet-explorer/products/ie/home?ocid=ie6_countdown_bannercode">
+      <img src="http://7u2nvr.com1.z0.glb.clouddn.com/picouterie.jpg" border="0" height="42" width="820"
+           alt="You are using an outdated browser. For a faster, safer browsing experience, upgrade for free today or use other browser ,like chrome firefox safari."
+           style='margin-left:auto;margin-right:auto;display: block;'/>
+    </a>
+  </div>
+<![endif]-->
+  
+
+
+
+  <script type="text/javascript">
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "//hm.baidu.com/hm.js?caeb4129c91d1e6fb3d562d35fedef0d";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+  <div class="container one-column page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-meta ">
+  
+
+  <div class="custom-logo-site-title">
+    <a href="/"  class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <span class="site-title">xiaoyun</span>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+  <p class="site-subtitle"></p>
+</div>
+
+<div class="site-nav-toggle">
+  <button>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+  </button>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu ">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-home fa-fw"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives" rel="section">
+            
+              <i class="menu-item-icon fa fa-archive fa-fw"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories" rel="section">
+            
+              <i class="menu-item-icon fa fa-th fa-fw"></i> <br />
+            
+            分类
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+              <i class="menu-item-icon fa fa-tags fa-fw"></i> <br />
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about" rel="section">
+            
+              <i class="menu-item-icon fa fa-user fa-fw"></i> <br />
+            
+            关于
+          </a>
+        </li>
+      
+
+      
+      
+    </ul>
+  
+
+  
+</nav>
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div id="content" class="content">
+          
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                Hadoop抽象文件系统
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            发表于
+            <time itemprop="dateCreated" datetime="2015-12-27T16:36:57+08:00" content="2015-12-27">
+              2015-12-27
+            </time>
+          </span>
+
+          
+            <span class="post-category" >
+              &nbsp; | &nbsp; 分类于
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Java/" itemprop="url" rel="index">
+                    <span itemprop="name">Java</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Java/Hadoop/" itemprop="url" rel="index">
+                    <span itemprop="name">Hadoop</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Java/Hadoop/HDFS/" itemprop="url" rel="index">
+                    <span itemprop="name">HDFS</span>
+                  </a>
+                </span>
+
+                
+                
+
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                &nbsp; | &nbsp;
+                <a href="/Hadoop抽象文件系统/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="Hadoop抽象文件系统/" itemprop="commentsCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+
+        </div>
+      </header>
+    
+
+
+    <div class="post-body">
+
+      
+      
+
+      
+        <span itemprop="articleBody"><p>Hadoop版本:<a href="https://archive.apache.org/dist/hadoop/core/hadoop-1.2.1/" target="_blank" rel="external">Hadoop-1.2.1</a><br>参考：《Hadoop技术内幕-深入解析Hadoop Common和HDFS架构设计与实现原理》  </p>
+<hr>
+<h2 id="一-_成员属性">一. 成员属性</h2><p>成员属性如下:<br><img src="../images/FileSystem成员属性.png" alt="FileSystem成员属性">  </p>
+<ul>
+<li><code>FS_DEFAULT_NAME_KEY</code>，配置项<code>fs.default.name</code>，缺省文件系统uri</li>
+<li><code>CACHE</code>，静态成员，文件系统缓存，为Cache对象，具体见下</li>
+<li><code>key</code>，Cache.Key对象，为当前文件系统在CACHE中保存的键值</li>
+<li><code>statisticsTable</code>，静态成员，记录每一个文件系统的统计信息，为IdentityHashMap，一个类一个统计信息对象Statistics</li>
+<li><code>statistics</code>，当前文件系统的统计信息</li>
+<li><code>deleteOnExit</code>，保存当前文件系统在关闭或虚拟机关闭时应该删除的文件</li>
+<li><code>clientFinalizer</code>，静态成员，用于关闭所有缓存文件系统的线程</li>
+<li><code>DEFAULT_FILTER</code>,静态成员，缺省的路径过滤器PathFilter，对于所有的路径都返回true</li>
+</ul>
+<h3 id="Cache">Cache</h3><p>当我们获取文件系统时(FileSystem.get)可以直接创建新的文件系统，不过每次创建新的文件系统比较消耗资源，因此我们可以选择缓存创建的文件系统，而对于满足某些条件下的文件系统我们可以使用缓存中的文件系统。而是否直接创建还是使用缓存中的文件系统依赖于配置项<code>fs.scheme.impl.disable.cache</code>，其中scheme为uri的模式，如file，hdfs等，当文件系统对应的该配置项为false时，使用Cache获取文件系统，否则每次创建新的文件系统，默认情况下为false。  </p>
+<p>Cache的成员:<br><figure class="highlight processing"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="keyword">final</span> Map&lt;Key, FileSystem&gt; <span class="built_in">map</span> = <span class="keyword">new</span> <span class="keyword">HashMap</span>&lt;Key, FileSystem&gt;();</span><br></pre></td></tr></table></figure></p>
+<p>使用HashMap保存可共享的文件系统信息，键为Cache.Key，值为文件系统</p>
+<p>因此，当使用Cache获取文件系统时，每个文件系统对应一个Cache.Key对象，由文件系统的该对象决定是否共享缓存中的文件系统。即如果要获取的文件系统对应的Cache.Key对象在缓存CACHE中存在，则使用CACHE的那个文件系统。  </p>
+<h4 id="Cache-Key">Cache.Key</h4><p>一个Key由三个成员属性决定<br><figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">final</span> <span class="built_in">String</span> scheme;<span class="comment">//对应uri的模式(scheme)</span></span><br><span class="line"><span class="keyword">final</span> <span class="built_in">String</span> authority;<span class="comment">//对应uri的模式特有部分(scheme-specific-part)</span></span><br><span class="line"><span class="keyword">final</span> UserGroupInformation ugi;<span class="comment">//用户信息</span></span><br></pre></td></tr></table></figure></p>
+<p>构造:<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">Key(URI uri, Configuration conf) <span class="keyword">throws</span> IOException &#123;通过uri初始化模式和模式特有部分</span><br><span class="line">    scheme = uri.getScheme()==<span class="keyword">null</span>?<span class="string">""</span>:uri.getScheme().toLowerCase();</span><br><span class="line">    authority = uri.getAuthority()==<span class="keyword">null</span>?<span class="string">""</span>:uri.getAuthority().toLowerCase();</span><br><span class="line">    <span class="keyword">this</span>.ugi = UserGroupInformation.getCurrentUser();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>比较两个Key是否相等<br><figure class="highlight processing"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="built_in">boolean</span> equals(<span class="keyword">Object</span> obj) &#123;</span><br><span class="line">    <span class="keyword">if</span> (obj == <span class="keyword">this</span>) &#123;</span><br><span class="line">      <span class="keyword">return</span> <span class="keyword">true</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> (obj != <span class="keyword">null</span> &amp;&amp; obj <span class="keyword">instanceof</span> Key) &#123;</span><br><span class="line">      Key that = (Key)obj;</span><br><span class="line">      <span class="keyword">return</span> isEqual(<span class="keyword">this</span>.scheme, that.scheme) &amp;&amp; isEqual(<span class="keyword">this</span>.authority, that.authority) &amp;&amp; isEqual(<span class="keyword">this</span>.ugi, that.ugi);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">false</span>;        </span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">static</span> <span class="built_in">boolean</span> isEqual(<span class="keyword">Object</span> a, <span class="keyword">Object</span> b) &#123; <span class="keyword">return</span> a == b || (a != <span class="keyword">null</span> &amp;&amp; a.equals(b)); &#125;</span><br></pre></td></tr></table></figure></p>
+<p>也就是说只有两个文件系统的模式，模式特有部分以及用户一样时，才能共享CACHE中已经存在的文件系统。  </p>
+<p>来看看Cache中获取文件系统的方法:<br><figure class="highlight processing"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line">FileSystem <span class="built_in">get</span>(URI uri, Configuration conf) <span class="keyword">throws</span> IOException&#123;</span><br><span class="line">  Key <span class="variable">key</span> = <span class="keyword">new</span> Key(uri, conf);<span class="comment">//根据uri创建Key</span></span><br><span class="line">  FileSystem fs = <span class="keyword">null</span>;</span><br><span class="line">  <span class="keyword">synchronized</span> (<span class="keyword">this</span>) &#123;</span><br><span class="line">    fs = <span class="built_in">map</span>.<span class="built_in">get</span>(<span class="variable">key</span>);</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="comment">//如果存在对应的键，直接返回。</span></span><br><span class="line">  <span class="comment">//这里注意的是HashMap中比较键使用的equals方法也就间接的通过Key的equals方法来决定是否能够使用缓存中的文件系统</span></span><br><span class="line">  <span class="keyword">if</span> (fs != <span class="keyword">null</span>) &#123;</span><br><span class="line">    <span class="keyword">return</span> fs;</span><br><span class="line">  &#125;</span><br><span class="line">  </span><br><span class="line">  fs = createFileSystem(uri, conf);<span class="comment">//不存在，创建文件系统</span></span><br><span class="line">  <span class="keyword">synchronized</span> (<span class="keyword">this</span>) &#123;  <span class="comment">// refetch the lock again</span></span><br><span class="line">    FileSystem oldfs = <span class="built_in">map</span>.<span class="built_in">get</span>(<span class="variable">key</span>);</span><br><span class="line">    <span class="comment">//在我们创建该文件系统时，其他线程创建了，关闭新创建的文件系统，返回已经创建了的文件系统</span></span><br><span class="line">    <span class="keyword">if</span> (oldfs != <span class="keyword">null</span>) &#123; <span class="comment">// a file system is created while lock is releasing</span></span><br><span class="line">      fs.close(); <span class="comment">// close the new file system</span></span><br><span class="line">      <span class="keyword">return</span> oldfs;  <span class="comment">// return the old file system</span></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// now insert the new file system into the map</span></span><br><span class="line">    <span class="keyword">if</span> (<span class="built_in">map</span>.isEmpty() &amp;&amp; !clientFinalizer.isAlive()) &#123;</span><br><span class="line">      Runtime.getRuntime().addShutdownHook(clientFinalizer);<span class="comment">//添加到clientFinalizer，虚拟机退出时关闭文件系统</span></span><br><span class="line">    &#125;</span><br><span class="line">    fs.<span class="variable">key</span> = <span class="variable">key</span>;</span><br><span class="line">    <span class="built_in">map</span>.put(<span class="variable">key</span>, fs);<span class="comment">//缓存</span></span><br><span class="line">    <span class="keyword">return</span> fs;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，给定uri我们创建相应的Key，然后从Cache中查找是否存在该键，如果存在直接返回，这里因为HashMap比较键是否相等使用的是键的equals方法，因此间接的通过Key的equals方法来决定是否能够共享文件系统，即模式，模式特有部分，用户信息都一样时才会共享。而如果不存在，需要创建新的文件系统，创建完后在放入缓存之前，还要检查一遍缓存中是否已经存在该文件系统了，以防止在我们创建该文件系统时其他线程创建并添加到缓存中了。  </p>
+<p>创建新的文件系统通过createFileSystem<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="keyword">static</span> <span class="function">FileSystem <span class="title">createFileSystem</span><span class="params">(URI uri, Configuration conf)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">    Class&lt;?&gt; clazz = conf.getClass(<span class="string">"fs."</span> + uri.getScheme() + <span class="string">".impl"</span>, <span class="keyword">null</span>);</span><br><span class="line">    LOG.debug(<span class="string">"Creating filesystem for "</span> + uri);</span><br><span class="line">    <span class="keyword">if</span> (clazz == <span class="keyword">null</span>) &#123;</span><br><span class="line">      <span class="keyword">throw</span> <span class="keyword">new</span> IOException(<span class="string">"No FileSystem for scheme: "</span> + uri.getScheme());</span><br><span class="line">    &#125;</span><br><span class="line">    FileSystem fs = (FileSystem)ReflectionUtils.newInstance(clazz, conf);</span><br><span class="line">    fs.initialize(uri, conf);</span><br><span class="line">    <span class="keyword">return</span> fs;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>创建文件系统时，文件系统类为<code>fs.scheme.impl</code>，这里scheme为uri的模式，通过反射创建对应的文件系统，然后初始化。<br><figure class="highlight nimrod"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">public <span class="type">void</span> initialize(<span class="type">URI</span> name, <span class="type">Configuration</span> conf) throws <span class="type">IOException</span> &#123;</span><br><span class="line">    statistics = getStatistics(name.getScheme(), getClass());    </span><br><span class="line">&#125;</span><br><span class="line">public <span class="keyword">static</span> synchronized <span class="type">Statistics</span> getStatistics(<span class="type">String</span> scheme, <span class="type">Class</span>&lt;? extends <span class="type">FileSystem</span>&gt; cls) &#123;</span><br><span class="line">    <span class="type">Statistics</span> <span class="literal">result</span> = statisticsTable.get(cls);</span><br><span class="line">    <span class="keyword">if</span> (<span class="literal">result</span> == null) &#123;</span><br><span class="line">      <span class="literal">result</span> = new <span class="type">Statistics</span>(scheme);</span><br><span class="line">      statisticsTable.put(cls, <span class="literal">result</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> <span class="literal">result</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>初始化的过程即为获取统计信息对象Statistics的过程，如果该文件系统的统计信息对象已经缓存在statisticsTable中了，则直接从缓存中获取，否则创建新的对象。注意的是，statisticsTable为IdentityHashMap，键之间的比较是通过比较对象引用(即==，而不是equals)，因此只有共享的文件系统才会在statisticsTable中有缓存。  </p>
+<h3 id="Statistics">Statistics</h3><p>承上，创建一个新的Statistics对象<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="title">Statistics</span><span class="params">(String scheme)</span> </span>&#123; <span class="keyword">this</span>.scheme = scheme; &#125;</span><br></pre></td></tr></table></figure></p>
+<p>创建新的Statistics对象只是初始化该统计对象的模式成员，负责统计的成员如下:<br><figure class="highlight actionscript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> AtomicLong bytesRead = <span class="keyword">new</span> AtomicLong();</span><br><span class="line"><span class="keyword">private</span> AtomicLong bytesWritten = <span class="keyword">new</span> AtomicLong();</span><br><span class="line"><span class="keyword">private</span> AtomicInteger readOps = <span class="keyword">new</span> AtomicInteger();</span><br><span class="line"><span class="keyword">private</span> AtomicInteger largeReadOps = <span class="keyword">new</span> AtomicInteger();</span><br><span class="line"><span class="keyword">private</span> AtomicInteger writeOps = <span class="keyword">new</span> AtomicInteger();</span><br></pre></td></tr></table></figure></p>
+<p>都为对应的原子整型，当文件系统中有相应读写操作时，通过相应<code>increment*</code>方法增加对应的值，通过<code>get*</code>方法获取对应的值。<br><img src="../images/Statistics成员方法.png" alt="Statistics成员方法"><br>increment*使用原子量的<code>getAndAdd</code>方法增加相应值，get*方法使用原子量的<code>get</code>方法获取值，而reset方法通过原子量的<code>set</code>方法重置bytesRead和bytesWritten为0。  </p>
+<h3 id="ClientFinalizer">ClientFinalizer</h3><p>ClientFinalizer会关闭所有缓存的文件系统，在虚拟机退出时启动<br><figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> static <span class="class"><span class="keyword">class</span> <span class="title">ClientFinalizer</span> <span class="keyword"><span class="keyword">extends</span></span> <span class="title">Thread</span> &#123;</span></span><br><span class="line">    public synchronized void run() &#123;</span><br><span class="line">      <span class="keyword">try</span> &#123;</span><br><span class="line">        <span class="type">FileSystem</span>.closeAll();</span><br><span class="line">      &#125; <span class="keyword">catch</span> (<span class="type">IOException</span> e) &#123;</span><br><span class="line">        <span class="type">LOG</span>.info(<span class="string">"FileSystem.closeAll() threw an exception:\n"</span> + e);</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>FileSystem.closeAll会使用<code>CACHE.closeAll</code>关闭所有缓存的文件系统<br><figure class="highlight processing"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">synchronized</span> <span class="keyword">void</span> closeAll() <span class="keyword">throws</span> IOException &#123;</span><br><span class="line">  List&lt;IOException&gt; exceptions = <span class="keyword">new</span> ArrayList&lt;IOException&gt;();</span><br><span class="line">  <span class="keyword">for</span>(; !<span class="built_in">map</span>.isEmpty(); ) &#123;</span><br><span class="line">    Map.Entry&lt;Key, FileSystem&gt; e = <span class="built_in">map</span>.entrySet().iterator().next();<span class="comment">//获取缓存中下一个文件系统</span></span><br><span class="line">    <span class="keyword">final</span> Key <span class="variable">key</span> = e.getKey();</span><br><span class="line">    <span class="keyword">final</span> FileSystem fs = e.getValue();</span><br><span class="line"></span><br><span class="line">    <span class="comment">//remove from cache</span></span><br><span class="line">    remove(<span class="variable">key</span>, fs);<span class="comment">//从缓存中移除</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (fs != <span class="keyword">null</span>) &#123;</span><br><span class="line">      <span class="keyword">try</span> &#123;</span><br><span class="line">        fs.close();<span class="comment">//调用文件系统的close方法关闭文件系统</span></span><br><span class="line">      &#125;</span><br><span class="line">      <span class="keyword">catch</span>(IOException ioe) &#123;</span><br><span class="line">        exceptions.<span class="built_in">add</span>(ioe);</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">if</span> (!exceptions.isEmpty()) &#123;</span><br><span class="line">    <span class="keyword">throw</span> MultipleIOException.createIOException(exceptions);</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<h3 id="PathFilter">PathFilter</h3><p>路径过滤器，只有一个方法accept，返回true时接受该Path<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">interface</span> <span class="title">PathFilter</span> </span>&#123;</span><br><span class="line">  <span class="function"><span class="keyword">boolean</span> <span class="title">accept</span><span class="params">(Path path)</span></span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>使用的缺省路径过滤器<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">final</span> <span class="keyword">private</span> <span class="keyword">static</span> PathFilter DEFAULT_FILTER = <span class="keyword">new</span> PathFilter() &#123;</span><br><span class="line">  <span class="keyword">public</span> <span class="function"><span class="keyword">boolean</span> <span class="title">accept</span><span class="params">(Path file)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">true</span>;</span><br><span class="line">  &#125;&#125;;</span><br></pre></td></tr></table></figure></p>
+<p>全部接受。</p>
+<hr>
+<h2 id="二-_获取文件系统">二. 获取文件系统</h2><p>获取文件系统相应的方法为FileSystem中的静态方法<br><figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> FileSystem <span class="title">get</span>(<span class="params">Configuration conf</span>) throws IOException </span>&#123;</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">get</span>(getDefaultUri(conf), conf);</span><br><span class="line">&#125; </span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> URI <span class="title">getDefaultUri</span>(<span class="params">Configuration conf</span>) </span>&#123;</span><br><span class="line">    <span class="keyword">return</span> URI.create(fixName(conf.<span class="keyword">get</span>(FS_DEFAULT_NAME_KEY, <span class="string">"file:///"</span>)));</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，缺省情况下，创建<code>fs.default.name</code>指定协议的文件系统，且默认为本地文件系统<code>file</code>，我们一般在配置的时候使用HDFS配置该项为”hdfs://…”。<br><figure class="highlight processing"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> FileSystem <span class="built_in">get</span>(URI uri, Configuration conf) <span class="keyword">throws</span> IOException &#123;</span><br><span class="line">    ...<span class="comment">//uri对应的模式或模式特有部分不存在，使用缺省的值</span></span><br><span class="line">    <span class="keyword">String</span> disableCacheName = <span class="keyword">String</span>.format(<span class="string">"fs.%s.impl.disable.cache"</span>, scheme);</span><br><span class="line">    <span class="keyword">if</span> (conf.getBoolean(disableCacheName, <span class="keyword">false</span>)) &#123;</span><br><span class="line">      <span class="keyword">return</span> createFileSystem(uri, conf);</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">return</span> CACHE.<span class="built_in">get</span>(uri, conf);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，对于给定uri的协议，如果配置了对应的<code>fs.scheme.impl.disable.cache</code>为true，这里scheme为uri的模式，则直接通过createFileSystem创建文件系统，否则通过CACHE获取共享的文件系统。两者都在前面已经分析过了，CACHE获取文件系统时，如果存在则直接返回，否则创建新的文件系统。<br>创建新的文件系统时，由配置项<code>fs.scheme.impl</code>决定文件系统所属类，通过反射创建文件系统对象，然后在初始化过程中创建文件系统对应的统计对象并注册到缓存statisticsTable中。</p>
+<p>另外，可以通过FileSystem.getLocal获取一个本地文件系统<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> <span class="function">LocalFileSystem <span class="title">getLocal</span><span class="params">(Configuration conf)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">    <span class="keyword">return</span> (LocalFileSystem)get(LocalFileSystem.NAME, conf);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>LocalFileSystem.NAME如下<br><figure class="highlight actionscript"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">static</span> <span class="keyword">final</span> URI NAME = URI.create(<span class="string">"file:///"</span>);</span><br></pre></td></tr></table></figure></p>
+<p>模式为file，因此会获得<code>fs.file.impl</code>对应的文件系统。 </p>
+<h2 id="三-_文件系统操作">三. 文件系统操作</h2><p><em>下表摘自&lt;技术内幕&gt;P171</em>  </p>
+<table>
+<thead>
+<tr>
+<th style="text-align:center">Hadoop文件系统</th>
+<th style="text-align:center">Java</th>
+<th style="text-align:center">Linux</th>
+<th style="text-align:center">描述</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">URL.openStream/FileSystem.open/FileSystem.create/FileSystem.append</td>
+<td style="text-align:center">URL.openStream</td>
+<td style="text-align:center">open</td>
+<td style="text-align:center">打开一个文件</td>
+</tr>
+<tr>
+<td style="text-align:center">FSDataInputStream.read</td>
+<td style="text-align:center">InputStream.read</td>
+<td style="text-align:center">read</td>
+<td style="text-align:center">读取文件中的数据</td>
+</tr>
+<tr>
+<td style="text-align:center">FSDataOutputStream.write</td>
+<td style="text-align:center">OutputStream.write</td>
+<td style="text-align:center">write</td>
+<td style="text-align:center">向文件中写数据</td>
+</tr>
+<tr>
+<td style="text-align:center">FSDataOutputStream.close/FSDataInputStream.close</td>
+<td style="text-align:center">InputStream.close/OutputStream.close</td>
+<td style="text-align:center">close</td>
+<td style="text-align:center">关闭一个文件</td>
+</tr>
+<tr>
+<td style="text-align:center">FSDataInputStream.seek</td>
+<td style="text-align:center">RandomAccessFile.seek</td>
+<td style="text-align:center">lseek</td>
+<td style="text-align:center">改变文件读写位置</td>
+</tr>
+<tr>
+<td style="text-align:center">FileSystem.getFileStatus/FileSystem.get*</td>
+<td style="text-align:center">File.get*</td>
+<td style="text-align:center">stat</td>
+<td style="text-align:center">获取文件/目录的属性</td>
+</tr>
+<tr>
+<td style="text-align:center">FileSystem.set*</td>
+<td style="text-align:center">File.set*</td>
+<td style="text-align:center">chmod等</td>
+<td style="text-align:center">修改文件属性</td>
+</tr>
+<tr>
+<td style="text-align:center">FileSystem.createNewFile</td>
+<td style="text-align:center">File.createNewFile</td>
+<td style="text-align:center">create</td>
+<td style="text-align:center">创建一个文件</td>
+</tr>
+<tr>
+<td style="text-align:center">FileSystem.delete</td>
+<td style="text-align:center">File.delete</td>
+<td style="text-align:center">remove</td>
+<td style="text-align:center">从文件系统中删除一个文件</td>
+</tr>
+<tr>
+<td style="text-align:center">FileSystem.rename</td>
+<td style="text-align:center">File.renameTo</td>
+<td style="text-align:center">rename</td>
+<td style="text-align:center">更改文件/目录名</td>
+</tr>
+<tr>
+<td style="text-align:center">FileSystem.mkdirs</td>
+<td style="text-align:center">File.mkdir</td>
+<td style="text-align:center">mkdir</td>
+<td style="text-align:center">在给定目录下创建一个子目录</td>
+</tr>
+<tr>
+<td style="text-align:center">FileSystem.delete</td>
+<td style="text-align:center">File.delete</td>
+<td style="text-align:center">rmdir</td>
+<td style="text-align:center">从一个目录中删除一个空的子目录</td>
+</tr>
+<tr>
+<td style="text-align:center">FileSystem.listStatus</td>
+<td style="text-align:center">File.list</td>
+<td style="text-align:center">readdir</td>
+<td style="text-align:center">读取一个目录下的项目</td>
+</tr>
+<tr>
+<td style="text-align:center">FileSystem.getWorkingDirectory</td>
+<td style="text-align:center"></td>
+<td style="text-align:center">getcwd/getwd</td>
+<td style="text-align:center">返回当前工作目录</td>
+</tr>
+<tr>
+<td style="text-align:center">FileSystem.setWorkingDirectory</td>
+<td style="text-align:center"></td>
+<td style="text-align:center">chdir</td>
+<td style="text-align:center">更改当前工作目录</td>
+</tr>
+</tbody>
+</table>
+<p>FileSystem为抽象文件系统，对应的实际操作都是抽象方法，需要具体文件系统实现。</p>
+<h3 id="open，create，append">open，create，append</h3><p>都有许多重载，不过最终的方法都是抽象的。<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">abstract</span> <span class="function">FSDataInputStream <span class="title">open</span><span class="params">(Path f, <span class="keyword">int</span> bufferSize)</span> <span class="keyword">throws</span> IOException</span>;</span><br></pre></td></tr></table></figure></p>
+<p>只有两个重载，至少指定Path f。<code>bufferSize</code>缺省为配置项<code>io.file.buffer.size</code>(默认4096)。<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">public abstract FSDataOutputStream <span class="operator"><span class="keyword">create</span>(<span class="keyword">Path</span> <span class="keyword">f</span>,FsPermission permission,</span><br><span class="line">  <span class="built_in">boolean</span> overwrite, <span class="built_in">int</span> bufferSize,<span class="keyword">short</span> <span class="keyword">replication</span>,<span class="keyword">long</span> <span class="keyword">blockSize</span>,</span><br><span class="line">  Progressable progress) throws IOException;</span></span><br></pre></td></tr></table></figure></p>
+<p>最简单的可以只给定Path f。<br>缺省状态下，<code>permission</code>为FsPermission的缺省权限(777)，<code>overwrite</code>为true，<code>bufferSize</code>为配置项<code>io.file.buffer.size</code>(默认4096)，<br><code>replication</code>为1，<code>blockSize</code>为配置项<code>fs.local.block.size</code>(默认32MB)，<code>progress</code>为null。<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">abstract</span> <span class="function">FSDataOutputStream <span class="title">append</span><span class="params">(Path f, <span class="keyword">int</span> bufferSize, Progressable progress)</span> <span class="keyword">throws</span> IOException</span>;</span><br></pre></td></tr></table></figure></p>
+<p>三个重载，至少指定Path f。<code>bufferSize</code>默认为配置项<code>io.file.buffer.size</code>(默认4096)，<code>progress</code>默认null。</p>
+<p>其他的如mkdir，delete，set*,get*设置或获取元信息，getWorkingDirectory等方法都是抽象的，不再分析</p>
+<h3 id="文件状态FileStatus">文件状态FileStatus</h3><p>getFileStatus获取文件的FileStatus，参数可以为一个路径Path，也可以为Path数组<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">abstract</span> <span class="function">FileStatus <span class="title">getFileStatus</span><span class="params">(Path f)</span> <span class="keyword">throws</span> IOException</span>;</span><br><span class="line"><span class="keyword">private</span> FileStatus[] getFileStatus(Path[] paths) <span class="keyword">throws</span> IOException</span><br></pre></td></tr></table></figure></p>
+<p>路径为数组依赖于一个路径实现，即对每一个Path调用<code>getFileStatus(Path)</code>返回其状态，而<code>getFileStatus(Path)</code>为抽象方法。  </p>
+<p>listStatus获取文件或目录的状态，返回FileStatus数组，如果为文件则数组中一个元素。同时还支持对路径过滤的重载形式<br><figure class="highlight processing"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">abstract</span> FileStatus[] listStatus(Path f) <span class="keyword">throws</span> IOException;</span><br><span class="line"><span class="keyword">private</span> <span class="keyword">void</span> listStatus(ArrayList&lt;FileStatus&gt; results, Path f, PathFilter <span class="built_in">filter</span>) <span class="keyword">throws</span> IOException &#123;</span><br><span class="line">    FileStatus listing[] = listStatus(f);<span class="comment">//路径下的文件状态</span></span><br><span class="line">    <span class="keyword">if</span> (listing != <span class="keyword">null</span>) &#123;</span><br><span class="line">      <span class="keyword">for</span> (<span class="built_in">int</span> i = <span class="number">0</span>; i &lt; listing.length; i++) &#123;</span><br><span class="line">        <span class="keyword">if</span> (<span class="built_in">filter</span>.accept(listing[i].getPath())) &#123;<span class="comment">//使用PathFilter进行过滤，accept返回true时添加到results中返回</span></span><br><span class="line">          results.<span class="built_in">add</span>(listing[i]);</span><br><span class="line">        &#125;</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">public</span> FileStatus[] listStatus(Path[] files) <span class="keyword">throws</span> IOException &#123;<span class="comment">//缺省PathFilter，对所有的Path返回true</span></span><br><span class="line">    <span class="keyword">return</span> listStatus(files, DEFAULT_FILTER);</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">public</span> FileStatus[] listStatus(Path[] files, PathFilter <span class="built_in">filter</span>) <span class="keyword">throws</span> IOException &#123;<span class="comment">//对files中每一个Path执行listStatus以及过滤操作</span></span><br><span class="line">    ArrayList&lt;FileStatus&gt; results = <span class="keyword">new</span> ArrayList&lt;FileStatus&gt;();</span><br><span class="line">    <span class="keyword">for</span> (<span class="built_in">int</span> i = <span class="number">0</span>; i &lt; files.length; i++) &#123;</span><br><span class="line">      listStatus(results, files[i], <span class="built_in">filter</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> results.toArray(<span class="keyword">new</span> FileStatus[results.<span class="built_in">size</span>()]);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>全都依赖于抽象方法<code>listStatus(Path)</code>，使用PathFilter时，对列出的文件进行过滤，指定路径在PathFilter的accept中返回true时，才会出现在最终的返回列表中。</p>
+<p><code>FileStatus</code>对象包含了文件或目录的状态：<br><img src="../images/FileStatus成员属性.png" alt="FileStatus成员属性"><br>依次为路径，长度，是否为目录标记，区块备份数，区块大小，修改时间，访问时间，权限，拥有者，所在组信息。<br>其中权限为<code>FsPermission</code>对象，以POSIX风格方式表示权限。  </p>
+<h4 id="FsPermission">FsPermission</h4><p>FsPermission包含三个成员分别表示拥有者，所在组，其他成员的权限:<br><figure class="highlight actionscript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> FsAction useraction = <span class="literal">null</span>;</span><br><span class="line"><span class="keyword">private</span> FsAction groupaction = <span class="literal">null</span>;</span><br><span class="line"><span class="keyword">private</span> FsAction otheraction = <span class="literal">null</span>;</span><br></pre></td></tr></table></figure></p>
+<p>每个权限都是<code>FsAction</code>枚举。<br>将三个权限值转换为POSIX形式以short数值存储:<br><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">short</span> <span class="title">toShort</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="keyword">int</span> s = (useraction.ordinal() &lt;&lt; <span class="number">6</span>) | (groupaction.ordinal() &lt;&lt; <span class="number">3</span>) | otheraction.ordinal();</span><br><span class="line">    <span class="keyword">return</span> (<span class="keyword">short</span>)s;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上ordinal返回对应枚举值的序数。<br>对应的通过表示权限值的short数值来设置FsPermission的三个权限值:<br><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">fromShort</span><span class="params">(<span class="keyword">short</span> n)</span> </span>&#123;</span><br><span class="line">    FsAction[] v = FsAction.values();</span><br><span class="line">    <span class="built_in">set</span>(v[(n &gt;&gt;&gt; <span class="number">6</span>) &amp; <span class="number">7</span>], v[(n &gt;&gt;&gt; <span class="number">3</span>) &amp; <span class="number">7</span>], v[n &amp; <span class="number">7</span>]);</span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">set</span><span class="params">(FsAction u, FsAction g, FsAction o)</span> </span>&#123;</span><br><span class="line">    useraction = u;</span><br><span class="line">    groupaction = g;</span><br><span class="line">    otheraction = o;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>静态方法获取缺省的权限<br><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> FsPermission <span class="title">getDefault</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">new</span> FsPermission((<span class="keyword">short</span>)<span class="number">0777</span>);</span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="title">FsPermission</span><span class="params">(<span class="keyword">short</span> mode)</span> </span>&#123; fromShort(mode); &#125;</span><br></pre></td></tr></table></figure></p>
+<p>即缺省情况下，所有者，所有者所在组，其他用户都拥有读写执行的权限。</p>
+<h4 id="FsAction">FsAction</h4><p>FsAction包含以下可能的权限类型:<br><figure class="highlight gradle"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> enum FsAction &#123;</span><br><span class="line">  <span class="comment">// POSIX style</span></span><br><span class="line">  NONE(<span class="string">"---"</span>),</span><br><span class="line">  EXECUTE(<span class="string">"--x"</span>),</span><br><span class="line">  <span class="keyword">WRITE</span>(<span class="string">"-w-"</span>),</span><br><span class="line">  WRITE_EXECUTE(<span class="string">"-wx"</span>),</span><br><span class="line">  <span class="keyword">READ</span>(<span class="string">"r--"</span>),</span><br><span class="line">  READ_EXECUTE(<span class="string">"r-x"</span>),</span><br><span class="line">  READ_WRITE(<span class="string">"rw-"</span>),</span><br><span class="line">  ALL(<span class="string">"rwx"</span>);</span><br></pre></td></tr></table></figure></p>
+<p>以上，分别对应0-7。FsAction含有两个成员:<br><figure class="highlight processing"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="keyword">final</span> <span class="keyword">static</span> FsAction[] vals = values();<span class="comment">//所有可能枚举值</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">final</span> <span class="keyword">String</span> SYMBOL;<span class="comment">//当前枚举代表的字符串</span></span><br></pre></td></tr></table></figure></p>
+<p>构造函数如下:<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> <span class="title">FsAction</span><span class="params">(String s)</span> </span>&#123; SYMBOL = s; &#125;</span><br></pre></td></tr></table></figure></p>
+<p>权限的与或非操作:<br><figure class="highlight applescript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">public FsAction <span class="keyword">and</span>(FsAction <span class="keyword">that</span>) &#123; <span class="constant">return</span> vals[ordinal() &amp; <span class="keyword">that</span>.ordinal()]; &#125;</span><br><span class="line">public FsAction <span class="keyword">or</span>(FsAction <span class="keyword">that</span>) &#123; <span class="constant">return</span> vals[ordinal() | <span class="keyword">that</span>.ordinal()]; &#125;</span><br><span class="line">public FsAction <span class="keyword">not</span>() &#123; <span class="constant">return</span> vals[<span class="number">7</span> - ordinal()]; &#125;</span><br></pre></td></tr></table></figure></p>
+<p>ordinal返回对应枚举值的序数，如上NONE对应为0，ALL对应为7。<br>另外还提供了implies方法，检查当前权限是否隐含给定的权限，如权限WRITE_EXECUTE隐含WRITE和EXECUTE。<br><figure class="highlight applescript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">public <span class="type">boolean</span> implies(FsAction <span class="keyword">that</span>) &#123;</span><br><span class="line">    <span class="keyword">if</span> (<span class="keyword">that</span> != null) &#123;</span><br><span class="line"><span class="command">      return</span> (ordinal() &amp; <span class="keyword">that</span>.ordinal()) == <span class="keyword">that</span>.ordinal();</span><br><span class="line">    &#125;</span><br><span class="line"><span class="command">    return</span> <span class="constant">false</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<hr>
+<h2 id="四-_文件系统关闭">四. 文件系统关闭</h2><p>文件系统关闭通过close方法完成<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">void</span> <span class="title">close</span><span class="params">()</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">    processDeleteOnExit();</span><br><span class="line">    CACHE.remove(<span class="keyword">this</span>.key, <span class="keyword">this</span>);</span><br><span class="line">    LOG.debug(<span class="string">"Removing filesystem for "</span> + getUri());</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">protected</span> <span class="function"><span class="keyword">void</span> <span class="title">processDeleteOnExit</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="keyword">synchronized</span> (deleteOnExit) &#123;</span><br><span class="line">      <span class="keyword">for</span> (Iterator&lt;Path&gt; iter = deleteOnExit.iterator(); iter.hasNext();) &#123;</span><br><span class="line">        Path path = iter.next();</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">          delete(path, <span class="keyword">true</span>);</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">catch</span> (IOException e) &#123;</span><br><span class="line">          LOG.info(<span class="string">"Ignoring failure to deleteOnExit for path "</span> + path);</span><br><span class="line">        &#125;</span><br><span class="line">        iter.remove();</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，删除<code>deleteOnExit</code>管理的路径，然后从缓存中移除。FileSystem的close方法可能被ClientFinalizer线程在虚拟机退出的时候调用，将关闭所有缓存的文件系统。</p>
+<hr>
+<h2 id="五-_文件系统流">五. 文件系统流</h2><p>Hadoop文件系统中，读取文件数据的输入流是FSDataInputStream，写文件数据的输出流是FSDataOutputStream，另外还有一个抽象流FSInputStream。<br>FSDataInputStream可以通过FileSystem.open方式打开，而FSDataOutputStream可以通过FileSystem.create或FileSystem.append方式打开。<br>相关类图如下:<br><img src="../images/FSStream.png" alt="FSStream"><br>FSInputStream实现了Seekable接口和PositionedReadable接口。<br>Seekable接口提供了在流中进行随机存取的方法，类似于RandomAccessFile中的getFilePointer和seek方法，提供了随机定位文件读取位置的能力。<br>PositionedReadable接口提供了从流中某一个位置开始读数据的一系列方法，不过这个从指定位置读不会改变原来的position。  </p>
+<h3 id="Seekable">Seekable</h3><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">interface</span> <span class="title">Seekable</span> </span>&#123;</span><br><span class="line">  <span class="comment">//将流定位到pos处</span></span><br><span class="line">  <span class="function"><span class="keyword">void</span> <span class="title">seek</span><span class="params">(<span class="keyword">long</span> pos)</span> <span class="keyword">throws</span> IOException</span>;</span><br><span class="line">  <span class="comment">//返回当前流的位置</span></span><br><span class="line">  <span class="function"><span class="keyword">long</span> <span class="title">getPos</span><span class="params">()</span> <span class="keyword">throws</span> IOException</span>;</span><br><span class="line">  <span class="comment">//与HDFS对应，重新选择一个可用副本</span></span><br><span class="line">  <span class="function"><span class="keyword">boolean</span> <span class="title">seekToNewSource</span><span class="params">(<span class="keyword">long</span> targetPos)</span> <span class="keyword">throws</span> IOException</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>如上，包含三个方法，其中<code>seekToNewSource</code>用于在文件系统中重新选择一个可用副本。  </p>
+<h3 id="PositionedReadable">PositionedReadable</h3><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">interface</span> <span class="title">PositionedReadable</span> </span>&#123;</span><br><span class="line">  <span class="comment">//从位置position处开始读数据到buffer的偏移量offset处，最多读取length，返回读取到的长度，不改变当前的position</span></span><br><span class="line">  <span class="function"><span class="keyword">public</span> <span class="keyword">int</span> <span class="title">read</span><span class="params">(<span class="keyword">long</span> position, <span class="keyword">byte</span>[] buffer, <span class="keyword">int</span> offset, <span class="keyword">int</span> length)</span> <span class="keyword">throws</span> IOException</span>;</span><br><span class="line">  </span><br><span class="line">  <span class="comment">//从位置position处开始读取数据到buffer的偏移量offset处，尽量读取length，除非到达流末尾，典型的循环读取，不改变当前的position</span></span><br><span class="line">  <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">readFully</span><span class="params">(<span class="keyword">long</span> position, <span class="keyword">byte</span>[] buffer, <span class="keyword">int</span> offset, <span class="keyword">int</span> length)</span> <span class="keyword">throws</span> IOException</span>;</span><br><span class="line">  </span><br><span class="line">  <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">readFully</span><span class="params">(<span class="keyword">long</span> position, <span class="keyword">byte</span>[] buffer)</span> <span class="keyword">throws</span> IOException</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>如上，包含read和readFully，两者从position处开始读取数据，但不改变当前position。可以通过实现Seekable接口的流，读取前保存当前位置，然后seek到指定位置读取，读取完成后seek回保存的位置。  </p>
+<h3 id="FSInputStream">FSInputStream</h3><p>FSInputStream对应为Hadoop抽象文件系统中的抽象输入流，实现了Seekable接口和PositionedReadable接口。<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">abstract</span> <span class="class"><span class="keyword">class</span> <span class="title">FSInputStream</span> <span class="keyword">extends</span> <span class="title">InputStream</span> <span class="keyword">implements</span> <span class="title">Seekable</span>, <span class="title">PositionedReadable</span> </span>&#123;</span><br><span class="line">  <span class="function"><span class="keyword">public</span> <span class="keyword">abstract</span> <span class="keyword">void</span> <span class="title">seek</span><span class="params">(<span class="keyword">long</span> pos)</span> <span class="keyword">throws</span> IOException</span>;</span><br><span class="line">  <span class="function"><span class="keyword">public</span> <span class="keyword">abstract</span> <span class="keyword">long</span> <span class="title">getPos</span><span class="params">()</span> <span class="keyword">throws</span> IOException</span>;</span><br><span class="line">  <span class="function"><span class="keyword">public</span> <span class="keyword">abstract</span> <span class="keyword">boolean</span> <span class="title">seekToNewSource</span><span class="params">(<span class="keyword">long</span> targetPos)</span> <span class="keyword">throws</span> IOException</span>;</span><br><span class="line"></span><br><span class="line">  <span class="function"><span class="keyword">public</span> <span class="keyword">int</span> <span class="title">read</span><span class="params">(<span class="keyword">long</span> position, <span class="keyword">byte</span>[] buffer, <span class="keyword">int</span> offset, <span class="keyword">int</span> length)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">    <span class="keyword">synchronized</span> (<span class="keyword">this</span>) &#123;</span><br><span class="line">      <span class="keyword">long</span> oldPos = getPos();<span class="comment">//保存当前位置</span></span><br><span class="line">      <span class="keyword">int</span> nread = -<span class="number">1</span>;</span><br><span class="line">      <span class="keyword">try</span> &#123;</span><br><span class="line">        seek(position);<span class="comment">//定位到指定位置</span></span><br><span class="line">        nread = read(buffer, offset, length);<span class="comment">//读取数据</span></span><br><span class="line">      &#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">        seek(oldPos);<span class="comment">//定位到保存位置</span></span><br><span class="line">      &#125;</span><br><span class="line">      <span class="keyword">return</span> nread;</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">    </span><br><span class="line">  <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">readFully</span><span class="params">(<span class="keyword">long</span> position, <span class="keyword">byte</span>[] buffer, <span class="keyword">int</span> offset, <span class="keyword">int</span> length)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">    <span class="keyword">int</span> nread = <span class="number">0</span>;</span><br><span class="line">    <span class="keyword">while</span> (nread &lt; length) &#123;<span class="comment">//循环读取直到读完指定长度数据或达到流尾部</span></span><br><span class="line">      <span class="keyword">int</span> nbytes = read(position+nread, buffer, offset+nread, length-nread);</span><br><span class="line">      <span class="keyword">if</span> (nbytes &lt; <span class="number">0</span>) &#123;</span><br><span class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> EOFException(<span class="string">"End of file reached before reading fully."</span>);</span><br><span class="line">      &#125;</span><br><span class="line">      nread += nbytes;</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">    </span><br><span class="line">  <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">readFully</span><span class="params">(<span class="keyword">long</span> position, <span class="keyword">byte</span>[] buffer)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">    readFully(position, buffer, <span class="number">0</span>, buffer.length);</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，简单的通过Seekable中的seek方法配合实现了read和readFully方法，具体的Seekable中的方法需要子类实现。  </p>
+<h3 id="FSDataInputStream">FSDataInputStream</h3><p>可以看做是在Hadoop文件系统抽象流的基础上增加了DataInput接口指定的功能<br>构造:<br><figure class="highlight groovy"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> FSDataInputStream(InputStream <span class="keyword">in</span>) <span class="keyword">throws</span> IOException &#123;</span><br><span class="line">    <span class="keyword">super</span>(<span class="keyword">in</span>);</span><br><span class="line">    <span class="keyword">if</span>( !(<span class="keyword">in</span> <span class="keyword">instanceof</span> Seekable) || !(<span class="keyword">in</span> <span class="keyword">instanceof</span> PositionedReadable) ) &#123;</span><br><span class="line">      <span class="keyword">throw</span> <span class="keyword">new</span> IllegalArgumentException(<span class="string">"In is not an instance of Seekable or PositionedReadable"</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>传入的底层流要实现Seekable接口和PositionReadable接口，然后其相应的方法直接使用底层流的对应方法，是否跟FilterInputStream对底层流的封装很类似。相应的方法实现:<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">synchronized</span> <span class="function"><span class="keyword">void</span> <span class="title">seek</span><span class="params">(<span class="keyword">long</span> desired)</span> <span class="keyword">throws</span> IOException </span>&#123; ((Seekable)in).seek(desired); &#125;</span><br><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">long</span> <span class="title">getPos</span><span class="params">()</span> <span class="keyword">throws</span> IOException </span>&#123; <span class="keyword">return</span> ((Seekable)in).getPos(); &#125;</span><br><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">boolean</span> <span class="title">seekToNewSource</span><span class="params">(<span class="keyword">long</span> targetPos)</span> <span class="keyword">throws</span> IOException </span>&#123; <span class="keyword">return</span> ((Seekable)in).seekToNewSource(targetPos); &#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">int</span> <span class="title">read</span><span class="params">(<span class="keyword">long</span> position, <span class="keyword">byte</span>[] buffer, <span class="keyword">int</span> offset, <span class="keyword">int</span> length)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">    <span class="keyword">return</span> ((PositionedReadable)in).read(position, buffer, offset, length);</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">void</span> <span class="title">readFully</span><span class="params">(<span class="keyword">long</span> position, <span class="keyword">byte</span>[] buffer, <span class="keyword">int</span> offset, <span class="keyword">int</span> length)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">    ((PositionedReadable)in).readFully(position, buffer, offset, length);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>另外，FSDataInputStream还实现了<code>HasFileDescriptor</code>接口，返回对应的文件描述符对象<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">interface</span> <span class="title">HasFileDescriptor</span> </span>&#123;</span><br><span class="line">  <span class="function"><span class="keyword">public</span> FileDescriptor <span class="title">getFileDescriptor</span><span class="params">()</span> <span class="keyword">throws</span> IOException</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>同样的，其方法实现也依赖于底层的流<br><figure class="highlight groovy"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> FileDescriptor getFileDescriptor() <span class="keyword">throws</span> IOException &#123;</span><br><span class="line">    <span class="keyword">if</span> (<span class="keyword">in</span> <span class="keyword">instanceof</span> HasFileDescriptor) &#123;<span class="comment">//底层流实现了HasFileDescriptor，调用相应方法</span></span><br><span class="line">      <span class="keyword">return</span> ((HasFileDescriptor) <span class="keyword">in</span>).getFileDescriptor();</span><br><span class="line">    &#125; <span class="keyword">else</span> <span class="keyword">if</span> (<span class="keyword">in</span> <span class="keyword">instanceof</span> FileInputStream) &#123;<span class="comment">//底层流为文件输入流，返回对应的文件描述符对象</span></span><br><span class="line">      <span class="keyword">return</span> ((FileInputStream) <span class="keyword">in</span>).getFD();</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">      <span class="keyword">return</span> <span class="literal">null</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<h3 id="FSDataOutputStream">FSDataOutputStream</h3><p>FSDataOutputStream实现了类似于Linux中的<code>sync</code>的功能，将流中保存的数据同步到设备中，实现DataOutput接口，支持相应的写操作。不支持随机写但是通过内部类<code>PositionCache</code>能够获取当前写的位置。<br>成员wrappedStream保存了传入的底层流<br><figure class="highlight actionscript"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> OutputStream wrappedStream;</span><br></pre></td></tr></table></figure></p>
+<p>构造:<br><figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="title">FSDataOutputStream</span>(<span class="params">OutputStream <span class="keyword">out</span></span>) throws IOException </span>&#123;</span><br><span class="line">    <span class="keyword">this</span>(<span class="keyword">out</span>, <span class="keyword">null</span>);</span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="title">FSDataOutputStream</span>(<span class="params">OutputStream <span class="keyword">out</span>, FileSystem.Statistics stats</span>) throws IOException </span>&#123;</span><br><span class="line">    <span class="keyword">this</span>(<span class="keyword">out</span>, stats, <span class="number">0</span>);</span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="title">FSDataOutputStream</span>(<span class="params">OutputStream <span class="keyword">out</span>, FileSystem.Statistics stats, <span class="keyword">long</span> startPosition</span>) throws IOException </span>&#123;</span><br><span class="line">    super(<span class="keyword">new</span> PositionCache(<span class="keyword">out</span>, stats, startPosition));<span class="comment">//构建PositionCache对象</span></span><br><span class="line">    wrappedStream = <span class="keyword">out</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>因此，默认情况下会将给定的底层流封装成PositionCache对象，交给DataOutput。<br>PositionCache是一个FilterOutputStream，提供了获取当前写位置以及一些统计信息的功能。<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="keyword">static</span> <span class="class"><span class="keyword">class</span> <span class="title">PositionCache</span> <span class="keyword">extends</span> <span class="title">FilterOutputStream</span> </span>&#123;</span><br><span class="line">    <span class="keyword">private</span> FileSystem.Statistics statistics;<span class="comment">//统计信息</span></span><br><span class="line">    <span class="keyword">long</span> position;<span class="comment">//当前写位置</span></span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="title">PositionCache</span><span class="params">(OutputStream out, FileSystem.Statistics stats,<span class="keyword">long</span> pos)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">      <span class="keyword">super</span>(out);</span><br><span class="line">      statistics = stats;</span><br><span class="line">      position = pos;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">write</span><span class="params">(<span class="keyword">int</span> b)</span> <span class="keyword">throws</span> IOException </span>&#123;<span class="comment">//写数据的时候响应的增加当前写位置，并更新统计信息</span></span><br><span class="line">      out.write(b);</span><br><span class="line">      position++;</span><br><span class="line">      <span class="keyword">if</span> (statistics != <span class="keyword">null</span>) &#123;</span><br><span class="line">        statistics.incrementBytesWritten(<span class="number">1</span>);</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">write</span><span class="params">(<span class="keyword">byte</span> b[], <span class="keyword">int</span> off, <span class="keyword">int</span> len)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">      out.write(b, off, len);</span><br><span class="line">      position += len;                            <span class="comment">// update position</span></span><br><span class="line">      <span class="keyword">if</span> (statistics != <span class="keyword">null</span>) &#123;</span><br><span class="line">        statistics.incrementBytesWritten(len);</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">      </span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">long</span> <span class="title">getPos</span><span class="params">()</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">      <span class="keyword">return</span> position;                            <span class="comment">// return cached position</span></span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">close</span><span class="params">()</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">      out.close();</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，写数据时相应的改变当前写位置以及更新统计信息。  </p>
+<p>因此，FSDataOutputStream获取当前写位置的方法，也是直接使用PositionCache的getPos方法<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">long</span> <span class="title">getPos</span><span class="params">()</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">    <span class="keyword">return</span> ((PositionCache)out).getPos();</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">void</span> <span class="title">close</span><span class="params">()</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">    out.close();         <span class="comment">// This invokes PositionCache.close()</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>而同步相关的也依赖于传入的底层流实现，若支持Syncable接口，直接调用相应的sync方法，否则通过输出流的flush方法刷新<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">void</span> <span class="title">sync</span><span class="params">()</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (wrappedStream <span class="keyword">instanceof</span> Syncable) &#123;</span><br><span class="line">      ((Syncable)wrappedStream).sync();</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">      wrappedStream.flush();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+</span>
+      
+    </div>
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/HDFS/" rel="tag">#HDFS</a>
+          
+            <a href="/tags/Hadoop/" rel="tag">#Hadoop</a>
+          
+            <a href="/tags/Java/" rel="tag">#Java</a>
+          
+        </div>
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/配置相关HDFS/" rel="next" title="Hadoop配置相关---HDFS">
+                <i class="fa fa-chevron-left"></i> Hadoop配置相关---HDFS
+              </a>
+            
+          </div>
+
+          <div class="post-nav-prev post-nav-item">
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </article>
+
+
+
+    <div class="post-spread">
+      
+        <!-- JiaThis Button BEGIN -->
+<div class="jiathis_style">
+  <a class="jiathis_button_tsina"></a>
+  <a class="jiathis_button_tqq"></a>
+  <a class="jiathis_button_weixin"></a>
+  <a class="jiathis_button_cqq"></a>
+  <a class="jiathis_button_douban"></a>
+  <a class="jiathis_button_renren"></a>
+  <a class="jiathis_button_qzone"></a>
+  <a class="jiathis_button_kaixin001"></a>
+  <a class="jiathis_button_copy"></a>
+  <a href="http://www.jiathis.com/share" class="jiathis jiathis_txt jiathis_separator jtico jtico_jiathis" target="_blank"></a>
+  <a class="jiathis_counter_style"></a>
+</div>
+<script type="text/javascript" >
+  var jiathis_config={
+    hideMore:false
+  }
+</script>
+<script type="text/javascript" src="http://v3.jiathis.com/code/jia.js" charset="utf-8"></script>
+<!-- JiaThis Button END -->
+
+      
+    </div>
+  </div>
+
+
+        </div>
+
+        
+
+
+        
+  <div class="comments" id="comments">
+    
+      <div class="ds-thread" data-thread-key="Hadoop抽象文件系统/"
+           data-title="Hadoop抽象文件系统" data-url="http://xiao-yun.github.io/Hadoop抽象文件系统/">
+      </div>
+    
+  </div>
+
+
+      </div>
+
+      
+        
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap" >
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel ">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+          <img class="site-author-image" src="/images/hero.jpg" alt="xiaoyun" itemprop="image"/>
+          <p class="site-author-name" itemprop="name">xiaoyun</p>
+        </div>
+        <p class="site-description motion-element" itemprop="description">学习笔记，网上资源摘要等</p>
+        <nav class="site-state motion-element">
+          <div class="site-state-item site-state-posts">
+            <a href="/archives">
+              <span class="site-state-item-count">21</span>
+              <span class="site-state-item-name">日志</span>
+            </a>
+          </div>
+
+          <div class="site-state-item site-state-categories">
+            <a href="/categories">
+              <span class="site-state-item-count">21</span>
+              <span class="site-state-item-name">分类</span>
+              </a>
+          </div>
+
+          <div class="site-state-item site-state-tags">
+            <a href="/tags">
+              <span class="site-state-item-count">14</span>
+              <span class="site-state-item-name">标签</span>
+              </a>
+          </div>
+
+        </nav>
+
+        
+
+        <div class="links-of-author motion-element">
+          
+            
+              <span class="links-of-author-item">
+                <a href="https://github.com/xiao-yun" target="_blank">
+                  
+                    <i class="fa fa-globe"></i> github
+                  
+                </a>
+              </span>
+            
+          
+        </div>
+
+        
+        
+
+        <div class="links-of-author motion-element">
+          
+        </div>
+
+      </section>
+
+      
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc-indicator-top post-toc-indicator">
+            <i class="fa fa-angle-double-up"></i>
+          </div>
+          <div class="post-toc">
+            
+              
+            
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#一-_成员属性"><span class="nav-number">1.</span> <span class="nav-text">一. 成员属性</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Cache"><span class="nav-number">1.1.</span> <span class="nav-text">Cache</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#Cache-Key"><span class="nav-number">1.1.1.</span> <span class="nav-text">Cache.Key</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Statistics"><span class="nav-number">1.2.</span> <span class="nav-text">Statistics</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#ClientFinalizer"><span class="nav-number">1.3.</span> <span class="nav-text">ClientFinalizer</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#PathFilter"><span class="nav-number">1.4.</span> <span class="nav-text">PathFilter</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#二-_获取文件系统"><span class="nav-number">2.</span> <span class="nav-text">二. 获取文件系统</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#三-_文件系统操作"><span class="nav-number">3.</span> <span class="nav-text">三. 文件系统操作</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#open，create，append"><span class="nav-number">3.1.</span> <span class="nav-text">open，create，append</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#文件状态FileStatus"><span class="nav-number">3.2.</span> <span class="nav-text">文件状态FileStatus</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#FsPermission"><span class="nav-number">3.2.1.</span> <span class="nav-text">FsPermission</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#FsAction"><span class="nav-number">3.2.2.</span> <span class="nav-text">FsAction</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#四-_文件系统关闭"><span class="nav-number">4.</span> <span class="nav-text">四. 文件系统关闭</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#五-_文件系统流"><span class="nav-number">5.</span> <span class="nav-text">五. 文件系统流</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Seekable"><span class="nav-number">5.1.</span> <span class="nav-text">Seekable</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#PositionedReadable"><span class="nav-number">5.2.</span> <span class="nav-text">PositionedReadable</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#FSInputStream"><span class="nav-number">5.3.</span> <span class="nav-text">FSInputStream</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#FSDataInputStream"><span class="nav-number">5.4.</span> <span class="nav-text">FSDataInputStream</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#FSDataOutputStream"><span class="nav-number">5.5.</span> <span class="nav-text">FSDataOutputStream</span></a></li></ol></li></ol></div>
+            
+          </div>
+          <div class="post-toc-indicator-bottom post-toc-indicator">
+            <i class="fa fa-angle-double-down"></i>
+          </div>
+        </section>
+      
+
+    </div>
+  </aside>
+
+
+      
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright" >
+  
+  &copy; 
+  <span itemprop="copyrightYear">2015</span>
+  <span class="with-love">
+    <i class="icon-next-heart fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">xiaoyun</span>
+</div>
+
+<div class="powered-by">
+  由 <a class="theme-link" href="http://hexo.io">Hexo</a> 强力驱动
+</div>
+
+<div class="theme-info">
+  主题 -
+  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
+    NexT.Mist
+  </a>
+</div>
+
+
+
+      </div>
+    </footer>
+
+    <div class="back-to-top"></div>
+  </div>
+
+  <script type="text/javascript" src="/vendors/jquery/index.js?v=2.1.3"></script>
+
+  
+  
+
+  
+    
+
+  
+    
+  
+
+  <script type="text/javascript">
+    var duoshuoQuery = {short_name:"xiaoyuncom"};
+    (function() {
+      var ds = document.createElement('script');
+      ds.type = 'text/javascript';ds.async = true;
+      ds.id = 'duoshuo-script';
+      ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+      ds.charset = 'UTF-8';
+      (document.getElementsByTagName('head')[0]
+      || document.getElementsByTagName('body')[0]).appendChild(ds);
+    })();
+  </script>
+    
+     
+
+
+    
+  
+
+  
+  <script type="text/javascript" src="/vendors/fancybox/source/jquery.fancybox.pack.js"></script>
+  <script type="text/javascript" src="/js/fancy-box.js?v=0.4.5.2"></script>
+
+
+  <script type="text/javascript" src="/js/helpers.js?v=0.4.5.2"></script>
+  <script type="text/javascript" src="/vendors/velocity/velocity.min.js"></script>
+<script type="text/javascript" src="/vendors/velocity/velocity.ui.min.js"></script>
+
+<script type="text/javascript" src="/js/motion.js?v=0.4.5.2" id="motion.global"></script>
+
+
+  <script type="text/javascript" src="/vendors/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  <script type="text/javascript" src="/vendors/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  
+<script type="text/javascript" src="/js/bootstrap.scrollspy.js?v=0.4.5.2" id="bootstrap.scrollspy.custom"></script>
+
+
+<script type="text/javascript" id="sidebar.toc.highlight">
+  $(document).ready(function () {
+    var tocSelector = '.post-toc';
+    var $tocSelector = $(tocSelector);
+    var activeCurrentSelector = '.active-current';
+
+    $tocSelector
+      .on('activate.bs.scrollspy', function () {
+        var $currentActiveElement = $(tocSelector + ' .active').last();
+
+        removeCurrentActiveClass();
+        $currentActiveElement.addClass('active-current');
+
+        $tocSelector[0].scrollTop = $currentActiveElement.position().top;
+      })
+      .on('clear.bs.scrollspy', function () {
+        removeCurrentActiveClass();
+      });
+
+    function removeCurrentActiveClass () {
+      $(tocSelector + ' ' + activeCurrentSelector)
+        .removeClass(activeCurrentSelector.substring(1));
+    }
+
+    function processTOC () {
+      getTOCMaxHeight();
+      toggleTOCOverflowIndicators();
+    }
+
+    function getTOCMaxHeight () {
+      var height = $('.sidebar').height() -
+                   $tocSelector.position().top -
+                   $('.post-toc-indicator-bottom').height();
+
+      $tocSelector.css('height', height);
+
+      return height;
+    }
+
+    function toggleTOCOverflowIndicators () {
+      tocOverflowIndicator(
+        '.post-toc-indicator-top',
+        $tocSelector.scrollTop() > 0 ? 'show' : 'hide'
+      );
+
+      tocOverflowIndicator(
+        '.post-toc-indicator-bottom',
+        $tocSelector.scrollTop() >= $tocSelector.find('ol').height() - $tocSelector.height() ? 'hide' : 'show'
+      )
+    }
+
+    $(document).on('sidebar.motion.complete', function () {
+      processTOC();
+    });
+
+    $('body').scrollspy({ target: tocSelector });
+    $(window).on('resize', function () {
+      if ( $('.sidebar').hasClass('sidebar-active') ) {
+        processTOC();
+      }
+    });
+
+    onScroll($tocSelector);
+
+    function onScroll (element) {
+      element.on('mousewheel DOMMouseScroll', function (event) {
+          var oe = event.originalEvent;
+          var delta = oe.wheelDelta || -oe.detail;
+
+          this.scrollTop += ( delta < 0 ? 1 : -1 ) * 30;
+          event.preventDefault();
+
+          toggleTOCOverflowIndicators();
+      });
+    }
+
+    function tocOverflowIndicator (indicator, action) {
+      var $indicator = $(indicator);
+      var opacity = action === 'show' ? 1 : 0;
+      $indicator.velocity ?
+        $indicator.velocity('stop').velocity({
+          opacity: opacity
+        }, { duration: 100 }) :
+        $indicator.stop().animate({
+          opacity: opacity
+        }, 100);
+    }
+
+  });
+</script>
+
+<script type="text/javascript" id="sidebar.nav">
+  $(document).ready(function () {
+    var html = $('html');
+    var TAB_ANIMATE_DURATION = 200;
+    var hasVelocity = $.isFunction(html.velocity);
+
+    $('.sidebar-nav li').on('click', function () {
+      var item = $(this);
+      var activeTabClassName = 'sidebar-nav-active';
+      var activePanelClassName = 'sidebar-panel-active';
+      if (item.hasClass(activeTabClassName)) {
+        return;
+      }
+
+      var currentTarget = $('.' + activePanelClassName);
+      var target = $('.' + item.data('target'));
+
+      hasVelocity ?
+        currentTarget.velocity('transition.slideUpOut', TAB_ANIMATE_DURATION, function () {
+          target
+            .velocity('stop')
+            .velocity('transition.slideDownIn', TAB_ANIMATE_DURATION)
+            .addClass(activePanelClassName);
+        }) :
+        currentTarget.animate({ opacity: 0 }, TAB_ANIMATE_DURATION, function () {
+          currentTarget.hide();
+          target
+            .stop()
+            .css({'opacity': 0, 'display': 'block'})
+            .animate({ opacity: 1 }, TAB_ANIMATE_DURATION, function () {
+              currentTarget.removeClass(activePanelClassName);
+              target.addClass(activePanelClassName);
+            });
+        });
+
+      item.siblings().removeClass(activeTabClassName);
+      item.addClass(activeTabClassName);
+    });
+
+    $('.post-toc a').on('click', function (e) {
+      e.preventDefault();
+      var targetSelector = escapeSelector(this.getAttribute('href'));
+      var offset = $(targetSelector).offset().top;
+      hasVelocity ?
+        html.velocity('stop').velocity('scroll', {
+          offset: offset  + 'px',
+          mobileHA: false
+        }) :
+        $('html, body').stop().animate({
+          scrollTop: offset
+        }, 500);
+    });
+
+    // Expand sidebar on post detail page by default, when post has a toc.
+    motionMiddleWares.sidebar = function () {
+      var $tocContent = $('.post-toc-content');
+      if (CONFIG.sidebar === 'post') {
+        if ($tocContent.length > 0 && $tocContent.html().trim().length > 0) {
+          displaySidebar();
+        }
+      }
+    };
+  });
+</script>
+
+
+
+  <script type="text/javascript" src="/js/bootstrap.js"></script>
+
+  
+  
+
+  
+  
+
+</body>
+</html>

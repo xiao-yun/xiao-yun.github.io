@@ -59,7 +59,7 @@
 <meta property="og:description" content="Hadoop版本:Hadoop-1.2.1参考：《Hadoop技术内幕-深入解析Hadoop Common和HDFS架构设计与实现原理》,后文简称技术内幕RPC中用到的通道和选择器另见通道和选择器，缓冲区另见缓冲区,以及序列化(主要是ObjectWritable)另见序列化下文所说的[概述]为上篇RPC源码分析—概述本文不涉及SIMPLE，DIGEST，KERBEROS三种鉴权方式的鉴权过程分析">
 <meta property="og:image" content="http://xiao-yun.github.io/../images/markClosed.png">
 <meta property="og:image" content="http://xiao-yun.github.io/../images/closeConnection.png">
-<meta property="og:updated_time" content="2015-12-26T09:16:07.777Z">
+<meta property="og:updated_time" content="2015-12-28T03:19:25.445Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="RPC源码阅读---源码分析下篇">
 <meta name="twitter:description" content="Hadoop版本:Hadoop-1.2.1参考：《Hadoop技术内幕-深入解析Hadoop Common和HDFS架构设计与实现原理》,后文简称技术内幕RPC中用到的通道和选择器另见通道和选择器，缓冲区另见缓冲区,以及序列化(主要是ObjectWritable)另见序列化下文所说的[概述]为上篇RPC源码分析—概述本文不涉及SIMPLE，DIGEST，KERBEROS三种鉴权方式的鉴权过程分析">
@@ -233,8 +233,8 @@
         <div class="post-meta">
           <span class="post-time">
             发表于
-            <time itemprop="dateCreated" datetime="2015-12-26T17:16:07+08:00" content="2015-12-26">
-              2015-12-26
+            <time itemprop="dateCreated" datetime="2015-12-28T11:19:25+08:00" content="2015-12-28">
+              2015-12-28
             </time>
           </span>
 
@@ -339,10 +339,10 @@
       
 
       
-        <span itemprop="articleBody"><p>Hadoop版本:<a href="https://archive.apache.org/dist/hadoop/core/hadoop-1.2.1/" target="_blank" rel="external">Hadoop-1.2.1</a><br>参考：《Hadoop技术内幕-深入解析Hadoop Common和HDFS架构设计与实现原理》,后文简称技术内幕<br>RPC中用到的通道和选择器另见<a href="./通道和选择器">通道和选择器</a>，缓冲区另见<a href="./缓冲区">缓冲区</a>,以及序列化(主要是ObjectWritable)另见<a href="./序列化">序列化</a><br>下文所说的[概述]为上篇<a href="./RPC源码分析---概述">RPC源码分析—概述</a><br>本文不涉及SIMPLE，DIGEST，KERBEROS三种鉴权方式的鉴权过程分析</p>
+        <span itemprop="articleBody"><p>Hadoop版本:<a href="https://archive.apache.org/dist/hadoop/core/hadoop-1.2.1/" target="_blank" rel="external">Hadoop-1.2.1</a><br>参考：《Hadoop技术内幕-深入解析Hadoop Common和HDFS架构设计与实现原理》,后文简称技术内幕<br>RPC中用到的通道和选择器另见<a href="../通道和选择器">通道和选择器</a>，缓冲区另见<a href="../缓冲区">缓冲区</a>,以及序列化(主要是ObjectWritable)另见<a href="../序列化">序列化</a><br>下文所说的[概述]为上篇<a href="../RPC源码分析---概述">RPC源码分析—概述</a><br>本文不涉及SIMPLE，DIGEST，KERBEROS三种鉴权方式的鉴权过程分析</p>
 <hr>
 <p>本文所属<code>RPC源码分析</code>，按照调用请求的步骤对源码进行分析，限于篇幅分为上下两篇。  </p>
-<p>上篇分析了”客户端代理创建”，”服务器创建启动”，”客户端服务器连接建立”，”客户端头数据发送”，”服务器对头数据验证，鉴权”，至此连接已经建立验证，<br>可以发送正常的调用请求了。上篇另见<a href="./RPC源码分析上篇">RPC源码分析上篇</a>。  </p>
+<p>上篇分析了”客户端代理创建”，”服务器创建启动”，”客户端服务器连接建立”，”客户端头数据发送”，”服务器对头数据验证，鉴权”，至此连接已经建立验证，<br>可以发送正常的调用请求了。上篇另见<a href="../RPC源码分析上篇">RPC源码分析上篇</a>。  </p>
 <p>而下篇分析了”客户端调用请求”，”服务器对调用请求的处理响应”，”客户端接收响应”，”客户端服务器连接的关闭”，”客户端关闭”，”服务器关闭”等过程，本文即为下篇。</p>
 <hr>
 <h2 id="方法调用请求和响应">方法调用请求和响应</h2><p>上篇<strong>&lt;建立连接&gt;</strong>部分分析了建立连接过程中，客户端的连接请求和头数据发送，服务器端的连接接收以及头数据处理鉴权等过程。</p>
@@ -492,7 +492,7 @@
 <p>客户端通过获取连接上的输出流out对象来同步的<br><figure class="highlight fortran"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">synchronized (this.<span class="type">out</span>) &#123;</span><br><span class="line">  d = new DataOutputBuffer();</span><br><span class="line">  d.writeInt(<span class="keyword">call</span>.id);</span><br><span class="line">  <span class="keyword">call</span>.param.<span class="built_in">write</span>(d);</span><br><span class="line">  byte[] <span class="type">data</span> = d.getData();</span><br><span class="line">  <span class="built_in">int</span> dataLength = d.getLength();</span><br><span class="line">  <span class="type">out</span>.writeInt(dataLength);      //first put the <span class="type">data</span> length</span><br><span class="line">  <span class="type">out</span>.<span class="built_in">write</span>(<span class="type">data</span>, <span class="number">0</span>, dataLength);//<span class="built_in">write</span> the <span class="type">data</span></span><br><span class="line">  <span class="type">out</span>.<span class="keyword">flush</span>();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
 <p>如上为sendParam中发送一帧数据的代码段，可见每次都只能发送完一帧数据后，释放out对象然后下一帧获取，继续发送，因此即使在多线程中，一个连接上<br>也只能一整帧一整帧的数据发送。  </p>
 <p>TCP Socket保证了服务器端的按序接收，这样在服务器端便是一整帧的数据接收。<br>帧长度保存在4个字节的dataLengthBuffer缓冲区中，然后根据此值分配data缓冲区，读取一整帧数据到data缓冲区中。<br>缓冲区没填满时直接返回接收到的字节数，更新通信时间lastActivity，当data缓冲区填满后，接收了完整的一帧数据，进行处理。<br>具体过程前面已经分析过了，见<code>readAndProcess</code>。<br>因为服务器接收请求是在Reader线程中，一个Reader线程处理多个连接，因此不存在在多个线程上从一个连接通道上接收数据，导致一帧数据请求被分别被<br>多个线程接收到部分数据的情况，无需同步就能在Reader线程上接收到完整的一帧请求数据。</p>
-<p>然后，服务器调用完成后，发送响应。先发4个字节的id，然后是1个字节的状态(0,1,或-1)。<br>正常返回时通过ObjectWritable封装返回值序列化发送到客户端，ObjectWritable的序列化见<a href="./序列化">序列化</a>。<br>存在异常时，序列化两个字符串(分别为异常类和异常信息)，而字符串的序列化其实是先发送字符串字节长度，然后是字符串编码字节结果。<br>服务器发送响应时，同步连接上的响应队列responseQueue，然后发送一帧响应数据。发送响应时，可能多个handler线程对一个连接上的Call处理完毕，<br>需要添加到responseQueue中，而这时如果有一个handler线程正在发送响应的话，其他handler要等待响应发送完成才能添加到响应队列。同样的，当<br>handler需要添加Call到响应队列中，而这时responder在发送该连接上的响应时，handler线程需要等待响应发送完，获得responseQueue对象管理权。<br>这样保证了发送响应过程中，响应队列安全写操作以及一帧数据的完整发送。  </p>
+<p>然后，服务器调用完成后，发送响应。先发4个字节的id，然后是1个字节的状态(0,1,或-1)。<br>正常返回时通过ObjectWritable封装返回值序列化发送到客户端，ObjectWritable的序列化见<a href="../序列化">序列化</a>。<br>存在异常时，序列化两个字符串(分别为异常类和异常信息)，而字符串的序列化其实是先发送字符串字节长度，然后是字符串编码字节结果。<br>服务器发送响应时，同步连接上的响应队列responseQueue，然后发送一帧响应数据。发送响应时，可能多个handler线程对一个连接上的Call处理完毕，<br>需要添加到responseQueue中，而这时如果有一个handler线程正在发送响应的话，其他handler要等待响应发送完成才能添加到响应队列。同样的，当<br>handler需要添加Call到响应队列中，而这时responder在发送该连接上的响应时，handler线程需要等待响应发送完，获得responseQueue对象管理权。<br>这样保证了发送响应过程中，响应队列安全写操作以及一帧数据的完整发送。  </p>
 <p>在客户端接收响应时，因为连接是一个线程，就算多个线程在该连接上远程调用，这些线程调用完后阻塞，是通过这一个连接线程通知响应到达的，只能一帧<br>一帧数据接收，接受完后通知调用线程，因此无需同步便能得到完整的一帧数据。</p>
 <hr>
 <h2 id="疑问">疑问</h2><ul>
@@ -527,8 +527,8 @@
 
           <div class="post-nav-prev post-nav-item">
             
-              <a href="/Java流/" rel="prev" title="Java流">
-                Java流 <i class="fa fa-chevron-right"></i>
+              <a href="/RPC概述/" rel="prev" title="RPC源码阅读---概述">
+                RPC源码阅读---概述 <i class="fa fa-chevron-right"></i>
               </a>
             
           </div>
@@ -624,14 +624,14 @@
         <nav class="site-state motion-element">
           <div class="site-state-item site-state-posts">
             <a href="/archives">
-              <span class="site-state-item-count">21</span>
+              <span class="site-state-item-count">22</span>
               <span class="site-state-item-name">日志</span>
             </a>
           </div>
 
           <div class="site-state-item site-state-categories">
             <a href="/categories">
-              <span class="site-state-item-count">21</span>
+              <span class="site-state-item-count">22</span>
               <span class="site-state-item-name">分类</span>
               </a>
           </div>

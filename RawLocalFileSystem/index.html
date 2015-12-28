@@ -1,0 +1,835 @@
+<!doctype html>
+<html class="theme-next   use-motion ">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+  <link href="/vendors/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css"/>
+
+
+
+
+  <link href="//fonts.googleapis.com/css?family=Lato:300,400,700,400italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+
+
+
+<link href="/vendors/font-awesome/css/font-awesome.min.css?v=4.4.0" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=0.4.5.2" rel="stylesheet" type="text/css" />
+
+
+  <meta name="keywords" content="HDFS,Hadoop,Java," />
+
+
+
+
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=0.4.5.2" />
+
+
+
+
+
+
+<meta name="description" content="Hadoop版本:Hadoop-1.2.1参考：《Hadoop技术内幕-深入解析Hadoop Common和HDFS架构设计与实现原理》  
+
+Hadoop抽象文件系统FileSystem具体见Hadoop抽象文件系统目前实现有:本文分析RawLocalFileSystem。RawLocalFileSystem用于访问本地文件系统，Java的本地文件系统操作通过java.io.File类实现，具体">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Hadoop FileSystem实现---RawLocalFileSystem">
+<meta property="og:url" content="http://xiao-yun.github.io/RawLocalFileSystem/index.html">
+<meta property="og:site_name" content="xiaoyun">
+<meta property="og:description" content="Hadoop版本:Hadoop-1.2.1参考：《Hadoop技术内幕-深入解析Hadoop Common和HDFS架构设计与实现原理》  
+
+Hadoop抽象文件系统FileSystem具体见Hadoop抽象文件系统目前实现有:本文分析RawLocalFileSystem。RawLocalFileSystem用于访问本地文件系统，Java的本地文件系统操作通过java.io.File类实现，具体">
+<meta property="og:image" content="http://xiao-yun.github.io/../images/FileSystem实现.png">
+<meta property="og:updated_time" content="2015-12-28T03:19:25.417Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Hadoop FileSystem实现---RawLocalFileSystem">
+<meta name="twitter:description" content="Hadoop版本:Hadoop-1.2.1参考：《Hadoop技术内幕-深入解析Hadoop Common和HDFS架构设计与实现原理》  
+
+Hadoop抽象文件系统FileSystem具体见Hadoop抽象文件系统目前实现有:本文分析RawLocalFileSystem。RawLocalFileSystem用于访问本地文件系统，Java的本地文件系统操作通过java.io.File类实现，具体">
+
+
+
+<script type="text/javascript" id="hexo.configuration">
+  var CONFIG = {
+    scheme: 'Mist',
+    sidebar: 'hide',
+    motion: true
+  };
+</script>
+
+  <title> Hadoop FileSystem实现---RawLocalFileSystem | xiaoyun </title>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  <!--[if lte IE 8]>
+  <div style=' clear: both; height: 59px; padding:0 0 0 15px; position: relative;margin:0 auto;'>
+    <a href="http://windows.microsoft.com/en-US/internet-explorer/products/ie/home?ocid=ie6_countdown_bannercode">
+      <img src="http://7u2nvr.com1.z0.glb.clouddn.com/picouterie.jpg" border="0" height="42" width="820"
+           alt="You are using an outdated browser. For a faster, safer browsing experience, upgrade for free today or use other browser ,like chrome firefox safari."
+           style='margin-left:auto;margin-right:auto;display: block;'/>
+    </a>
+  </div>
+<![endif]-->
+  
+
+
+
+  <script type="text/javascript">
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "//hm.baidu.com/hm.js?caeb4129c91d1e6fb3d562d35fedef0d";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+  <div class="container one-column page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-meta ">
+  
+
+  <div class="custom-logo-site-title">
+    <a href="/"  class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <span class="site-title">xiaoyun</span>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+  <p class="site-subtitle"></p>
+</div>
+
+<div class="site-nav-toggle">
+  <button>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+  </button>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu ">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-home fa-fw"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives" rel="section">
+            
+              <i class="menu-item-icon fa fa-archive fa-fw"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories" rel="section">
+            
+              <i class="menu-item-icon fa fa-th fa-fw"></i> <br />
+            
+            分类
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+              <i class="menu-item-icon fa fa-tags fa-fw"></i> <br />
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about" rel="section">
+            
+              <i class="menu-item-icon fa fa-user fa-fw"></i> <br />
+            
+            关于
+          </a>
+        </li>
+      
+
+      
+      
+    </ul>
+  
+
+  
+</nav>
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div id="content" class="content">
+          
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                Hadoop FileSystem实现---RawLocalFileSystem
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            发表于
+            <time itemprop="dateCreated" datetime="2015-12-28T11:19:25+08:00" content="2015-12-28">
+              2015-12-28
+            </time>
+          </span>
+
+          
+            <span class="post-category" >
+              &nbsp; | &nbsp; 分类于
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Java/" itemprop="url" rel="index">
+                    <span itemprop="name">Java</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Java/Hadoop/" itemprop="url" rel="index">
+                    <span itemprop="name">Hadoop</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Java/Hadoop/HDFS/" itemprop="url" rel="index">
+                    <span itemprop="name">HDFS</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Java/Hadoop/HDFS/源码阅读/" itemprop="url" rel="index">
+                    <span itemprop="name">源码阅读</span>
+                  </a>
+                </span>
+
+                
+                
+
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                &nbsp; | &nbsp;
+                <a href="/RawLocalFileSystem/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="RawLocalFileSystem/" itemprop="commentsCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+
+        </div>
+      </header>
+    
+
+
+    <div class="post-body">
+
+      
+      
+
+      
+        <span itemprop="articleBody"><p>Hadoop版本:<a href="https://archive.apache.org/dist/hadoop/core/hadoop-1.2.1/" target="_blank" rel="external">Hadoop-1.2.1</a><br>参考：《Hadoop技术内幕-深入解析Hadoop Common和HDFS架构设计与实现原理》  </p>
+<hr>
+<p>Hadoop抽象文件系统FileSystem具体见<a href="../Hadoop抽象文件系统">Hadoop抽象文件系统</a><br>目前实现有:<br><img src="../images/FileSystem实现.png" alt="FileSystem实现"><br>本文分析RawLocalFileSystem。<br>RawLocalFileSystem用于访问本地文件系统，Java的本地文件系统操作通过<code>java.io.File</code>类实现，具体为File的私有静态成员fs完成<br><figure class="highlight actionscript"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> FileSystem fs = DefaultFileSystem.getFileSystem();</span><br></pre></td></tr></table></figure></p>
+<p>因此，RawLocalFileSystem使用适配器模式实现了Hadoop的本地文件系统。</p>
+<hr>
+<h2 id="一-_成员，构造，初始化">一. 成员，构造，初始化</h2><p>成员有:<br><figure class="highlight actionscript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">static</span> <span class="keyword">final</span> URI NAME = URI.create(<span class="string">"file:///"</span>);</span><br><span class="line"><span class="keyword">private</span> Path workingDir;</span><br></pre></td></tr></table></figure></p>
+<ul>
+<li><code>NAME</code>,该文件系统对应的URI，模式为file</li>
+<li><code>workingDir</code>,保存当前工作目录</li>
+</ul>
+<p>构造:<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="title">RawLocalFileSystem</span><span class="params">()</span> </span>&#123; workingDir = <span class="keyword">new</span> Path(System.getProperty(<span class="string">"user.dir"</span>)).makeQualified(<span class="keyword">this</span>); &#125;</span><br></pre></td></tr></table></figure></p>
+<p>当前工作目录为系统属性<code>user.dir</code>。<br>初始化:<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">void</span> <span class="title">initialize</span><span class="params">(URI uri, Configuration conf)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">    <span class="keyword">super</span>.initialize(uri, conf);</span><br><span class="line">    setConf(conf);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>调用抽象文件系统初始化，创建对应的统计信息对象，然后设置配置conf。</p>
+<hr>
+<h2 id="二-_输入流">二. 输入流</h2><p>输入流为内部类<code>LocalFSFileInputStream</code>，实现了<code>FSInputStream</code>和<code>HasFileDescriptor</code>接口</p>
+<h3 id="构造">构造</h3><p>成员:<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">FileInputStream fis;<span class="comment">//文件输入流</span></span><br><span class="line"><span class="keyword">private</span> <span class="keyword">long</span> position;<span class="comment">//当前位置</span></span><br></pre></td></tr></table></figure></p>
+<p>底层肯定为文件输入流，position记录了当前位置。<br>构造:<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="title">LocalFSFileInputStream</span><span class="params">(Path f)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">    <span class="keyword">this</span>.fis = <span class="keyword">new</span> TrackingFileInputStream(pathToFile(f));</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>成员fis创建为指定文件的<code>TrackingFileInputStream</code>对象，TrackingFileInputStream继承了FileInputStream，在文件输入流读取数据的基础上，更新文件系统的统计信息。<br>如下:<br><figure class="highlight nimrod"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line">class <span class="type">TrackingFileInputStream</span> extends <span class="type">FileInputStream</span> &#123;</span><br><span class="line">    public <span class="type">TrackingFileInputStream</span>(<span class="type">File</span> f) throws <span class="type">IOException</span> &#123;</span><br><span class="line">      super(f);</span><br><span class="line">    &#125;//文件创建<span class="type">FileInputStream</span></span><br><span class="line">    </span><br><span class="line">    public <span class="type">int</span> read() throws <span class="type">IOException</span> &#123;</span><br><span class="line">      <span class="type">int</span> <span class="literal">result</span> = super.read();</span><br><span class="line">      <span class="keyword">if</span> (<span class="literal">result</span> != -<span class="number">1</span>) &#123;//读取数据成功，更新文件系统的统计信息</span><br><span class="line">        statistics.incrementBytesRead(<span class="number">1</span>);</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="keyword">return</span> <span class="literal">result</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    public <span class="type">int</span> read(byte[] data) throws <span class="type">IOException</span> &#123;</span><br><span class="line">      <span class="type">int</span> <span class="literal">result</span> = super.read(data);</span><br><span class="line">      <span class="keyword">if</span> (<span class="literal">result</span> != -<span class="number">1</span>) &#123;//读取数据成功，更新文件系统的统计信息</span><br><span class="line">        statistics.incrementBytesRead(<span class="literal">result</span>);</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="keyword">return</span> <span class="literal">result</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    public <span class="type">int</span> read(byte[] data, <span class="type">int</span> offset, <span class="type">int</span> length) throws <span class="type">IOException</span> &#123;</span><br><span class="line">      <span class="type">int</span> <span class="literal">result</span> = super.read(data, offset, length);</span><br><span class="line">      <span class="keyword">if</span> (<span class="literal">result</span> != -<span class="number">1</span>) &#123;</span><br><span class="line">        statistics.incrementBytesRead(<span class="literal">result</span>);</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="keyword">return</span> <span class="literal">result</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<h3 id="Seekable接口实现">Seekable接口实现</h3><p>Seekable接口包括seek，getPos，seekToNewSource三个方法<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">void</span> <span class="title">seek</span><span class="params">(<span class="keyword">long</span> pos)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">  fis.getChannel().position(pos);</span><br><span class="line">  <span class="keyword">this</span>.position = pos;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>seek方法直接通过文件输入流获取通道，然后通过通道的position设置当前位置，通道位置改变后，流的当前位置也相应改变。通过position记录当前流的位置。<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">long</span> <span class="title">getPos</span><span class="params">()</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">  <span class="keyword">return</span> <span class="keyword">this</span>.position;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>getPos方法返回position即可。<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">boolean</span> <span class="title">seekToNewSource</span><span class="params">(<span class="keyword">long</span> targetPos)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">  <span class="keyword">return</span> <span class="keyword">false</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>因为是本地文件系统，所以不支持切换到其他备份的源，seekToNewSource直接返回false。   </p>
+<h3 id="PositionedReadable实现">PositionedReadable实现</h3><figure class="highlight gradle"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">int</span> <span class="keyword">read</span>(<span class="keyword">long</span> position, <span class="keyword">byte</span>[] b, <span class="keyword">int</span> off, <span class="keyword">int</span> len) <span class="keyword">throws</span> IOException &#123;</span><br><span class="line">  ByteBuffer bb = ByteBuffer.wrap(b, off, len);<span class="comment">//包裹成ByteBuffer，ByteBuffer中数据改变，原字节数组b内容也改变</span></span><br><span class="line">  <span class="keyword">try</span> &#123;</span><br><span class="line">    <span class="keyword">return</span> fis.getChannel().<span class="keyword">read</span>(bb, position);<span class="comment">//通过通道直接读取指定位置的数据</span></span><br><span class="line">  &#125; <span class="keyword">catch</span> (IOException e) &#123;</span><br><span class="line">    <span class="keyword">throw</span> <span class="keyword">new</span> FSError(e);</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>如上，直接通过通道读取指定位置上的数据<br>而至于readFully方法，直接使用FSInputStream中的实现，循环调用上面的read方法。  </p>
+<h3 id="HasFileDescriptor实现">HasFileDescriptor实现</h3><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="function">FileDescriptor <span class="title">getFileDescriptor</span><span class="params">()</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">  <span class="function"><span class="keyword">return</span> fis.<span class="title">getFD</span><span class="params">()</span></span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>由文件输入流返回对应的文件描述符对象。</p>
+<h3 id="其他方法重载">其他方法重载</h3><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">int</span> <span class="title">available</span><span class="params">()</span> <span class="keyword">throws</span> IOException </span>&#123; <span class="function"><span class="keyword">return</span> fis.<span class="title">available</span><span class="params">()</span></span>; &#125;</span><br><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">void</span> <span class="title">close</span><span class="params">()</span> <span class="keyword">throws</span> IOException </span>&#123; fis.close(); &#125;</span><br><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">boolean</span> <span class="title">markSupport</span><span class="params">()</span> </span>&#123; <span class="keyword">return</span> <span class="keyword">false</span>; &#125;</span><br></pre></td></tr></table></figure>
+<p>如上，简单的使用文件输入流对应的方法<br><figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">int</span> <span class="title">read</span>(<span class="params"></span>) throws IOException </span>&#123;</span><br><span class="line">  <span class="keyword">try</span> &#123;</span><br><span class="line">    <span class="keyword">int</span> <span class="keyword">value</span> = fis.read();</span><br><span class="line">    <span class="keyword">if</span> (<span class="keyword">value</span> &gt;= <span class="number">0</span>) &#123;</span><br><span class="line">      <span class="keyword">this</span>.position++;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">value</span>;</span><br><span class="line">  &#125; <span class="keyword">catch</span> (IOException e) &#123;                 <span class="comment">// unexpected exception</span></span><br><span class="line">    <span class="keyword">throw</span> <span class="keyword">new</span> FSError(e);                   <span class="comment">// assume native fs error</span></span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>而read方法使用TrackingFileInputStream的read方法读取数据并更新文件系统的统计信息，然后增加流的位置position。<br>其他的读取指定字节的read方法类似。<br><figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">long</span> <span class="title">skip</span>(<span class="params"><span class="keyword">long</span> n</span>) throws IOException </span>&#123;</span><br><span class="line">  <span class="keyword">long</span> <span class="keyword">value</span> = fis.skip(n);</span><br><span class="line">  <span class="keyword">if</span> (<span class="keyword">value</span> &gt; <span class="number">0</span>) &#123;</span><br><span class="line">    <span class="keyword">this</span>.position += <span class="keyword">value</span>;</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">return</span> <span class="keyword">value</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>skip方法也在使用文件输入流跳过指定字节后，更新position。</p>
+<hr>
+<h2 id="三-_输出流">三. 输出流</h2><p>输出流为内部类<code>LocalFSFileOutputStream</code>，继承OutputStream实现了Syncable接口。  </p>
+<h3 id="构造-1">构造</h3><figure class="highlight gradle"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">FileOutputStream fos;</span><br><span class="line">    </span><br><span class="line"><span class="keyword">private</span> LocalFSFileOutputStream(Path f, <span class="keyword">boolean</span> <span class="keyword">append</span>) <span class="keyword">throws</span> IOException &#123;</span><br><span class="line">  <span class="keyword">this</span>.fos = <span class="keyword">new</span> FileOutputStream(pathToFile(f), <span class="keyword">append</span>);<span class="comment">//通过文件构造文件输出流，append是否追加模式</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>通过给定的文件构造文件输出流</p>
+<h3 id="OutputStream方法实现">OutputStream方法实现</h3><p>相应的OutputStream的方法实现依赖于文件输出流的方法。<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">void</span> <span class="title">close</span><span class="params">()</span> <span class="keyword">throws</span> IOException </span>&#123; fos.close(); &#125;</span><br><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">void</span> <span class="title">flush</span><span class="params">()</span> <span class="keyword">throws</span> IOException </span>&#123; fos.flush(); &#125;</span><br><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">void</span> <span class="title">write</span><span class="params">(<span class="keyword">int</span> b)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">  <span class="keyword">try</span> &#123;</span><br><span class="line">    fos.write(b);</span><br><span class="line">  &#125; <span class="keyword">catch</span> (IOException e) &#123;              <span class="comment">// unexpected exception</span></span><br><span class="line">    <span class="keyword">throw</span> <span class="keyword">new</span> FSError(e);                <span class="comment">// assume native fs error</span></span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<h3 id="Syncable接口实现">Syncable接口实现</h3><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">void</span> <span class="title">sync</span><span class="params">()</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">  fos.getFD().sync();      </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<hr>
+<h2 id="四-_文件状态">四. 文件状态</h2><p>RawLocalFileSystem的文件状态对应为内部类<code>RawLocalFileStatus</code>类，继承FileStatus实现。<br><figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">static <span class="class"><span class="keyword">class</span> <span class="title">RawLocalFileStatus</span> <span class="keyword"><span class="keyword">extends</span></span> <span class="title">FileStatus</span></span></span><br></pre></td></tr></table></figure></p>
+<h3 id="构造-2">构造</h3><figure class="highlight roboconf"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="component">RawLocalFileStatus(File f, long defaultBlockSize, FileSystem fs) &#123;</span><br><span class="line">  super(f<span class="string">.length()</span>, f<span class="string">.isDirectory()</span>, 1, defaultBlockSize, f<span class="string">.lastModified()</span>, new Path(f<span class="string">.getPath()).makeQualified(fs))</span>;</span><br><span class="line">&#125;</span></span><br></pre></td></tr></table></figure>
+<p>如上，由传入的File对象获取长度，f为目录时长度不明确。  </p>
+<h3 id="获取权限信息">获取权限信息</h3><p>包括<code>getOwner</code>获取所有者，<code>getGroup</code>获取所在组，<code>getPermission</code>获取权限对象。三者都需要先从文件系统中加载权限信息。<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="function">String <span class="title">getOwner</span><span class="params">()</span> </span>&#123;</span><br><span class="line">  <span class="keyword">if</span> (!isPermissionLoaded()) &#123; loadPermissionInfo(); &#125;</span><br><span class="line">  <span class="function"><span class="keyword">return</span> <span class="keyword">super</span>.<span class="title">getOwner</span><span class="params">()</span></span>;</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">public</span> <span class="function">String <span class="title">getGroup</span><span class="params">()</span> </span>&#123;</span><br><span class="line">  <span class="keyword">if</span> (!isPermissionLoaded()) &#123; loadPermissionInfo(); &#125;</span><br><span class="line">  <span class="function"><span class="keyword">return</span> <span class="keyword">super</span>.<span class="title">getGroup</span><span class="params">()</span></span>;</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">public</span> <span class="function">FsPermission <span class="title">getPermission</span><span class="params">()</span> </span>&#123;</span><br><span class="line">  <span class="keyword">if</span> (!isPermissionLoaded()) &#123; loadPermissionInfo(); &#125;</span><br><span class="line">  <span class="function"><span class="keyword">return</span> <span class="keyword">super</span>.<span class="title">getPermission</span><span class="params">()</span></span>;</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">private</span> <span class="function"><span class="keyword">boolean</span> <span class="title">isPermissionLoaded</span><span class="params">()</span> </span>&#123; <span class="keyword">return</span> !<span class="keyword">super</span>.getOwner().equals(<span class="string">""</span>); &#125;</span><br></pre></td></tr></table></figure></p>
+<p>另外，序列化时也要先判断是否获取了权限信息，即该对象的成员是否正常，然后序列化<br><figure class="highlight gradle"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="keyword">write</span>(DataOutput out) <span class="keyword">throws</span> IOException &#123;</span><br><span class="line">  <span class="keyword">if</span> (!isPermissionLoaded()) &#123; loadPermissionInfo(); &#125;</span><br><span class="line">  <span class="keyword">super</span>.<span class="keyword">write</span>(out);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，通过<code>isPermissionLoaded</code>判断是否加载了权限信息，如果加载了对应的owner成员应该不为空。<br>如果没有加载则通过loadPermissionInfo加载权限信息。<br><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">loadPermissionInfo</span><span class="params">()</span> </span>&#123;</span><br><span class="line">  IOException e = null;</span><br><span class="line">  <span class="keyword">try</span> &#123;</span><br><span class="line">    <span class="comment">//创建新的Java虚拟机进程，在虚拟机进程中执行Shell命令"ls -al"获取权限</span></span><br><span class="line">    StringTokenizer t = <span class="keyword">new</span> StringTokenizer(FileUtil.execCommand(<span class="keyword">new</span> File(getPath().toUri()), Shell.getGET_PERMISSION_COMMAND()));</span><br><span class="line">    <span class="comment">//-rw-------    1 username groupname ...</span></span><br><span class="line">    String permission = t.nextToken();</span><br><span class="line">    <span class="keyword">if</span> (permission.length() &gt; <span class="number">10</span>) &#123; <span class="comment">//files with ACLs might have a '+'</span></span><br><span class="line">      permission = permission.substring(<span class="number">0</span>, <span class="number">10</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    setPermission(FsPermission.valueOf(permission));<span class="comment">//设置权限对象</span></span><br><span class="line">    t.nextToken();</span><br><span class="line">    setOwner(t.nextToken());<span class="comment">//所有者</span></span><br><span class="line">    setGroup(t.nextToken());<span class="comment">//所在组</span></span><br><span class="line">    ...</span><br></pre></td></tr></table></figure></p>
+<p>如上，loadPermissionInfo中追踪<code>FileUtil.execCommand</code>执行，最终在<code>UNIXProcess</code>中通过<code>forkAndExec</code>会创建新的虚拟机进程，执行Shell命令”ls -al”获取文件权限信息。<br><figure class="highlight lisp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">pid = forkAndExec<span class="list">(<span class="keyword">launchMechanism</span>.ordinal<span class="list">()</span> + <span class="number">1</span>,</span><br><span class="line">                  helperpath, prog, argBlock, argc, envBlock, envc,</span><br><span class="line">                  dir, fds, redirectErrorStream)</span><span class="comment">;</span></span><br></pre></td></tr></table></figure></p>
+<p>如上，prog为命令，这里为<code>ls</code>。argBlock为命令以外的参数信息，字节数组形式，这里为”-al filename”的字节数组；argc为命令以外的参数个数，这里为2个；envBlock为传入的环境变量字节数组形式，这里没有；envc为环境变量个数，这里为0；dir为当前工作目录，这里没有；fds为对应的输出文件描述符，stdin(0),stdout(1),stderr(2),pipe(-1)，这里应该为stdout(1),通过该文件描述符创建输入流读取结果(这里对fds的描述可能有误)。<br>读取结果<br><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">BufferedReader inReader = <span class="keyword">new</span> BufferedReader(<span class="keyword">new</span> InputStreamReader(process.getInputStream()));</span><br><span class="line">parseExecResult(inReader);</span><br><span class="line"><span class="function"><span class="keyword">protected</span> <span class="keyword">void</span> <span class="title">parseExecResult</span><span class="params">(BufferedReader lines)</span> throws IOException </span>&#123;</span><br><span class="line">  output = <span class="keyword">new</span> StringBuffer();</span><br><span class="line">  <span class="keyword">char</span>[] buf = <span class="keyword">new</span> <span class="keyword">char</span>[<span class="number">512</span>];</span><br><span class="line">  <span class="keyword">int</span> nRead;</span><br><span class="line">  <span class="keyword">while</span> ( (nRead = lines.read(buf, <span class="number">0</span>, buf.length)) &gt; <span class="number">0</span> ) &#123;<span class="comment">//从stdout中读取结果至ShellCommandExecutor的output中</span></span><br><span class="line">    output.append(buf, <span class="number">0</span>, nRead);</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>process.getInputStream中的process为UNIXProcess，如下:<br><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> InputStream <span class="title">getInputStream</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="keyword">return</span> <span class="built_in">stdout</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上从进程的stdout中读取结果至ShellCommandExecutor的output中，然后通过<code>ShellCommandExecutor.getOutput</code>获取结果。  </p>
+<hr>
+<h2 id="五-_文件系统操作实现">五. 文件系统操作实现</h2><h3 id="open，create，append">open，create，append</h3><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="function">FSDataInputStream <span class="title">open</span><span class="params">(Path f, <span class="keyword">int</span> bufferSize)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (!exists(f)) &#123;<span class="comment">//不存在抛出异常</span></span><br><span class="line">      <span class="keyword">throw</span> <span class="keyword">new</span> FileNotFoundException(f.toString());</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">//创建文件系统的输入流，封装成BufferedFSInputStream，然后封装成文件系统的统一输入流FSDataInputStream</span></span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">new</span> FSDataInputStream(<span class="keyword">new</span> BufferedFSInputStream(<span class="keyword">new</span> LocalFSFileInputStream(f), bufferSize));</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>如上，创建本文件系统的输入流，然后封装成BufferedInputStream，BufferedInputStream与BufferedInputStream类似，只不过是对FSInputStream的缓冲，底层流只能是FSInputStream，具体见<a href="../Hadoop抽象文件系统">Hadoop抽象文件系统</a>中对应描述。最终封装成文件系统统一输入流FSDataInputStream，拥有DataInput接口的功能。<br><figure class="highlight zephir"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> FSDataOutputStream create(Path f, <span class="keyword">boolean</span> overwrite, <span class="keyword">boolean</span> createParent, <span class="keyword">int</span> bufferSize,</span><br><span class="line">  short replication, <span class="keyword">long</span> blockSize, Progressable progress) throws IOException &#123;</span><br><span class="line">    <span class="keyword">if</span> (exists(f) &amp;&amp; !overwrite) &#123;<span class="comment">//文件存在，且不允许覆盖，抛出异常</span></span><br><span class="line">      <span class="keyword">throw</span> <span class="keyword">new</span> IOException(<span class="string">"File already exists:"</span>+f);</span><br><span class="line">    &#125;</span><br><span class="line">    Path <span class="keyword">parent</span> = f.getParent();</span><br><span class="line">    <span class="keyword">if</span> (<span class="keyword">parent</span> != <span class="keyword">null</span>) &#123;</span><br><span class="line">      <span class="keyword">if</span> (!createParent &amp;&amp; !exists(<span class="keyword">parent</span>)) &#123;<span class="comment">//父目录不存在且不允许创建父目录，抛出异常</span></span><br><span class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> FileNotFoundException(<span class="string">"Parent directory doesn't exist: "</span></span><br><span class="line">            + <span class="keyword">parent</span>);</span><br><span class="line">      &#125; <span class="keyword">else</span> <span class="keyword">if</span> (!mkdirs(<span class="keyword">parent</span>)) &#123;<span class="comment">//创建父目录，如果失败抛出异常</span></span><br><span class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> IOException(<span class="string">"Mkdirs failed to create "</span> + <span class="keyword">parent</span>);</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">//创建本文件系统对应输出流，封装成BufferedOutputStream，然后封装成文件系统统一的输出流对象</span></span><br><span class="line">    <span class="comment">//注意构建LocalFSFileOutputStream时append参数为false</span></span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">new</span> FSDataOutputStream(<span class="keyword">new</span> BufferedOutputStream(<span class="keyword">new</span> LocalFSFileOutputStream(f, <span class="keyword">false</span>), bufferSize), statistics);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，创建本文键系统对应的输出流LocalFSFileOutputStream，然后封装成BufferedOutputStream，最后封装成DataFSOutputStream。<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="function">FSDataOutputStream <span class="title">append</span><span class="params">(Path f, <span class="keyword">int</span> bufferSize, Progressable progress)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (!exists(f)) &#123;<span class="comment">//不存在，直接抛出异常</span></span><br><span class="line">      <span class="keyword">throw</span> <span class="keyword">new</span> FileNotFoundException(<span class="string">"File "</span> + f + <span class="string">" not found."</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> (getFileStatus(f).isDir()) &#123;<span class="comment">//为目录，抛出异常</span></span><br><span class="line">      <span class="keyword">throw</span> <span class="keyword">new</span> IOException(<span class="string">"Cannot append to a diretory (="</span> + f + <span class="string">" )."</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">new</span> FSDataOutputStream(<span class="keyword">new</span> BufferedOutputStream( <span class="keyword">new</span> LocalFSFileOutputStream(f, <span class="keyword">true</span>), bufferSize), statistics);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，创建LocalFSFileOutputStream，其中append参数为true允许追加，然后进行相应的封装。  </p>
+<h3 id="获取文件状态相关方法">获取文件状态相关方法</h3><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="function">FileStatus <span class="title">getFileStatus</span><span class="params">(Path f)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">    File path = pathToFile(f);<span class="comment">//将Path转换为File对象</span></span><br><span class="line">    <span class="keyword">if</span> (path.exists()) &#123;</span><br><span class="line">      <span class="keyword">return</span> <span class="keyword">new</span> RawLocalFileStatus(pathToFile(f), getDefaultBlockSize(), <span class="keyword">this</span>);</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;<span class="comment">//不存在抛出异常</span></span><br><span class="line">      <span class="keyword">throw</span> <span class="keyword">new</span> FileNotFoundException( <span class="string">"File "</span> + f + <span class="string">" does not exist."</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>getFileStatus将Path转换为文件后，创建相应的RawLocalFileStatus对象返回。<br>而listStatus判断Path是否为文件，若为文件则创建相应的RawLocalFileStatus放入数组返回，否则对目录下每一个Path通过getFileStatus获取对应文件状态。  </p>
+<h3 id="delete">delete</h3><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">boolean</span> <span class="title">delete</span><span class="params">(Path p, <span class="keyword">boolean</span> recursive)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">    File f = pathToFile(p);</span><br><span class="line">    <span class="keyword">if</span> (f.isFile()) &#123;</span><br><span class="line">      <span class="function"><span class="keyword">return</span> f.<span class="title">delete</span><span class="params">()</span></span>;</span><br><span class="line">    &#125; <span class="keyword">else</span> <span class="keyword">if</span> ((!recursive) &amp;&amp; f.isDirectory() &amp;&amp; </span><br><span class="line">        (FileUtil.listFiles(f).length != <span class="number">0</span>)) &#123;</span><br><span class="line">      <span class="keyword">throw</span> <span class="keyword">new</span> IOException(<span class="string">"Directory "</span> + f.toString() + <span class="string">" is not empty"</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="function"><span class="keyword">return</span> FileUtil.<span class="title">fullyDelete</span><span class="params">(f)</span></span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>也是通过File来执行删除操作，如果是文件则直接通过File的delete方法删除该文件。若为目录，如果不为空且不允许递归删除的话，抛出异常，否则先删除目录下的所有目录项(可能为目录，此时仍然先删除目录项然后删除目录)，然后删除该目(通过FileUtil.fullyDelete完成)。最终都是调用File的delete方法。  </p>
+<h3 id="mkdirs">mkdirs</h3><figure class="highlight lasso"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="built_in">boolean</span> mkdirs(Path f) throws IOException &#123;</span><br><span class="line">    Path <span class="keyword">parent</span> = f<span class="built_in">.</span>getParent();</span><br><span class="line">    File p2f = pathToFile(f);</span><br><span class="line">    <span class="keyword">return</span> (<span class="keyword">parent</span> == <span class="built_in">null</span> <span class="subst">||</span> mkdirs(<span class="keyword">parent</span>)) <span class="subst">&amp;&amp;</span> (p2f<span class="built_in">.</span>mkdir() <span class="subst">||</span> p2f<span class="built_in">.</span>isDirectory());</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>如上会递归创建目录，创建一个目录时，若其父目录不存在则会先创建父目录。<br>用到了布尔表达式短路求值。(parent==null||mkdirs(parent))成功时才会继续(p2f.mkdir)||p2f.isDirectory)。<br>而在前半部分中，如果父目录为null则前半部分直接返回true，不需要创建父目录，接下来创建子目录；若父目录不为null则执行mkdir(parent)创建父目录。若创建失败，则前半部分返回false，父目录创建失败，后半部分不会执行。父目录创建成功则前半部分返回true，执行后半部分创建子目录。创建父目录通过mkdirs同样的会递归创建父目录的父目录，直到根目录。<br>后半部分中，通过File的mkdir创建子目录。创建成功则直接返回true，否则通过isDirectory判断子目录是否已经创建了，若已经创建则返回ture，否则子目录创建失败，返回false。</p>
+<h3 id="rename">rename</h3><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">boolean</span> <span class="title">rename</span><span class="params">(Path src, Path dst)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (pathToFile(src).renameTo(pathToFile(dst))) &#123; <span class="keyword">return</span> <span class="keyword">true</span>; &#125;</span><br><span class="line">    LOG.debug(<span class="string">"Falling through to a copy of "</span> + src + <span class="string">" to "</span> + dst);</span><br><span class="line">    <span class="keyword">return</span> FileUtil.copy(<span class="keyword">this</span>, src, <span class="keyword">this</span>, dst, <span class="keyword">true</span>, getConf());</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>首先通过File的renameTo方法重命名，若失败则通过FileUtil拷贝数据到目的文件。  </p>
+<h3 id="setOwner，setPermission">setOwner，setPermission</h3><p>两者也是通过执行Shell命令设置相应的值<br><figure class="highlight processing"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> setOwner(Path p, <span class="keyword">String</span> username, <span class="keyword">String</span> groupname) <span class="keyword">throws</span> IOException</span><br></pre></td></tr></table></figure></p>
+<p>username为null时设置所在组，命令对应为<code>chgrp</code>，否则设置所属用户，命令对应为<code>chown</code>。<br>setPermission对应命令为<code>chmod</code>。</p>
+<h3 id="其他方法">其他方法</h3><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="function">Path <span class="title">getHomeDirectory</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">new</span> Path(System.getProperty(<span class="string">"user.home"</span>)).makeQualified(<span class="keyword">this</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>主目录为系统属性<code>user.home</code>。<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="function">Path <span class="title">makeAbsolute</span><span class="params">(Path f)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (f.isAbsolute()) &#123;</span><br><span class="line">      <span class="keyword">return</span> f;</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">      <span class="keyword">return</span> <span class="keyword">new</span> Path(workingDir, f);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>绝对目录父目录为当前工作目录<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">void</span> <span class="title">setWorkingDirectory</span><span class="params">(Path newDir)</span> </span>&#123;</span><br><span class="line">    workingDir = makeAbsolute(newDir);</span><br><span class="line">    checkPath(workingDir);<span class="comment">//检查workingDir是否为该文件系统中的路径，若不是会抛出运行时异常</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+</span>
+      
+    </div>
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/HDFS/" rel="tag">#HDFS</a>
+          
+            <a href="/tags/Hadoop/" rel="tag">#Hadoop</a>
+          
+            <a href="/tags/Java/" rel="tag">#Java</a>
+          
+        </div>
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/配置相关RaidNode/" rel="next" title="Hadoop配置相关---RaidNode">
+                <i class="fa fa-chevron-left"></i> Hadoop配置相关---RaidNode
+              </a>
+            
+          </div>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/RPC源码分析上篇/" rel="prev" title="RPC源码阅读---源码分析上篇">
+                RPC源码阅读---源码分析上篇 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </article>
+
+
+
+    <div class="post-spread">
+      
+        <!-- JiaThis Button BEGIN -->
+<div class="jiathis_style">
+  <a class="jiathis_button_tsina"></a>
+  <a class="jiathis_button_tqq"></a>
+  <a class="jiathis_button_weixin"></a>
+  <a class="jiathis_button_cqq"></a>
+  <a class="jiathis_button_douban"></a>
+  <a class="jiathis_button_renren"></a>
+  <a class="jiathis_button_qzone"></a>
+  <a class="jiathis_button_kaixin001"></a>
+  <a class="jiathis_button_copy"></a>
+  <a href="http://www.jiathis.com/share" class="jiathis jiathis_txt jiathis_separator jtico jtico_jiathis" target="_blank"></a>
+  <a class="jiathis_counter_style"></a>
+</div>
+<script type="text/javascript" >
+  var jiathis_config={
+    hideMore:false
+  }
+</script>
+<script type="text/javascript" src="http://v3.jiathis.com/code/jia.js" charset="utf-8"></script>
+<!-- JiaThis Button END -->
+
+      
+    </div>
+  </div>
+
+
+        </div>
+
+        
+
+
+        
+  <div class="comments" id="comments">
+    
+      <div class="ds-thread" data-thread-key="RawLocalFileSystem/"
+           data-title="Hadoop FileSystem实现---RawLocalFileSystem" data-url="http://xiao-yun.github.io/RawLocalFileSystem/">
+      </div>
+    
+  </div>
+
+
+      </div>
+
+      
+        
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap" >
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel ">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+          <img class="site-author-image" src="/images/hero.jpg" alt="xiaoyun" itemprop="image"/>
+          <p class="site-author-name" itemprop="name">xiaoyun</p>
+        </div>
+        <p class="site-description motion-element" itemprop="description">学习笔记，网上资源摘要等</p>
+        <nav class="site-state motion-element">
+          <div class="site-state-item site-state-posts">
+            <a href="/archives">
+              <span class="site-state-item-count">22</span>
+              <span class="site-state-item-name">日志</span>
+            </a>
+          </div>
+
+          <div class="site-state-item site-state-categories">
+            <a href="/categories">
+              <span class="site-state-item-count">22</span>
+              <span class="site-state-item-name">分类</span>
+              </a>
+          </div>
+
+          <div class="site-state-item site-state-tags">
+            <a href="/tags">
+              <span class="site-state-item-count">14</span>
+              <span class="site-state-item-name">标签</span>
+              </a>
+          </div>
+
+        </nav>
+
+        
+
+        <div class="links-of-author motion-element">
+          
+            
+              <span class="links-of-author-item">
+                <a href="https://github.com/xiao-yun" target="_blank">
+                  
+                    <i class="fa fa-globe"></i> github
+                  
+                </a>
+              </span>
+            
+          
+        </div>
+
+        
+        
+
+        <div class="links-of-author motion-element">
+          
+        </div>
+
+      </section>
+
+      
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc-indicator-top post-toc-indicator">
+            <i class="fa fa-angle-double-up"></i>
+          </div>
+          <div class="post-toc">
+            
+              
+            
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#一-_成员，构造，初始化"><span class="nav-number">1.</span> <span class="nav-text">一. 成员，构造，初始化</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#二-_输入流"><span class="nav-number">2.</span> <span class="nav-text">二. 输入流</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#构造"><span class="nav-number">2.1.</span> <span class="nav-text">构造</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Seekable接口实现"><span class="nav-number">2.2.</span> <span class="nav-text">Seekable接口实现</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#PositionedReadable实现"><span class="nav-number">2.3.</span> <span class="nav-text">PositionedReadable实现</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#HasFileDescriptor实现"><span class="nav-number">2.4.</span> <span class="nav-text">HasFileDescriptor实现</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#其他方法重载"><span class="nav-number">2.5.</span> <span class="nav-text">其他方法重载</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#三-_输出流"><span class="nav-number">3.</span> <span class="nav-text">三. 输出流</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#构造-1"><span class="nav-number">3.1.</span> <span class="nav-text">构造</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#OutputStream方法实现"><span class="nav-number">3.2.</span> <span class="nav-text">OutputStream方法实现</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Syncable接口实现"><span class="nav-number">3.3.</span> <span class="nav-text">Syncable接口实现</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#四-_文件状态"><span class="nav-number">4.</span> <span class="nav-text">四. 文件状态</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#构造-2"><span class="nav-number">4.1.</span> <span class="nav-text">构造</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#获取权限信息"><span class="nav-number">4.2.</span> <span class="nav-text">获取权限信息</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#五-_文件系统操作实现"><span class="nav-number">5.</span> <span class="nav-text">五. 文件系统操作实现</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#open，create，append"><span class="nav-number">5.1.</span> <span class="nav-text">open，create，append</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#获取文件状态相关方法"><span class="nav-number">5.2.</span> <span class="nav-text">获取文件状态相关方法</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#delete"><span class="nav-number">5.3.</span> <span class="nav-text">delete</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#mkdirs"><span class="nav-number">5.4.</span> <span class="nav-text">mkdirs</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#rename"><span class="nav-number">5.5.</span> <span class="nav-text">rename</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#setOwner，setPermission"><span class="nav-number">5.6.</span> <span class="nav-text">setOwner，setPermission</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#其他方法"><span class="nav-number">5.7.</span> <span class="nav-text">其他方法</span></a></li></ol></li></ol></div>
+            
+          </div>
+          <div class="post-toc-indicator-bottom post-toc-indicator">
+            <i class="fa fa-angle-double-down"></i>
+          </div>
+        </section>
+      
+
+    </div>
+  </aside>
+
+
+      
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright" >
+  
+  &copy; 
+  <span itemprop="copyrightYear">2015</span>
+  <span class="with-love">
+    <i class="icon-next-heart fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">xiaoyun</span>
+</div>
+
+<div class="powered-by">
+  由 <a class="theme-link" href="http://hexo.io">Hexo</a> 强力驱动
+</div>
+
+<div class="theme-info">
+  主题 -
+  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
+    NexT.Mist
+  </a>
+</div>
+
+
+
+      </div>
+    </footer>
+
+    <div class="back-to-top"></div>
+  </div>
+
+  <script type="text/javascript" src="/vendors/jquery/index.js?v=2.1.3"></script>
+
+  
+  
+
+  
+    
+
+  
+    
+  
+
+  <script type="text/javascript">
+    var duoshuoQuery = {short_name:"xiaoyuncom"};
+    (function() {
+      var ds = document.createElement('script');
+      ds.type = 'text/javascript';ds.async = true;
+      ds.id = 'duoshuo-script';
+      ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+      ds.charset = 'UTF-8';
+      (document.getElementsByTagName('head')[0]
+      || document.getElementsByTagName('body')[0]).appendChild(ds);
+    })();
+  </script>
+    
+     
+
+
+    
+  
+
+  
+  <script type="text/javascript" src="/vendors/fancybox/source/jquery.fancybox.pack.js"></script>
+  <script type="text/javascript" src="/js/fancy-box.js?v=0.4.5.2"></script>
+
+
+  <script type="text/javascript" src="/js/helpers.js?v=0.4.5.2"></script>
+  <script type="text/javascript" src="/vendors/velocity/velocity.min.js"></script>
+<script type="text/javascript" src="/vendors/velocity/velocity.ui.min.js"></script>
+
+<script type="text/javascript" src="/js/motion.js?v=0.4.5.2" id="motion.global"></script>
+
+
+  <script type="text/javascript" src="/vendors/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  <script type="text/javascript" src="/vendors/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  
+<script type="text/javascript" src="/js/bootstrap.scrollspy.js?v=0.4.5.2" id="bootstrap.scrollspy.custom"></script>
+
+
+<script type="text/javascript" id="sidebar.toc.highlight">
+  $(document).ready(function () {
+    var tocSelector = '.post-toc';
+    var $tocSelector = $(tocSelector);
+    var activeCurrentSelector = '.active-current';
+
+    $tocSelector
+      .on('activate.bs.scrollspy', function () {
+        var $currentActiveElement = $(tocSelector + ' .active').last();
+
+        removeCurrentActiveClass();
+        $currentActiveElement.addClass('active-current');
+
+        $tocSelector[0].scrollTop = $currentActiveElement.position().top;
+      })
+      .on('clear.bs.scrollspy', function () {
+        removeCurrentActiveClass();
+      });
+
+    function removeCurrentActiveClass () {
+      $(tocSelector + ' ' + activeCurrentSelector)
+        .removeClass(activeCurrentSelector.substring(1));
+    }
+
+    function processTOC () {
+      getTOCMaxHeight();
+      toggleTOCOverflowIndicators();
+    }
+
+    function getTOCMaxHeight () {
+      var height = $('.sidebar').height() -
+                   $tocSelector.position().top -
+                   $('.post-toc-indicator-bottom').height();
+
+      $tocSelector.css('height', height);
+
+      return height;
+    }
+
+    function toggleTOCOverflowIndicators () {
+      tocOverflowIndicator(
+        '.post-toc-indicator-top',
+        $tocSelector.scrollTop() > 0 ? 'show' : 'hide'
+      );
+
+      tocOverflowIndicator(
+        '.post-toc-indicator-bottom',
+        $tocSelector.scrollTop() >= $tocSelector.find('ol').height() - $tocSelector.height() ? 'hide' : 'show'
+      )
+    }
+
+    $(document).on('sidebar.motion.complete', function () {
+      processTOC();
+    });
+
+    $('body').scrollspy({ target: tocSelector });
+    $(window).on('resize', function () {
+      if ( $('.sidebar').hasClass('sidebar-active') ) {
+        processTOC();
+      }
+    });
+
+    onScroll($tocSelector);
+
+    function onScroll (element) {
+      element.on('mousewheel DOMMouseScroll', function (event) {
+          var oe = event.originalEvent;
+          var delta = oe.wheelDelta || -oe.detail;
+
+          this.scrollTop += ( delta < 0 ? 1 : -1 ) * 30;
+          event.preventDefault();
+
+          toggleTOCOverflowIndicators();
+      });
+    }
+
+    function tocOverflowIndicator (indicator, action) {
+      var $indicator = $(indicator);
+      var opacity = action === 'show' ? 1 : 0;
+      $indicator.velocity ?
+        $indicator.velocity('stop').velocity({
+          opacity: opacity
+        }, { duration: 100 }) :
+        $indicator.stop().animate({
+          opacity: opacity
+        }, 100);
+    }
+
+  });
+</script>
+
+<script type="text/javascript" id="sidebar.nav">
+  $(document).ready(function () {
+    var html = $('html');
+    var TAB_ANIMATE_DURATION = 200;
+    var hasVelocity = $.isFunction(html.velocity);
+
+    $('.sidebar-nav li').on('click', function () {
+      var item = $(this);
+      var activeTabClassName = 'sidebar-nav-active';
+      var activePanelClassName = 'sidebar-panel-active';
+      if (item.hasClass(activeTabClassName)) {
+        return;
+      }
+
+      var currentTarget = $('.' + activePanelClassName);
+      var target = $('.' + item.data('target'));
+
+      hasVelocity ?
+        currentTarget.velocity('transition.slideUpOut', TAB_ANIMATE_DURATION, function () {
+          target
+            .velocity('stop')
+            .velocity('transition.slideDownIn', TAB_ANIMATE_DURATION)
+            .addClass(activePanelClassName);
+        }) :
+        currentTarget.animate({ opacity: 0 }, TAB_ANIMATE_DURATION, function () {
+          currentTarget.hide();
+          target
+            .stop()
+            .css({'opacity': 0, 'display': 'block'})
+            .animate({ opacity: 1 }, TAB_ANIMATE_DURATION, function () {
+              currentTarget.removeClass(activePanelClassName);
+              target.addClass(activePanelClassName);
+            });
+        });
+
+      item.siblings().removeClass(activeTabClassName);
+      item.addClass(activeTabClassName);
+    });
+
+    $('.post-toc a').on('click', function (e) {
+      e.preventDefault();
+      var targetSelector = escapeSelector(this.getAttribute('href'));
+      var offset = $(targetSelector).offset().top;
+      hasVelocity ?
+        html.velocity('stop').velocity('scroll', {
+          offset: offset  + 'px',
+          mobileHA: false
+        }) :
+        $('html, body').stop().animate({
+          scrollTop: offset
+        }, 500);
+    });
+
+    // Expand sidebar on post detail page by default, when post has a toc.
+    motionMiddleWares.sidebar = function () {
+      var $tocContent = $('.post-toc-content');
+      if (CONFIG.sidebar === 'post') {
+        if ($tocContent.length > 0 && $tocContent.html().trim().length > 0) {
+          displaySidebar();
+        }
+      }
+    };
+  });
+</script>
+
+
+
+  <script type="text/javascript" src="/js/bootstrap.js"></script>
+
+  
+  
+
+  
+  
+
+</body>
+</html>

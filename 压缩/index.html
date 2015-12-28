@@ -63,7 +63,7 @@
 <meta property="og:image" content="http://xiao-yun.github.io/../images/Compressor.png">
 <meta property="og:image" content="http://xiao-yun.github.io/../images/Snappy本地库.png">
 <meta property="og:image" content="http://xiao-yun.github.io/../images/压缩流解压流.png">
-<meta property="og:updated_time" content="2015-12-18T02:34:47.376Z">
+<meta property="og:updated_time" content="2015-12-28T03:19:25.449Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="Common源码阅读---压缩">
 <meta name="twitter:description" content="Hadoop版本:Hadoop-1.2.1参考：《Hadoop技术内幕-深入解析Hadoop Common和HDFS架构设计与实现原理》
@@ -238,8 +238,8 @@
         <div class="post-meta">
           <span class="post-time">
             发表于
-            <time itemprop="dateCreated" datetime="2015-12-18T10:34:47+08:00" content="2015-12-18">
-              2015-12-18
+            <time itemprop="dateCreated" datetime="2015-12-28T11:19:25+08:00" content="2015-12-28">
+              2015-12-28
             </time>
           </span>
 
@@ -336,9 +336,9 @@
 <p>解压过程与压缩过程类似，都是循环往解压器中送待解压数据，如果解压器暂时不需要添加数据，则通过decompress函数解压并输出数据。所有数据添加完后，<br>调用finish()函数表示没有剩余的待解压数据输入。然后解压并输出解压器中的剩余数据(如果有),最终end函数终止。  </p>
 <p>目前Hadoop相关实现类如下<br><img src="../images/Compressor.png" alt="Compressor"></p>
 <h3 id="SnappyCompressor(参考&lt;技术内幕&gt;)">SnappyCompressor(参考&lt;技术内幕&gt;)</h3><h4 id="成员属性-1">成员属性</h4><figure class="highlight gradle"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="keyword">int</span> DEFAULT_DIRECT_BUFFER_SIZE = <span class="number">64</span> * <span class="number">1024</span>;<span class="comment">//缺省直接内存Buffer大小</span></span><br><span class="line"></span><br><span class="line"><span class="comment">// HACK - Use this as a global lock in the JNI layer</span></span><br><span class="line">@SuppressWarnings(&#123;<span class="string">"unchecked"</span>, <span class="string">"unused"</span>&#125;)</span><br><span class="line"><span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">Class</span> clazz = SnappyCompressor.<span class="keyword">class</span>;</span><br><span class="line"></span><br><span class="line"><span class="keyword">private</span> <span class="keyword">int</span> directBufferSize;</span><br><span class="line"><span class="keyword">private</span> Buffer compressedDirectBuf = <span class="keyword">null</span>;<span class="comment">//已压缩数据缓冲区</span></span><br><span class="line"><span class="keyword">private</span> <span class="keyword">int</span> uncompressedDirectBufLen;<span class="comment">//待压缩数据缓冲区长度</span></span><br><span class="line"><span class="keyword">private</span> Buffer uncompressedDirectBuf = <span class="keyword">null</span>;<span class="comment">//待压缩数据缓冲区</span></span><br><span class="line"><span class="keyword">private</span> <span class="keyword">byte</span>[] userBuf = <span class="keyword">null</span>;<span class="comment">//额外的缓冲区</span></span><br><span class="line"><span class="keyword">private</span> <span class="keyword">int</span> userBufOff = <span class="number">0</span>, userBufLen = <span class="number">0</span>;<span class="comment">//额外缓冲区长度和偏移量</span></span><br><span class="line"><span class="keyword">private</span> <span class="keyword">boolean</span> finish, finished;<span class="comment">//两个标志，对应finish()和finished()函数</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">private</span> <span class="keyword">long</span> bytesRead = <span class="number">0</span>L;<span class="comment">//对应getBytesRead函数</span></span><br><span class="line"><span class="keyword">private</span> <span class="keyword">long</span> bytesWritten = <span class="number">0</span>L;<span class="comment">//对应getBytesWritten函数</span></span><br></pre></td></tr></table></figure>
-<p>如上，SnappyCompressor中使用两个直接内存缓冲区分别保存添加的待压缩数据和已压缩数据，关于Buffer另见<a href="./缓冲区">NIO 缓冲区</a>。<br>同时，遇到添加数据至待压缩数据缓冲区，而此时剩余空间不够时，需要暂时将待添加的数据暂存在额外的缓冲区<code>userBuf</code>中。  </p>
+<p>如上，SnappyCompressor中使用两个直接内存缓冲区分别保存添加的待压缩数据和已压缩数据，关于Buffer另见<a href="../缓冲区">NIO 缓冲区</a>。<br>同时，遇到添加数据至待压缩数据缓冲区，而此时剩余空间不够时，需要暂时将待添加的数据暂存在额外的缓冲区<code>userBuf</code>中。  </p>
 <h4 id="构造-1">构造</h4><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="title">SnappyCompressor</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="keyword">this</span>(DEFAULT_DIRECT_BUFFER_SIZE);</span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="title">SnappyCompressor</span><span class="params">(<span class="keyword">int</span> directBufferSize)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">this</span>.directBufferSize = directBufferSize;</span><br><span class="line">    uncompressedDirectBuf = ByteBuffer.allocateDirect(directBufferSize);</span><br><span class="line">    compressedDirectBuf = ByteBuffer.allocateDirect(directBufferSize);</span><br><span class="line">    compressedDirectBuf.position(directBufferSize);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>通过ByteBuffer分配直接内存缓冲区(分配另见<a href="./缓冲区">NIO 缓冲区</a>),并将已压缩缓冲区的position置为limit值，即remaining值为0，没有已压缩<br>的数据。</p>
+<p>通过ByteBuffer分配直接内存缓冲区(分配另见<a href="../缓冲区">NIO 缓冲区</a>),并将已压缩缓冲区的position置为limit值，即remaining值为0，没有已压缩<br>的数据。</p>
 <h4 id="主要方法">主要方法</h4><ul>
 <li><p>添加待压缩数据setInput</p>
   <figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="annotation">@Override</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">synchronized</span> <span class="function"><span class="keyword">void</span> <span class="title">setInput</span><span class="params">(<span class="keyword">byte</span>[] b, <span class="keyword">int</span> off, <span class="keyword">int</span> len)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (b == <span class="keyword">null</span>) &#123;</span><br><span class="line">      <span class="keyword">throw</span> <span class="keyword">new</span> NullPointerException();</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> (off &lt; <span class="number">0</span> || len &lt; <span class="number">0</span> || off &gt; b.length - len) &#123;</span><br><span class="line">      <span class="keyword">throw</span> <span class="keyword">new</span> ArrayIndexOutOfBoundsException();</span><br><span class="line">    &#125;<span class="comment">//合理性检查</span></span><br><span class="line">    finished = <span class="keyword">false</span>;</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">if</span> (len &gt; uncompressedDirectBuf.remaining()) &#123;</span><br><span class="line">      <span class="comment">//待压缩缓冲区剩余空间不足以添加这些数据，暂时保存在userBuf中，之后便需要调用compress压缩并释放待压缩缓冲区了，然后读取userBuf</span></span><br><span class="line">      <span class="comment">//中暂存数据到待压缩数据缓冲区中</span></span><br><span class="line">      <span class="comment">// save data; now !needsInput</span></span><br><span class="line">      <span class="keyword">this</span>.userBuf = b;</span><br><span class="line">      <span class="keyword">this</span>.userBufOff = off;</span><br><span class="line">      <span class="keyword">this</span>.userBufLen = len;</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;<span class="comment">//待压缩缓冲区剩余空间足够添加这些数据，添加</span></span><br><span class="line">      ((ByteBuffer) uncompressedDirectBuf).put(b, off, len);</span><br><span class="line">      uncompressedDirectBufLen = uncompressedDirectBuf.position();</span><br><span class="line">    &#125;</span><br><span class="line">    bytesRead += len;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
@@ -410,17 +410,13 @@
         <div class="post-nav">
           <div class="post-nav-next post-nav-item">
             
-              <a href="/Configuration/" rel="next" title="Common源码阅读---Configuration">
-                <i class="fa fa-chevron-left"></i> Common源码阅读---Configuration
+              <a href="/通道和选择器/" rel="next" title="Java NIO---通道和选择器">
+                <i class="fa fa-chevron-left"></i> Java NIO---通道和选择器
               </a>
             
           </div>
 
           <div class="post-nav-prev post-nav-item">
-            
-              <a href="/RPC概述/" rel="prev" title="RPC源码阅读---概述">
-                RPC源码阅读---概述 <i class="fa fa-chevron-right"></i>
-              </a>
             
           </div>
         </div>
@@ -515,14 +511,14 @@
         <nav class="site-state motion-element">
           <div class="site-state-item site-state-posts">
             <a href="/archives">
-              <span class="site-state-item-count">21</span>
+              <span class="site-state-item-count">22</span>
               <span class="site-state-item-name">日志</span>
             </a>
           </div>
 
           <div class="site-state-item site-state-categories">
             <a href="/categories">
-              <span class="site-state-item-count">21</span>
+              <span class="site-state-item-count">22</span>
               <span class="site-state-item-name">分类</span>
               </a>
           </div>

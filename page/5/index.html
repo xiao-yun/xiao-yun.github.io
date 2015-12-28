@@ -235,8 +235,8 @@
             
               
                 
-                <a class="post-title-link" href="/配置相关/" itemprop="url">
-                  Hadoop配置相关---RaidNode
+                <a class="post-title-link" href="/辅助类/" itemprop="url">
+                  RaidNode源码阅读---辅助类
                 </a>
               
             
@@ -246,8 +246,8 @@
         <div class="post-meta">
           <span class="post-time">
             发表于
-            <time itemprop="dateCreated" datetime="2015-12-11T15:08:32+08:00" content="2015-12-11">
-              2015-12-11
+            <time itemprop="dateCreated" datetime="2015-12-12T17:23:47+08:00" content="2015-12-12">
+              2015-12-12
             </time>
           </span>
 
@@ -275,6 +275,30 @@
 
                 
                 
+                  ， 
+                
+
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Hadoop-0-20/RaidNode/源码阅读/" itemprop="url" rel="index">
+                    <span itemprop="name">源码阅读</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Hadoop-0-20/RaidNode/源码阅读/RaidNode源码阅读/" itemprop="url" rel="index">
+                    <span itemprop="name">RaidNode源码阅读</span>
+                  </a>
+                </span>
+
+                
+                
 
               
             </span>
@@ -284,8 +308,8 @@
             
               <span class="post-comments-count">
                 &nbsp; | &nbsp;
-                <a href="/配置相关/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="配置相关/" itemprop="commentsCount"></span>
+                <a href="/辅助类/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="辅助类/" itemprop="commentsCount"></span>
                 </a>
               </span>
             
@@ -310,27 +334,158 @@
             
 Hadoop版本:hadoop-20-master
 
-源码阅读配置记录
-RaidNode
-
-
-属性
-缺省值
-说明
-
-
-
-
-raid.classname
-DistRaidNode
-RaidNode实现类,默认DistRaidNode在createRaidNode中读取conf设置
-
-
-fs.raid
+ConfigManager主要成员12345678910111213public static final long RELOAD_WAIT = 5 * 1000;private long lastReloadAttempt; // Last 
             ...
           </span>
           <div class="post-more-link text-center">
-            <a class="btn" href="/配置相关/#more" rel="contents">
+            <a class="btn" href="/辅助类/#more" rel="contents">
+              阅读全文 &raquo;
+            </a>
+          </div>
+        
+      
+    </div>
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </article>
+
+
+    
+      
+
+  
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                
+                <a class="post-title-link" href="/ParallelStreamReader/" itemprop="url">
+                  RaidNode源码阅读---辅助类之ParallelStreamReader
+                </a>
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            发表于
+            <time itemprop="dateCreated" datetime="2015-12-12T17:04:51+08:00" content="2015-12-12">
+              2015-12-12
+            </time>
+          </span>
+
+          
+            <span class="post-category" >
+              &nbsp; | &nbsp; 分类于
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Hadoop-0-20/" itemprop="url" rel="index">
+                    <span itemprop="name">Hadoop-0.20</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Hadoop-0-20/RaidNode/" itemprop="url" rel="index">
+                    <span itemprop="name">RaidNode</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Hadoop-0-20/RaidNode/源码阅读/" itemprop="url" rel="index">
+                    <span itemprop="name">源码阅读</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Hadoop-0-20/RaidNode/源码阅读/RaidNode源码阅读/" itemprop="url" rel="index">
+                    <span itemprop="name">RaidNode源码阅读</span>
+                  </a>
+                </span>
+
+                
+                
+
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                &nbsp; | &nbsp;
+                <a href="/ParallelStreamReader/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="ParallelStreamReader/" itemprop="commentsCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+
+        </div>
+      </header>
+    
+
+
+    <div class="post-body">
+
+      
+      
+
+      
+        
+          <span itemprop="articleBody">
+            
+            
+Hadoop版本:hadoop-20-master
+
+ParallelStreamReader一个Stripe对应一个ParallelStreamReader,管理n个输入流的字节缓冲.  
+编码过程对应的n为stripeLength,将这n个输入流编码成parityLength个输出流.修复损坏
+            ...
+          </span>
+          <div class="post-more-link text-center">
+            <a class="btn" href="/ParallelStreamReader/#more" rel="contents">
               阅读全文 &raquo;
             </a>
           </div>
@@ -398,14 +553,14 @@ fs.raid
         <nav class="site-state motion-element">
           <div class="site-state-item site-state-posts">
             <a href="/archives">
-              <span class="site-state-item-count">21</span>
+              <span class="site-state-item-count">22</span>
               <span class="site-state-item-name">日志</span>
             </a>
           </div>
 
           <div class="site-state-item site-state-categories">
             <a href="/categories">
-              <span class="site-state-item-count">21</span>
+              <span class="site-state-item-count">22</span>
               <span class="site-state-item-name">分类</span>
               </a>
           </div>

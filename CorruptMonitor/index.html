@@ -61,7 +61,7 @@ LocalBlockIntegrityMonitor没有提供丢失区块修复功能,损坏区块的�
 <meta property="og:description" content="Hadoop版本:hadoop-20-master
 
 LocalBlockIntegrityMonitor没有提供丢失区块修复功能,损坏区块的修复类就是LocalBlockIngerityMonitor,参见辅助类.LocalBlockIntegrityMonitor主线程:1234while (running) &amp;#123;    try &amp;#123;      LOG.info(&quot;LocalB">
-<meta property="og:updated_time" content="2015-12-12T08:43:27.060Z">
+<meta property="og:updated_time" content="2015-12-28T03:08:09.653Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="RaidNode源码阅读---损坏区块修复CorruptMonitor(LocalBlockIntegerityMonitor)">
 <meta name="twitter:description" content="Hadoop版本:hadoop-20-master
@@ -237,8 +237,8 @@ LocalBlockIntegrityMonitor没有提供丢失区块修复功能,损坏区块的�
         <div class="post-meta">
           <span class="post-time">
             发表于
-            <time itemprop="dateCreated" datetime="2015-12-12T16:43:27+08:00" content="2015-12-12">
-              2015-12-12
+            <time itemprop="dateCreated" datetime="2015-12-28T11:08:09+08:00" content="2015-12-28">
+              2015-12-28
             </time>
           </span>
 
@@ -322,7 +322,7 @@ LocalBlockIntegrityMonitor没有提供丢失区块修复功能,损坏区块的�
         <span itemprop="articleBody"><blockquote>
 <p>Hadoop版本:<a href="https://github.com/facebookarchive/hadoop-20" title="facebook hadoop" target="_blank" rel="external">hadoop-20-master</a></p>
 </blockquote>
-<p><code>LocalBlockIntegrityMonitor</code>没有提供丢失区块修复功能,损坏区块的修复类就是LocalBlockIngerityMonitor,参见<a href="辅助类.md">辅助类</a>.<br>LocalBlockIntegrityMonitor主线程:<br><figure class="highlight applescript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">while</span> (<span class="property">running</span>) &#123;</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">      LOG.info(<span class="string">"LocalBlockFixer continuing to run..."</span>);</span><br><span class="line">      doFix();</span><br></pre></td></tr></table></figure></p>
+<p><code>LocalBlockIntegrityMonitor</code>没有提供丢失区块修复功能,损坏区块的修复类就是LocalBlockIngerityMonitor,参见<a href="../辅助类">辅助类</a>.<br>LocalBlockIntegrityMonitor主线程:<br><figure class="highlight applescript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">while</span> (<span class="property">running</span>) &#123;</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">      LOG.info(<span class="string">"LocalBlockFixer continuing to run..."</span>);</span><br><span class="line">      doFix();</span><br></pre></td></tr></table></figure></p>
 <p>执行修复的入口为<code>doFix</code>函数.</p>
 <h2 id="doFix">doFix</h2><p>同样的,每次执行操作之前先休眠一段时间,时间为配置项<code>raid.blockfix.interval</code>,缺省5s.<br>然后,通过文件系统获取损坏的文件列表,列表中不包含回收站(.Trash目录).得到列表后过滤掉不能重构的源文件(不是校验文件且对应校验文件不存在,不能重构)<br><figure class="highlight nimrod"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">List</span>&lt;<span class="type">String</span>&gt; corruptFiles = getCorruptFiles();</span><br><span class="line"><span class="type">FileSystem</span> parityFs = new <span class="type">Path</span>(<span class="string">"/"</span>).getFileSystem(getConf());</span><br><span class="line">filterUnreconstructableSourceFiles(parityFs, corruptFiles.<span class="keyword">iterator</span>());</span><br></pre></td></tr></table></figure></p>
 <p>过滤后,如果没有损坏文件,继续循环,否则排序损坏文件列表:<br><figure class="highlight actionscript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (corruptFiles.isEmpty()) &#123;</span><br><span class="line">    <span class="comment">// If there are no corrupt files, retry after some time.</span></span><br><span class="line">    <span class="keyword">continue</span>;</span><br><span class="line">&#125;</span><br><span class="line">helper.sortLostFiles(corruptFiles);</span><br></pre></td></tr></table></figure></p>
@@ -425,16 +425,16 @@ LocalBlockIntegrityMonitor没有提供丢失区块修复功能,损坏区块的�
         <div class="post-nav">
           <div class="post-nav-next post-nav-item">
             
-              <a href="/配置相关/" rel="next" title="Hadoop配置相关---RaidNode">
-                <i class="fa fa-chevron-left"></i> Hadoop配置相关---RaidNode
+              <a href="/Java流/" rel="next" title="Java流">
+                <i class="fa fa-chevron-left"></i> Java流
               </a>
             
           </div>
 
           <div class="post-nav-prev post-nav-item">
             
-              <a href="/ParallelStreamReader/" rel="prev" title="RaidNode源码阅读---辅助类之ParallelStreamReader">
-                RaidNode源码阅读---辅助类之ParallelStreamReader <i class="fa fa-chevron-right"></i>
+              <a href="/配置相关RaidNode/" rel="prev" title="Hadoop配置相关---RaidNode">
+                Hadoop配置相关---RaidNode <i class="fa fa-chevron-right"></i>
               </a>
             
           </div>
@@ -530,14 +530,14 @@ LocalBlockIntegrityMonitor没有提供丢失区块修复功能,损坏区块的�
         <nav class="site-state motion-element">
           <div class="site-state-item site-state-posts">
             <a href="/archives">
-              <span class="site-state-item-count">21</span>
+              <span class="site-state-item-count">22</span>
               <span class="site-state-item-name">日志</span>
             </a>
           </div>
 
           <div class="site-state-item site-state-categories">
             <a href="/categories">
-              <span class="site-state-item-count">21</span>
+              <span class="site-state-item-count">22</span>
               <span class="site-state-item-name">分类</span>
               </a>
           </div>

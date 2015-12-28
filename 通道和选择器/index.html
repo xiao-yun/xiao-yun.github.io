@@ -70,7 +70,7 @@
 <meta property="og:image" content="http://xiao-yun.github.io/../images/随机访问文件.png">
 <meta property="og:image" content="http://xiao-yun.github.io/../images/选择器.png">
 <meta property="og:image" content="http://xiao-yun.github.io/../images/SelectionKey.png">
-<meta property="og:updated_time" content="2015-12-18T02:34:47.376Z">
+<meta property="og:updated_time" content="2015-12-28T03:19:25.445Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="Java NIO---通道和选择器">
 <meta name="twitter:description" content="Java NIO提供了通道,缓冲区,选择器，字符集等多项特性。缓冲区另见Java NIO—缓冲区。Java NIO的通道类似于流，不同点在于:
@@ -248,8 +248,8 @@
         <div class="post-meta">
           <span class="post-time">
             发表于
-            <time itemprop="dateCreated" datetime="2015-12-18T10:34:47+08:00" content="2015-12-18">
-              2015-12-18
+            <time itemprop="dateCreated" datetime="2015-12-28T11:19:25+08:00" content="2015-12-28">
+              2015-12-28
             </time>
           </span>
 
@@ -306,7 +306,7 @@
       
 
       
-        <span itemprop="articleBody"><p>Java NIO提供了<code>通道</code>,<code>缓冲区</code>,<code>选择器</code>，<code>字符集</code>等多项特性。缓冲区另见<a href="./缓冲区">Java NIO—缓冲区</a>。<br>Java NIO的通道类似于流，不同点在于:</p>
+        <span itemprop="articleBody"><p>Java NIO提供了<code>通道</code>,<code>缓冲区</code>,<code>选择器</code>，<code>字符集</code>等多项特性。缓冲区另见<a href="../缓冲区">Java NIO—缓冲区</a>。<br>Java NIO的通道类似于流，不同点在于:</p>
 <ul>
 <li>通道支持双向的数据读写，但流通常是单向的；</li>
 <li>通道支持异步操作，流只能是同步的；</li>
@@ -342,7 +342,7 @@
 <p>当对随机访问文件进行读写时，从文件指针处开始，并增加相应的读写值。<br>写数据时，若到达字节数组的尾端，会造成字节数组扩展。<br>读数据时，读取到文件尾没有读到想要大小的数据，抛出<code>EOFException</code>异常。其他的读取错误抛出除<code>EOFException</code>之外的<code>IOException</code>异常，<br>关闭时也可能会抛出<code>IOException</code>异常。</p>
 <p>文件指针可以通过<code>getFilePointer</code>方法获得，通过seek方法设置<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">native</span> <span class="function"><span class="keyword">long</span> <span class="title">getFilePointer</span><span class="params">()</span> <span class="keyword">throws</span> IOException</span>;</span><br><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">void</span> <span class="title">seek</span><span class="params">(<span class="keyword">long</span> pos)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (pos &lt; <span class="number">0</span>) &#123;</span><br><span class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> IOException(<span class="string">"Negative seek offset"</span>);</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        seek0(pos);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">private</span> <span class="keyword">native</span> <span class="function"><span class="keyword">void</span> <span class="title">seek0</span><span class="params">(<span class="keyword">long</span> pos)</span> <span class="keyword">throws</span> IOException</span>;</span><br></pre></td></tr></table></figure></p>
 <p>RandomAccessFile的相关类图如下:<br><img src="../images/随机访问文件.png" alt="随机访问文件"><br>实现了<code>DataInput</code>和<code>DataOutput</code>接口，相应的有read*系列数据读取方法和write*系列的写数据方法。<br><strong>&lt;通道关闭&gt;</strong><br>通道使用完后需要关闭<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">final</span> <span class="keyword">void</span> close() <span class="keyword">throws</span> IOException</span><br></pre></td></tr></table></figure></p>
-<h4 id="数据读写">数据读写</h4><p>打开了文件通道FileChannel后，便可执行Channel的数据读写方法了，ByteBuffer另见<a href="./缓冲区">Java NIO—缓冲区</a><br><strong>&lt;数据读&gt;</strong><br>从文件通道中读取数据至ByteBuffer缓冲中，对应的ByteBuffer缓冲执行相应的put操作。<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">abstract</span> <span class="function"><span class="keyword">int</span> <span class="title">read</span><span class="params">(ByteBuffer dst)</span> <span class="keyword">throws</span> IOException</span>;</span><br><span class="line"><span class="keyword">public</span> <span class="keyword">abstract</span> <span class="function"><span class="keyword">long</span> <span class="title">read</span><span class="params">(ByteBuffer[] dsts, <span class="keyword">int</span> offset, <span class="keyword">int</span> length)</span> <span class="keyword">throws</span> IOException</span>;</span><br><span class="line"><span class="keyword">public</span> <span class="keyword">final</span> <span class="function"><span class="keyword">long</span> <span class="title">read</span><span class="params">(ByteBuffer[] dsts)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">return</span> <span class="title">read</span><span class="params">(dsts, <span class="number">0</span>, dsts.length)</span></span>;</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">public</span> <span class="keyword">abstract</span> <span class="function"><span class="keyword">int</span> <span class="title">read</span><span class="params">(ByteBuffer dst, <span class="keyword">long</span> position)</span> <span class="keyword">throws</span> IOException</span>;<span class="comment">//从文件中指定位置position处开始读</span></span><br></pre></td></tr></table></figure></p>
+<h4 id="数据读写">数据读写</h4><p>打开了文件通道FileChannel后，便可执行Channel的数据读写方法了，ByteBuffer另见<a href="../缓冲区">Java NIO—缓冲区</a><br><strong>&lt;数据读&gt;</strong><br>从文件通道中读取数据至ByteBuffer缓冲中，对应的ByteBuffer缓冲执行相应的put操作。<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">abstract</span> <span class="function"><span class="keyword">int</span> <span class="title">read</span><span class="params">(ByteBuffer dst)</span> <span class="keyword">throws</span> IOException</span>;</span><br><span class="line"><span class="keyword">public</span> <span class="keyword">abstract</span> <span class="function"><span class="keyword">long</span> <span class="title">read</span><span class="params">(ByteBuffer[] dsts, <span class="keyword">int</span> offset, <span class="keyword">int</span> length)</span> <span class="keyword">throws</span> IOException</span>;</span><br><span class="line"><span class="keyword">public</span> <span class="keyword">final</span> <span class="function"><span class="keyword">long</span> <span class="title">read</span><span class="params">(ByteBuffer[] dsts)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">return</span> <span class="title">read</span><span class="params">(dsts, <span class="number">0</span>, dsts.length)</span></span>;</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">public</span> <span class="keyword">abstract</span> <span class="function"><span class="keyword">int</span> <span class="title">read</span><span class="params">(ByteBuffer dst, <span class="keyword">long</span> position)</span> <span class="keyword">throws</span> IOException</span>;<span class="comment">//从文件中指定位置position处开始读</span></span><br></pre></td></tr></table></figure></p>
 <p><strong>&lt;数据写&gt;</strong><br>将指定ByteBuffer中的数据写到文件通道中，对应的ByteBuffer执行相应的get操作。<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">abstract</span> <span class="function"><span class="keyword">int</span> <span class="title">write</span><span class="params">(ByteBuffer src)</span> <span class="keyword">throws</span> IOException</span>;</span><br><span class="line"><span class="keyword">public</span> <span class="keyword">abstract</span> <span class="function"><span class="keyword">long</span> <span class="title">write</span><span class="params">(ByteBuffer[] srcs, <span class="keyword">int</span> offset, <span class="keyword">int</span> length)</span> <span class="keyword">throws</span> IOException</span>;</span><br><span class="line"><span class="keyword">public</span> <span class="keyword">final</span> <span class="function"><span class="keyword">long</span> <span class="title">write</span><span class="params">(ByteBuffer[] srcs)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">return</span> <span class="title">write</span><span class="params">(srcs, <span class="number">0</span>, srcs.length)</span></span>;</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">public</span> <span class="keyword">abstract</span> <span class="function"><span class="keyword">int</span> <span class="title">write</span><span class="params">(ByteBuffer src, <span class="keyword">long</span> position)</span> <span class="keyword">throws</span> IOException</span>;<span class="comment">//写到文件中指定位置position处</span></span><br></pre></td></tr></table></figure></p>
 <h4 id="其他操作">其他操作</h4><ul>
 <li><p>position</p>
@@ -378,9 +378,9 @@
 <ul>
 <li><code>SO_SNDBUF</code>,socket发送缓冲大小</li>
 <li><code>SO_RCVBUF</code>,socket接收缓冲大小</li>
-<li><code>SO_KEEPALIVE</code>，socket保活选项，另见<a href="./Socket选项">Socket选项</a></li>
+<li><code>SO_KEEPALIVE</code>，socket保活选项，另见<a href="../Socket选项">Socket选项</a></li>
 <li><code>SO_REUSEADDRf</code>重用地址，重用已经关闭的处于TIME_WAIT状态下的socket地址</li>
-<li><code>SO_LINGER</code>，linger选项，设置close行为，另见<a href="./Socket选项">Socket 选项</a></li>
+<li><code>SO_LINGER</code>，linger选项，设置close行为，另见<a href="../Socket选项">Socket 选项</a></li>
 <li><code>TCP_NODELAY</code>,取消Nagle算法。Nagle算法启动时，小包到达时会等待一段时间，尽量积累更多数据一起发送。  </li>
 </ul>
 <p>SocketChannel支持并发访问。</p>
@@ -521,16 +521,16 @@
         <div class="post-nav">
           <div class="post-nav-next post-nav-item">
             
-              <a href="/Java动态代理/" rel="next" title="Java动态代理">
-                <i class="fa fa-chevron-left"></i> Java动态代理
+              <a href="/序列化/" rel="next" title="Common源码阅读---序列化">
+                <i class="fa fa-chevron-left"></i> Common源码阅读---序列化
               </a>
             
           </div>
 
           <div class="post-nav-prev post-nav-item">
             
-              <a href="/Socket选项/" rel="prev" title="TCP Socket选项">
-                TCP Socket选项 <i class="fa fa-chevron-right"></i>
+              <a href="/压缩/" rel="prev" title="Common源码阅读---压缩">
+                Common源码阅读---压缩 <i class="fa fa-chevron-right"></i>
               </a>
             
           </div>
@@ -626,14 +626,14 @@
         <nav class="site-state motion-element">
           <div class="site-state-item site-state-posts">
             <a href="/archives">
-              <span class="site-state-item-count">21</span>
+              <span class="site-state-item-count">22</span>
               <span class="site-state-item-name">日志</span>
             </a>
           </div>
 
           <div class="site-state-item site-state-categories">
             <a href="/categories">
-              <span class="site-state-item-count">21</span>
+              <span class="site-state-item-count">22</span>
               <span class="site-state-item-name">分类</span>
               </a>
           </div>

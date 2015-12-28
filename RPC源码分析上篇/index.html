@@ -57,7 +57,7 @@
 <meta property="og:url" content="http://xiao-yun.github.io/RPC源码分析上篇/index.html">
 <meta property="og:site_name" content="xiaoyun">
 <meta property="og:description" content="Hadoop版本:Hadoop-1.2.1参考：《Hadoop技术内幕-深入解析Hadoop Common和HDFS架构设计与实现原理》,后文简称技术内幕RPC中用到的通道和选择器另见通道和选择器，缓冲区另见缓冲区,以及序列化(主要是ObjectWritable)另见序列化下文所说的[概述]为上篇RPC源码分析—概述本文不涉及SIMPLE，DIGEST，KERBEROS三种鉴权方式的鉴权过程分析">
-<meta property="og:updated_time" content="2015-12-26T09:16:07.761Z">
+<meta property="og:updated_time" content="2015-12-28T03:19:25.445Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="RPC源码阅读---源码分析上篇">
 <meta name="twitter:description" content="Hadoop版本:Hadoop-1.2.1参考：《Hadoop技术内幕-深入解析Hadoop Common和HDFS架构设计与实现原理》,后文简称技术内幕RPC中用到的通道和选择器另见通道和选择器，缓冲区另见缓冲区,以及序列化(主要是ObjectWritable)另见序列化下文所说的[概述]为上篇RPC源码分析—概述本文不涉及SIMPLE，DIGEST，KERBEROS三种鉴权方式的鉴权过程分析">
@@ -231,8 +231,8 @@
         <div class="post-meta">
           <span class="post-time">
             发表于
-            <time itemprop="dateCreated" datetime="2015-12-26T17:16:07+08:00" content="2015-12-26">
-              2015-12-26
+            <time itemprop="dateCreated" datetime="2015-12-28T11:19:25+08:00" content="2015-12-28">
+              2015-12-28
             </time>
           </span>
 
@@ -337,11 +337,11 @@
       
 
       
-        <span itemprop="articleBody"><p>Hadoop版本:<a href="https://archive.apache.org/dist/hadoop/core/hadoop-1.2.1/" target="_blank" rel="external">Hadoop-1.2.1</a><br>参考：《Hadoop技术内幕-深入解析Hadoop Common和HDFS架构设计与实现原理》,后文简称技术内幕<br>RPC中用到的通道和选择器另见<a href="./通道和选择器">通道和选择器</a>，缓冲区另见<a href="./缓冲区">缓冲区</a>,以及序列化(主要是ObjectWritable)另见<a href="./序列化">序列化</a><br>下文所说的[概述]为上篇<a href="./RPC源码分析---概述">RPC源码分析—概述</a><br>本文不涉及SIMPLE，DIGEST，KERBEROS三种鉴权方式的鉴权过程分析</p>
+        <span itemprop="articleBody"><p>Hadoop版本:<a href="https://archive.apache.org/dist/hadoop/core/hadoop-1.2.1/" target="_blank" rel="external">Hadoop-1.2.1</a><br>参考：《Hadoop技术内幕-深入解析Hadoop Common和HDFS架构设计与实现原理》,后文简称技术内幕<br>RPC中用到的通道和选择器另见<a href="../通道和选择器">通道和选择器</a>，缓冲区另见<a href="../缓冲区">缓冲区</a>,以及序列化(主要是ObjectWritable)另见<a href="../序列化">序列化</a><br>下文所说的[概述]为上篇<a href="../RPC源码分析---概述">RPC源码分析—概述</a><br>本文不涉及SIMPLE，DIGEST，KERBEROS三种鉴权方式的鉴权过程分析</p>
 <hr>
 <p>本文所属<code>RPC源码分析</code>，按照调用请求的步骤对源码进行分析，限于篇幅分为上下两篇。  </p>
 <p>上篇分析了”客户端代理创建”，”服务器创建启动”，”客户端服务器连接建立”，”客户端头数据发送”，”服务器对头数据验证，鉴权”，至此连接已经建立验证，<br>可以发送正常的调用请求了。本文即为上篇。  </p>
-<p>而下篇分析了”客户端调用请求”，”服务器对调用请求的处理响应”，”客户端接收响应”，”客户端服务器连接的关闭”，”客户端关闭”，”服务器关闭”等过程，<br>下篇另见<a href="./RPC源码分析下篇">RPC源码分析下篇</a>。  </p>
+<p>而下篇分析了”客户端调用请求”，”服务器对调用请求的处理响应”，”客户端接收响应”，”客户端服务器连接的关闭”，”客户端关闭”，”服务器关闭”等过程，<br>下篇另见<a href="../RPC源码分析下篇">RPC源码分析下篇</a>。  </p>
 <hr>
 <h2 id="客户端代理创建">客户端代理创建</h2><p>由<code>RPC.getProxy</code>获取客户端代理，由[概述]分析知一个代理处理用户到具体服务器的具体协议对应的连接，同时连接属于一个Client，而Client一般由<br>SocketFactory决定，不同SocketFactory对应不同Client。因此getProxy需指定包括<code>SocketFactory</code>，<code>用户</code>，<code>服务器地址</code>，<code>协议</code>这4个信息，<br>另外还需指定连接读操作超时时间。<br>对应getProxy重要的5个信息，最少需给定<code>服务器地址</code>和使用的<code>协议</code>，其他的都可以默认。<code>SocketFactory</code>默认为默认SocketFactory，用户默认为<br>当前用户，读操作超时时间默认为0，此时会设置为pingInterval(见[概述])。</p>
 <p>getProxy的重载:<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//指定协议protocol，地址addr。</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> <span class="function">VersionedProtocol <span class="title">getProxy</span><span class="params">(Class&lt;? <span class="keyword">extends</span> VersionedProtocol&gt; protocol,</span><br><span class="line">  <span class="keyword">long</span> clientVersion, InetSocketAddress addr, Configuration conf)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">    <span class="keyword">return</span> getProxy(protocol, clientVersion, addr, conf, NetUtils.getDefaultSocketFactory(conf), <span class="number">0</span>);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">//指定协议protocol，地址addr，SockeFactory factory</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> <span class="function">VersionedProtocol <span class="title">getProxy</span><span class="params">(Class&lt;? <span class="keyword">extends</span> VersionedProtocol&gt; protocol,</span><br><span class="line">    <span class="keyword">long</span> clientVersion, InetSocketAddress addr, Configuration conf,SocketFactory factory)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">    UserGroupInformation ugi = UserGroupInformation.getCurrentUser();</span><br><span class="line">    <span class="function"><span class="keyword">return</span> <span class="title">getProxy</span><span class="params">(protocol, clientVersion, addr, ugi, conf, factory, <span class="number">0</span>)</span></span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">//指定协议protocol，地址addr，SocketFactory factory，超时rpcTimeout</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> <span class="function">VersionedProtocol <span class="title">getProxy</span><span class="params">(Class&lt;? <span class="keyword">extends</span> VersionedProtocol&gt; protocol,</span><br><span class="line">    <span class="keyword">long</span> clientVersion, InetSocketAddress addr, Configuration conf,</span><br><span class="line">    SocketFactory factory, <span class="keyword">int</span> rpcTimeout)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">    UserGroupInformation ugi = UserGroupInformation.getCurrentUser();</span><br><span class="line">    <span class="function"><span class="keyword">return</span> <span class="title">getProxy</span><span class="params">(protocol, clientVersion, addr, ugi, conf, factory, rpcTimeout)</span></span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">//指定协议protocol，地址addr，用户ticket，SocketFactory factory，超时rpcTimeout</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> <span class="function">VersionedProtocol <span class="title">getProxy</span><span class="params">(Class&lt;? <span class="keyword">extends</span> VersionedProtocol&gt; protocol,</span><br><span class="line">    <span class="keyword">long</span> clientVersion, InetSocketAddress addr, UserGroupInformation ticket,</span><br><span class="line">    Configuration conf, SocketFactory factory, <span class="keyword">int</span> rpcTimeout)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">return</span> <span class="title">getProxy</span><span class="params">(protocol, clientVersion, addr, ticket, conf, factory,rpcTimeout, <span class="keyword">null</span>, <span class="keyword">true</span>)</span></span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
@@ -410,7 +410,7 @@
 <p>因此，我们这里分析了服务器端连接建立的过程，由监听器listener监听到来的连接，并注册到Reader线程的选择器中，由Reader线程处理到来的数据请求。<br>客户端数据到来时，与客户端发送数据流程对应的，服务器端先处理rpcHeader，判断魔数和版本号是否相符，不相符的话给客户端发送鉴权失败异常响应，<br>该响应对应的Call对象固定，其id为-1，状态为FATAL，客户端将会关闭连接，而服务器置读取到的数据count为-1，也关闭连接。正常的话初始化连接的<br>authMethod成员。这里注意魔数hrpc长度为4个字节，刚好保存在后续用来保存一个帧数据长度的缓冲区dataLengthBuffer中。  </p>
 <p>处理完rpcHeader之后，便是对一帧数据的处理。一帧数据可能为ping数据，为4个字节值为-1，这时简单的置读取到数据count为0，更新连接时间lastContact。  </p>
 <p>否则dataLengthBuffer便是一帧数据的长度，根据该长度分配data缓冲区。<br>此时一帧数据可能为连接头，可能为实际的调用请求数据。没有读取连接头的话，则接下来的一帧数据为连接头。<br>对连接头进行处理，读取发送过来的连接头初始化该连接的<code>protocol</code>和<code>user</code>，然后根据不同的鉴权方式进行鉴权，鉴权失败，发送Call id为-1的响应，相应<br>状态为FATAL，客户端关闭连接，而这里服务器抛出IOException，在doRead的异常处理中置<code>count</code>为-1，关闭服务器端连接。  </p>
-<p>处理完这些信息后，连接建立了，鉴权完成了，可以在该连接上进行正常的调用请求了。具体过程见<a href="./RPC源码分析下篇">下篇</a>。</p>
+<p>处理完这些信息后，连接建立了，鉴权完成了，可以在该连接上进行正常的调用请求了。具体过程见<a href="../RPC源码分析下篇">下篇</a>。</p>
 </span>
       
     </div>
@@ -432,8 +432,8 @@
         <div class="post-nav">
           <div class="post-nav-next post-nav-item">
             
-              <a href="/配置相关RPC/" rel="next" title="Hadoop配置相关---RPC">
-                <i class="fa fa-chevron-left"></i> Hadoop配置相关---RPC
+              <a href="/RawLocalFileSystem/" rel="next" title="Hadoop FileSystem实现---RawLocalFileSystem">
+                <i class="fa fa-chevron-left"></i> Hadoop FileSystem实现---RawLocalFileSystem
               </a>
             
           </div>
@@ -537,14 +537,14 @@
         <nav class="site-state motion-element">
           <div class="site-state-item site-state-posts">
             <a href="/archives">
-              <span class="site-state-item-count">21</span>
+              <span class="site-state-item-count">22</span>
               <span class="site-state-item-name">日志</span>
             </a>
           </div>
 
           <div class="site-state-item site-state-categories">
             <a href="/categories">
-              <span class="site-state-item-count">21</span>
+              <span class="site-state-item-count">22</span>
               <span class="site-state-item-name">分类</span>
               </a>
           </div>

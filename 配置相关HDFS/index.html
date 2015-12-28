@@ -101,7 +101,7 @@ false
 
 
 f">
-<meta property="og:updated_time" content="2015-12-27T08:19:26.895Z">
+<meta property="og:updated_time" content="2015-12-28T03:19:25.445Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="Hadoop配置相关---HDFS">
 <meta name="twitter:description" content="Hadoop版本:Hadoop-1.2.1  
@@ -297,8 +297,8 @@ f">
         <div class="post-meta">
           <span class="post-time">
             发表于
-            <time itemprop="dateCreated" datetime="2015-12-27T16:19:26+08:00" content="2015-12-27">
-              2015-12-27
+            <time itemprop="dateCreated" datetime="2015-12-28T11:19:25+08:00" content="2015-12-28">
+              2015-12-28
             </time>
           </span>
 
@@ -386,7 +386,7 @@ f">
 <tr>
 <td style="text-align:center">fs.%s.impl.disable.cache</td>
 <td style="text-align:center">false</td>
-<td style="text-align:center">其中%s为对应的URI协议，如file，hdfs等，对应相应的文件系统使用缓存，具体见<a href="./Hadoop抽象文件系统">Hadoop抽象文件系统</a></td>
+<td style="text-align:center">其中%s为对应的URI协议，如file，hdfs等，对应相应的文件系统使用缓存，具体见<a href="../Hadoop抽象文件系统">Hadoop抽象文件系统</a></td>
 </tr>
 <tr>
 <td style="text-align:center">fs.%s.impl</td>
@@ -402,6 +402,21 @@ f">
 <td style="text-align:center">fs.local.block.size</td>
 <td style="text-align:center">32*1024*1024(32MB)</td>
 <td style="text-align:center">创建文件缺省区块大小</td>
+</tr>
+</tbody>
+</table>
+<h2 id="ChecksumFileSystem">ChecksumFileSystem</h2><table>
+<thead>
+<tr>
+<th style="text-align:center">属性</th>
+<th style="text-align:center">缺省值</th>
+<th style="text-align:center">说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">io.bytes.per.checksum</td>
+<td style="text-align:center">512</td>
 </tr>
 </tbody>
 </table>
@@ -426,16 +441,16 @@ f">
         <div class="post-nav">
           <div class="post-nav-next post-nav-item">
             
-              <a href="/Java流/" rel="next" title="Java流">
-                <i class="fa fa-chevron-left"></i> Java流
+              <a href="/RPC概述/" rel="next" title="RPC源码阅读---概述">
+                <i class="fa fa-chevron-left"></i> RPC源码阅读---概述
               </a>
             
           </div>
 
           <div class="post-nav-prev post-nav-item">
             
-              <a href="/Hadoop抽象文件系统/" rel="prev" title="Hadoop抽象文件系统">
-                Hadoop抽象文件系统 <i class="fa fa-chevron-right"></i>
+              <a href="/序列化/" rel="prev" title="Common源码阅读---序列化">
+                Common源码阅读---序列化 <i class="fa fa-chevron-right"></i>
               </a>
             
           </div>
@@ -531,14 +546,14 @@ f">
         <nav class="site-state motion-element">
           <div class="site-state-item site-state-posts">
             <a href="/archives">
-              <span class="site-state-item-count">21</span>
+              <span class="site-state-item-count">22</span>
               <span class="site-state-item-name">日志</span>
             </a>
           </div>
 
           <div class="site-state-item site-state-categories">
             <a href="/categories">
-              <span class="site-state-item-count">21</span>
+              <span class="site-state-item-count">22</span>
               <span class="site-state-item-name">分类</span>
               </a>
           </div>
@@ -587,7 +602,7 @@ f">
               
             
             
-              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#FileSystem"><span class="nav-number">1.</span> <span class="nav-text">FileSystem</span></a></li></ol></div>
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#FileSystem"><span class="nav-number">1.</span> <span class="nav-text">FileSystem</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#ChecksumFileSystem"><span class="nav-number">2.</span> <span class="nav-text">ChecksumFileSystem</span></a></li></ol></div>
             
           </div>
           <div class="post-toc-indicator-bottom post-toc-indicator">

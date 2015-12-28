@@ -74,7 +74,7 @@ Hadoop RPC作为Hadoop节点间底层通信机制，简单来说便是客户端�
 <meta property="og:image" content="http://xiao-yun.github.io/../images/RPC-RPC.png">
 <meta property="og:image" content="http://xiao-yun.github.io/../images/RPC-RPC-Invocation成员属性.png">
 <meta property="og:image" content="http://xiao-yun.github.io/../images/RPC-RPC-Invoker成员属性.png">
-<meta property="og:updated_time" content="2015-12-24T03:23:57.272Z">
+<meta property="og:updated_time" content="2015-12-28T03:19:25.445Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="RPC源码阅读---概述">
 <meta name="twitter:description" content="Hadoop版本:Hadoop-1.2.1参考：《Hadoop技术内幕-深入解析Hadoop Common和HDFS架构设计与实现原理》,后文简称技术内幕RPC中用到的通道和选择器另见通道和选择器，缓冲区另见缓冲区,以及序列化(主要是ObjectWritable)另见序列化
@@ -249,8 +249,8 @@ Hadoop RPC作为Hadoop节点间底层通信机制，简单来说便是客户端�
         <div class="post-meta">
           <span class="post-time">
             发表于
-            <time itemprop="dateCreated" datetime="2015-12-24T11:23:57+08:00" content="2015-12-24">
-              2015-12-24
+            <time itemprop="dateCreated" datetime="2015-12-28T11:19:25+08:00" content="2015-12-28">
+              2015-12-28
             </time>
           </span>
 
@@ -355,7 +355,7 @@ Hadoop RPC作为Hadoop节点间底层通信机制，简单来说便是客户端�
       
 
       
-        <span itemprop="articleBody"><p>Hadoop版本:<a href="https://archive.apache.org/dist/hadoop/core/hadoop-1.2.1/" target="_blank" rel="external">Hadoop-1.2.1</a><br>参考：《Hadoop技术内幕-深入解析Hadoop Common和HDFS架构设计与实现原理》,后文简称技术内幕<br>RPC中用到的通道和选择器另见<a href="./通道和选择器">通道和选择器</a>，缓冲区另见<a href="./缓冲区">缓冲区</a>,以及序列化(主要是ObjectWritable)另见<a href="./序列化">序列化</a></p>
+        <span itemprop="articleBody"><p>Hadoop版本:<a href="https://archive.apache.org/dist/hadoop/core/hadoop-1.2.1/" target="_blank" rel="external">Hadoop-1.2.1</a><br>参考：《Hadoop技术内幕-深入解析Hadoop Common和HDFS架构设计与实现原理》,后文简称技术内幕<br>RPC中用到的通道和选择器另见<a href="../通道和选择器">通道和选择器</a>，缓冲区另见<a href="../缓冲区">缓冲区</a>,以及序列化(主要是ObjectWritable)另见<a href="../序列化">序列化</a></p>
 <p>Hadoop RPC作为Hadoop节点间底层通信机制，简单来说便是客户端和服务器两者协商使用一个接口(以后称为协议)，客户端通过该接口的一个代理发送接口<br>内方法的调用请求，请求由代理的调用处理器通过网络发送到服务器(本机的另一个进程当然也可以)，而服务器包含有该接口的实现，服务器从网络中接收到调用<br>请求后，调用接口实现类指定方法，调用结果通过网络发送回客户端代理，代理转发给客户端，完成远程调用过程。  </p>
 <p>Hadoop RPC相关的代码在<code>org.apache.hadoop.ipc</code>包中，主要包括<code>Client</code>,<code>Server</code>,<code>RPC</code>类和相关辅助类。  </p>
 <h3 id="辅助类">辅助类</h3><p><img src="../images/RPC辅助类.png" alt="RPC辅助类">  </p>
@@ -379,7 +379,7 @@ Hadoop RPC作为Hadoop节点间底层通信机制，简单来说便是客户端�
 <li><code>valueClass</code>，继承自<code>Writable</code>，对应为远程调用返回值类型，即服务器端序列化数据的反序列化类型，创建该类对象，然后反序列化服务器端发送<br>过来的序列化数据即为远程方法调用的返回值对象。  </li>
 <li><code>counter</code>,调用Call对象成员属性<code>id</code>的递增计数器，客户端的方法调用对应一个Call对象，Call对象的成员<code>id</code>用于标识这个Call对象，使用counter<br>递增每一次调用的id。  </li>
 <li><code>running</code>，客户端的运行状态。  </li>
-<li><code>conf</code>,客户端的配置信息，具体见<a href="./Configuration">Configuration</a></li>
+<li><code>conf</code>,客户端的配置信息，具体见<a href="../Configuration">Configuration</a></li>
 <li><code>socketFactory</code>，客户端对应的配置工厂，用于创建通信用的socket，一般为默认socket工厂。  </li>
 <li><code>refCount</code>，客户端的引用计数。  </li>
 <li><code>PING_INTERVAL_NAME</code>,ping周期的配置项，对应为<code>ipc.ping.interval</code>，默认值<code>DEFAULT_PING_INTERVAL</code>(1min)。若客户端在读取服务器端的<br>返回值响应超时，则会周期性的发送值为<code>PING_CALL_ID</code>(-1)的ping消息给服务器以维持连接。  </li>
@@ -438,7 +438,7 @@ Hadoop RPC作为Hadoop节点间底层通信机制，简单来说便是客户端�
 <h5 id="Client-Connection-PingInputStream">Client.Connection.PingInputStream</h5><p>实际为客户端连接Client.Connection对应的输入流，在read操作超时时，异常中调用<code>handleTimeout</code>。read操作超时时间，在<code>rpcTimeout</code>不大于0<br>(rpcTimeout在getProxy中指定)时，为pingInterval(ipc.ping.interval，默认1min)，rpcTimeout大于0时，pingInterval和超时时间都为rpcTimeout。  </p>
 <p>处理超时中，如果连接未关闭且<code>rpcTimeout</code>(rpcTimeout在getProxy中指定)不大于0，则判断<code>lastActivity</code>和发送ping的时间间隔，向服务器<br>发送ping，以维持连接。这时如果服务器端连接关闭，客户端发送ping时抛出异常，导致客户端连接关闭。<br>而如果rpcTimeout大于0，则read超时时直接抛出异常，关闭连接。  </p>
 <p>具体见后分析。</p>
-<h3 id="Server">Server</h3><p>Server主要包括监听器Listener，处理器Handler和响应器Responder。<br>到来的连接由监听器处理，创建对应连接，并对请求的调用封装成<code>Server.Call</code>对象，放入阻塞队列<code>callQueue</code>中，处理器从阻塞队列中取出待处理的请求，<br>调用本地实现的方法进行处理，处理结果或者直接发送回客户端或者放入连接的响应队列<code>responseQueue</code>中，由响应器进行处理，具体哪种方式取决于<br>响应队列中待发送响应的数目。<br>这里使用了Java NIO中的通道和选择器配合，通道分别在选择器上注册accept，read和write操作，关于通道和选择器另见<a href="./通道和选择器.md">通道和选择器</a>。  </p>
+<h3 id="Server">Server</h3><p>Server主要包括监听器Listener，处理器Handler和响应器Responder。<br>到来的连接由监听器处理，创建对应连接，并对请求的调用封装成<code>Server.Call</code>对象，放入阻塞队列<code>callQueue</code>中，处理器从阻塞队列中取出待处理的请求，<br>调用本地实现的方法进行处理，处理结果或者直接发送回客户端或者放入连接的响应队列<code>responseQueue</code>中，由响应器进行处理，具体哪种方式取决于<br>响应队列中待发送响应的数目。<br>这里使用了Java NIO中的通道和选择器配合，通道分别在选择器上注册accept，read和write操作，关于通道和选择器另见<a href="../通道和选择器">通道和选择器</a>。  </p>
 <p>相关类如下:<br><img src="../images/RPC-Server.png" alt="RPC-Server">  </p>
 <h4 id="成员属性-1">成员属性</h4><p>主要成员属性如下:<br><img src="../images/RPC-Server成员属性.png" alt="RPC-Server成员属性">  </p>
 <ul>
@@ -592,16 +592,16 @@ Hadoop RPC作为Hadoop节点间底层通信机制，简单来说便是客户端�
         <div class="post-nav">
           <div class="post-nav-next post-nav-item">
             
-              <a href="/压缩/" rel="next" title="Common源码阅读---压缩">
-                <i class="fa fa-chevron-left"></i> Common源码阅读---压缩
+              <a href="/RPC源码分析下篇/" rel="next" title="RPC源码阅读---源码分析下篇">
+                <i class="fa fa-chevron-left"></i> RPC源码阅读---源码分析下篇
               </a>
             
           </div>
 
           <div class="post-nav-prev post-nav-item">
             
-              <a href="/配置相关RPC/" rel="prev" title="Hadoop配置相关---RPC">
-                Hadoop配置相关---RPC <i class="fa fa-chevron-right"></i>
+              <a href="/配置相关HDFS/" rel="prev" title="Hadoop配置相关---HDFS">
+                Hadoop配置相关---HDFS <i class="fa fa-chevron-right"></i>
               </a>
             
           </div>
@@ -697,14 +697,14 @@ Hadoop RPC作为Hadoop节点间底层通信机制，简单来说便是客户端�
         <nav class="site-state motion-element">
           <div class="site-state-item site-state-posts">
             <a href="/archives">
-              <span class="site-state-item-count">21</span>
+              <span class="site-state-item-count">22</span>
               <span class="site-state-item-name">日志</span>
             </a>
           </div>
 
           <div class="site-state-item site-state-categories">
             <a href="/categories">
-              <span class="site-state-item-count">21</span>
+              <span class="site-state-item-count">22</span>
               <span class="site-state-item-name">分类</span>
               </a>
           </div>

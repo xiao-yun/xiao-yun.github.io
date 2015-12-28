@@ -53,21 +53,20 @@
 
 <meta name="description" content="Hadoop版本:Hadoop-1.2.1参考：《Hadoop技术内幕-深入解析Hadoop Common和HDFS架构设计与实现原理》  
 
-Hadoop抽象文件系统FileSystem具体见Hadoop抽象文件系统目前实现有:本文分析RawLocalFileSystem。RawLocalFileSystem用于访问本地文件系统，Java的本地文件系统操作通过java.io.File类实现，具体">
+Hadoop抽象文件系统FileSystem具体见Hadoop抽象文件系统，包括主要的实现类。本文分析RawLocalFileSystem。RawLocalFileSystem用于访问本地文件系统，Java的本地文件系统操作通过java.io.File类实">
 <meta property="og:type" content="article">
 <meta property="og:title" content="Hadoop FileSystem实现---RawLocalFileSystem">
 <meta property="og:url" content="http://xiao-yun.github.io/RawLocalFileSystem/index.html">
 <meta property="og:site_name" content="xiaoyun">
 <meta property="og:description" content="Hadoop版本:Hadoop-1.2.1参考：《Hadoop技术内幕-深入解析Hadoop Common和HDFS架构设计与实现原理》  
 
-Hadoop抽象文件系统FileSystem具体见Hadoop抽象文件系统目前实现有:本文分析RawLocalFileSystem。RawLocalFileSystem用于访问本地文件系统，Java的本地文件系统操作通过java.io.File类实现，具体">
-<meta property="og:image" content="http://xiao-yun.github.io/../images/FileSystem实现.png">
-<meta property="og:updated_time" content="2015-12-28T03:19:25.417Z">
+Hadoop抽象文件系统FileSystem具体见Hadoop抽象文件系统，包括主要的实现类。本文分析RawLocalFileSystem。RawLocalFileSystem用于访问本地文件系统，Java的本地文件系统操作通过java.io.File类实">
+<meta property="og:updated_time" content="2015-12-28T03:30:18.265Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="Hadoop FileSystem实现---RawLocalFileSystem">
 <meta name="twitter:description" content="Hadoop版本:Hadoop-1.2.1参考：《Hadoop技术内幕-深入解析Hadoop Common和HDFS架构设计与实现原理》  
 
-Hadoop抽象文件系统FileSystem具体见Hadoop抽象文件系统目前实现有:本文分析RawLocalFileSystem。RawLocalFileSystem用于访问本地文件系统，Java的本地文件系统操作通过java.io.File类实现，具体">
+Hadoop抽象文件系统FileSystem具体见Hadoop抽象文件系统，包括主要的实现类。本文分析RawLocalFileSystem。RawLocalFileSystem用于访问本地文件系统，Java的本地文件系统操作通过java.io.File类实">
 
 
 
@@ -238,7 +237,7 @@ Hadoop抽象文件系统FileSystem具体见Hadoop抽象文件系统目前实现�
         <div class="post-meta">
           <span class="post-time">
             发表于
-            <time itemprop="dateCreated" datetime="2015-12-28T11:19:25+08:00" content="2015-12-28">
+            <time itemprop="dateCreated" datetime="2015-12-28T11:30:18+08:00" content="2015-12-28">
               2015-12-28
             </time>
           </span>
@@ -322,7 +321,7 @@ Hadoop抽象文件系统FileSystem具体见Hadoop抽象文件系统目前实现�
       
         <span itemprop="articleBody"><p>Hadoop版本:<a href="https://archive.apache.org/dist/hadoop/core/hadoop-1.2.1/" target="_blank" rel="external">Hadoop-1.2.1</a><br>参考：《Hadoop技术内幕-深入解析Hadoop Common和HDFS架构设计与实现原理》  </p>
 <hr>
-<p>Hadoop抽象文件系统FileSystem具体见<a href="../Hadoop抽象文件系统">Hadoop抽象文件系统</a><br>目前实现有:<br><img src="../images/FileSystem实现.png" alt="FileSystem实现"><br>本文分析RawLocalFileSystem。<br>RawLocalFileSystem用于访问本地文件系统，Java的本地文件系统操作通过<code>java.io.File</code>类实现，具体为File的私有静态成员fs完成<br><figure class="highlight actionscript"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> FileSystem fs = DefaultFileSystem.getFileSystem();</span><br></pre></td></tr></table></figure></p>
+<p>Hadoop抽象文件系统FileSystem具体见<a href="../Hadoop抽象文件系统">Hadoop抽象文件系统</a>，包括主要的实现类。<br>本文分析RawLocalFileSystem。<br>RawLocalFileSystem用于访问本地文件系统，Java的本地文件系统操作通过<code>java.io.File</code>类实现，具体为File的私有静态成员fs完成<br><figure class="highlight actionscript"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> FileSystem fs = DefaultFileSystem.getFileSystem();</span><br></pre></td></tr></table></figure></p>
 <p>因此，RawLocalFileSystem使用适配器模式实现了Hadoop的本地文件系统。</p>
 <hr>
 <h2 id="一-_成员，构造，初始化">一. 成员，构造，初始化</h2><p>成员有:<br><figure class="highlight actionscript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">static</span> <span class="keyword">final</span> URI NAME = URI.create(<span class="string">"file:///"</span>);</span><br><span class="line"><span class="keyword">private</span> Path workingDir;</span><br></pre></td></tr></table></figure></p>
@@ -406,17 +405,13 @@ Hadoop抽象文件系统FileSystem具体见Hadoop抽象文件系统目前实现�
         <div class="post-nav">
           <div class="post-nav-next post-nav-item">
             
-              <a href="/配置相关RaidNode/" rel="next" title="Hadoop配置相关---RaidNode">
-                <i class="fa fa-chevron-left"></i> Hadoop配置相关---RaidNode
+              <a href="/Hadoop抽象文件系统/" rel="next" title="Hadoop抽象文件系统">
+                <i class="fa fa-chevron-left"></i> Hadoop抽象文件系统
               </a>
             
           </div>
 
           <div class="post-nav-prev post-nav-item">
-            
-              <a href="/RPC源码分析上篇/" rel="prev" title="RPC源码阅读---源码分析上篇">
-                RPC源码阅读---源码分析上篇 <i class="fa fa-chevron-right"></i>
-              </a>
             
           </div>
         </div>

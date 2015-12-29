@@ -101,7 +101,7 @@ false
 
 
 f">
-<meta property="og:updated_time" content="2015-12-28T03:19:25.445Z">
+<meta property="og:updated_time" content="2015-12-29T07:45:28.591Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="Hadoop配置相关---HDFS">
 <meta name="twitter:description" content="Hadoop版本:Hadoop-1.2.1  
@@ -297,8 +297,8 @@ f">
         <div class="post-meta">
           <span class="post-time">
             发表于
-            <time itemprop="dateCreated" datetime="2015-12-28T11:19:25+08:00" content="2015-12-28">
-              2015-12-28
+            <time itemprop="dateCreated" datetime="2015-12-29T15:45:28+08:00" content="2015-12-29">
+              2015-12-29
             </time>
           </span>
 
@@ -417,6 +417,23 @@ f">
 <tr>
 <td style="text-align:center">io.bytes.per.checksum</td>
 <td style="text-align:center">512</td>
+<td style="text-align:center">源数据一个块的大小，一个块计算校验和为4个字节</td>
+</tr>
+</tbody>
+</table>
+<h2 id="InMemoryFileSystem">InMemoryFileSystem</h2><table>
+<thead>
+<tr>
+<th style="text-align:center">属性</th>
+<th style="text-align:center">缺省值</th>
+<th style="text-align:center">说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">fs.inmemory.size.mb</td>
+<td style="text-align:center">100MB</td>
+<td style="text-align:center">内存文件系统大小</td>
 </tr>
 </tbody>
 </table>
@@ -441,16 +458,16 @@ f">
         <div class="post-nav">
           <div class="post-nav-next post-nav-item">
             
-              <a href="/通道和选择器/" rel="next" title="Java NIO---通道和选择器">
-                <i class="fa fa-chevron-left"></i> Java NIO---通道和选择器
+              <a href="/LocalFileSystem/" rel="next" title="Hadoop FileSystem实现---LocalFileSystem">
+                <i class="fa fa-chevron-left"></i> Hadoop FileSystem实现---LocalFileSystem
               </a>
             
           </div>
 
           <div class="post-nav-prev post-nav-item">
             
-              <a href="/压缩/" rel="prev" title="Common源码阅读---压缩">
-                Common源码阅读---压缩 <i class="fa fa-chevron-right"></i>
+              <a href="/RawLocalFileSystem/" rel="prev" title="Hadoop FileSystem实现---RawLocalFileSystem">
+                Hadoop FileSystem实现---RawLocalFileSystem <i class="fa fa-chevron-right"></i>
               </a>
             
           </div>
@@ -546,14 +563,14 @@ f">
         <nav class="site-state motion-element">
           <div class="site-state-item site-state-posts">
             <a href="/archives">
-              <span class="site-state-item-count">22</span>
+              <span class="site-state-item-count">25</span>
               <span class="site-state-item-name">日志</span>
             </a>
           </div>
 
           <div class="site-state-item site-state-categories">
             <a href="/categories">
-              <span class="site-state-item-count">22</span>
+              <span class="site-state-item-count">23</span>
               <span class="site-state-item-name">分类</span>
               </a>
           </div>
@@ -602,7 +619,7 @@ f">
               
             
             
-              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#FileSystem"><span class="nav-number">1.</span> <span class="nav-text">FileSystem</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#ChecksumFileSystem"><span class="nav-number">2.</span> <span class="nav-text">ChecksumFileSystem</span></a></li></ol></div>
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#FileSystem"><span class="nav-number">1.</span> <span class="nav-text">FileSystem</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#ChecksumFileSystem"><span class="nav-number">2.</span> <span class="nav-text">ChecksumFileSystem</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#InMemoryFileSystem"><span class="nav-number">3.</span> <span class="nav-text">InMemoryFileSystem</span></a></li></ol></div>
             
           </div>
           <div class="post-toc-indicator-bottom post-toc-indicator">

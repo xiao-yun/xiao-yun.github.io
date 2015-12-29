@@ -1,0 +1,896 @@
+<!doctype html>
+<html class="theme-next   use-motion ">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+  <link href="/vendors/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css"/>
+
+
+
+
+  <link href="//fonts.googleapis.com/css?family=Lato:300,400,700,400italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+
+
+
+<link href="/vendors/font-awesome/css/font-awesome.min.css?v=4.4.0" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=0.4.5.2" rel="stylesheet" type="text/css" />
+
+
+  <meta name="keywords" content="HDFS,Hadoop-1.2.1,Java," />
+
+
+
+
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=0.4.5.2" />
+
+
+
+
+
+
+<meta name="description" content="Hadoop版本:Hadoop-1.2.1  
+
+ChecksumFilesystem继承自FilterFileSystem，FilterInputStream和FilterInputStream类似，在提供的底层文件系统上增加了新的功能，底层文件系统在构造时由传入的参数初始化，所有的方法直接依赖于底层文件系统中的实现。这里不再分析源码。ChecksumFileSystem继承自FilterFil">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Hadoop FileSystem实现---ChecksumFileSystem">
+<meta property="og:url" content="http://xiao-yun.github.io/ChecksumFileSystem/index.html">
+<meta property="og:site_name" content="xiaoyun">
+<meta property="og:description" content="Hadoop版本:Hadoop-1.2.1  
+
+ChecksumFilesystem继承自FilterFileSystem，FilterInputStream和FilterInputStream类似，在提供的底层文件系统上增加了新的功能，底层文件系统在构造时由传入的参数初始化，所有的方法直接依赖于底层文件系统中的实现。这里不再分析源码。ChecksumFileSystem继承自FilterFil">
+<meta property="og:image" content="http://xiao-yun.github.io/../images/ChecksumFileSystem类图.png">
+<meta property="og:image" content="http://xiao-yun.github.io/../images/FSInputChecker成员属性.png">
+<meta property="og:updated_time" content="2015-12-29T07:45:28.511Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Hadoop FileSystem实现---ChecksumFileSystem">
+<meta name="twitter:description" content="Hadoop版本:Hadoop-1.2.1  
+
+ChecksumFilesystem继承自FilterFileSystem，FilterInputStream和FilterInputStream类似，在提供的底层文件系统上增加了新的功能，底层文件系统在构造时由传入的参数初始化，所有的方法直接依赖于底层文件系统中的实现。这里不再分析源码。ChecksumFileSystem继承自FilterFil">
+
+
+
+<script type="text/javascript" id="hexo.configuration">
+  var CONFIG = {
+    scheme: 'Mist',
+    sidebar: 'hide',
+    motion: true
+  };
+</script>
+
+  <title> Hadoop FileSystem实现---ChecksumFileSystem | xiaoyun </title>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  <!--[if lte IE 8]>
+  <div style=' clear: both; height: 59px; padding:0 0 0 15px; position: relative;margin:0 auto;'>
+    <a href="http://windows.microsoft.com/en-US/internet-explorer/products/ie/home?ocid=ie6_countdown_bannercode">
+      <img src="http://7u2nvr.com1.z0.glb.clouddn.com/picouterie.jpg" border="0" height="42" width="820"
+           alt="You are using an outdated browser. For a faster, safer browsing experience, upgrade for free today or use other browser ,like chrome firefox safari."
+           style='margin-left:auto;margin-right:auto;display: block;'/>
+    </a>
+  </div>
+<![endif]-->
+  
+
+
+
+  <script type="text/javascript">
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "//hm.baidu.com/hm.js?caeb4129c91d1e6fb3d562d35fedef0d";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+  <div class="container one-column page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-meta ">
+  
+
+  <div class="custom-logo-site-title">
+    <a href="/"  class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <span class="site-title">xiaoyun</span>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+  <p class="site-subtitle"></p>
+</div>
+
+<div class="site-nav-toggle">
+  <button>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+  </button>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu ">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-home fa-fw"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives" rel="section">
+            
+              <i class="menu-item-icon fa fa-archive fa-fw"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories" rel="section">
+            
+              <i class="menu-item-icon fa fa-th fa-fw"></i> <br />
+            
+            分类
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+              <i class="menu-item-icon fa fa-tags fa-fw"></i> <br />
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about" rel="section">
+            
+              <i class="menu-item-icon fa fa-user fa-fw"></i> <br />
+            
+            关于
+          </a>
+        </li>
+      
+
+      
+      
+    </ul>
+  
+
+  
+</nav>
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div id="content" class="content">
+          
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                Hadoop FileSystem实现---ChecksumFileSystem
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            发表于
+            <time itemprop="dateCreated" datetime="2015-12-29T15:45:28+08:00" content="2015-12-29">
+              2015-12-29
+            </time>
+          </span>
+
+          
+            <span class="post-category" >
+              &nbsp; | &nbsp; 分类于
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Java/" itemprop="url" rel="index">
+                    <span itemprop="name">Java</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Java/Hadoop-1-2-1/" itemprop="url" rel="index">
+                    <span itemprop="name">Hadoop-1.2.1</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Java/Hadoop-1-2-1/HDFS/" itemprop="url" rel="index">
+                    <span itemprop="name">HDFS</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Java/Hadoop-1-2-1/HDFS/源码阅读/" itemprop="url" rel="index">
+                    <span itemprop="name">源码阅读</span>
+                  </a>
+                </span>
+
+                
+                
+
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                &nbsp; | &nbsp;
+                <a href="/ChecksumFileSystem/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="ChecksumFileSystem/" itemprop="commentsCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+
+        </div>
+      </header>
+    
+
+
+    <div class="post-body">
+
+      
+      
+
+      
+        <span itemprop="articleBody"><p>Hadoop版本:<a href="https://archive.apache.org/dist/hadoop/core/hadoop-1.2.1/" target="_blank" rel="external">Hadoop-1.2.1</a>  </p>
+<hr>
+<p>ChecksumFilesystem继承自FilterFileSystem，FilterInputStream和FilterInputStream类似，在提供的底层文件系统上增加了新的功能，底层文件系统在构造时由传入的参数初始化，所有的方法直接依赖于底层文件系统中的实现。这里不再分析源码。<br>ChecksumFileSystem继承自FilterFileSystem，在底层文件系统的基础上增加了校验和的功能。写输入数据时会以块为单位计算数据的校验和，校验和保存在校验文件中，而读取数据时会从校验文件中读取相应块的校验和，重新计算源数据块的校验和并与从校验文件中读取到的校验和比较验证。<br>ChecksumFileSystem本身还是一个抽象类，类图如下:<br><img src="../images/ChecksumFileSystem类图.png" alt="ChecksumFileSystem类图">  </p>
+<hr>
+<h2 id="1_成员，构造">1 成员，构造</h2><p>本类(不包括父类)拥有的成员如下<br><figure class="highlight gradle"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="keyword">byte</span>[] CHECKSUM_VERSION = <span class="keyword">new</span> <span class="keyword">byte</span>[] &#123;<span class="string">'c'</span>, <span class="string">'r'</span>, <span class="string">'c'</span>, <span class="number">0</span>&#125;;</span><br><span class="line"><span class="keyword">private</span> <span class="keyword">int</span> bytesPerChecksum = <span class="number">512</span>;</span><br><span class="line"><span class="keyword">private</span> <span class="keyword">boolean</span> verifyChecksum = <span class="keyword">true</span>;</span><br><span class="line"></span><br><span class="line"><span class="keyword">final</span> <span class="keyword">private</span> <span class="keyword">static</span> PathFilter DEFAULT_FILTER = <span class="keyword">new</span> PathFilter() &#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">boolean</span> accept(Path <span class="keyword">file</span>) &#123;</span><br><span class="line">      <span class="keyword">return</span> !isChecksumFile(<span class="keyword">file</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure></p>
+<ul>
+<li><p>校验和文件中开始8个字节的格式为:<code>CHECKSUM_VERSION</code>+<code>bytesPerChecksum</code><br>当前校验和版本对应为”crc0”，bytesPerChecksum为源数据一个块的大小，计算校验和时以块为单位，一个块数据update到Checksum对象中，得到的校验和值为4个字节，即bytePerChecksum(512)个字节的源数据生成的校验和为4个字节。bytesPerChecksum可以通过以下方式设置:</p>
+  <figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">void</span> <span class="title">setConf</span><span class="params">(Configuration conf)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">super</span>.setConf(conf);</span><br><span class="line">    <span class="keyword">if</span> (conf != <span class="keyword">null</span>) &#123;</span><br><span class="line">      bytesPerChecksum = conf.getInt(<span class="string">"io.bytes.per.checksum"</span>, <span class="number">512</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>  即配置项<code>io.bytes.per.checksum</code>，然后在setConf中读取。  </p>
+</li>
+<li><p><code>verifyChecksum</code>，在读取数据时决定是否验证校验和，可通过以下方法设置:</p>
+  <figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">void</span> <span class="title">setVerifyChecksum</span><span class="params">(<span class="keyword">boolean</span> verifyChecksum)</span> </span>&#123; <span class="keyword">this</span>.verifyChecksum = verifyChecksum; &#125;</span><br></pre></td></tr></table></figure>
+</li>
+<li><p><code>DEFAULT_FILTER</code>，为listStatus中使用的默认路径过滤器，如上，只接受源文件，isChecksumFile如下:</p>
+  <figure class="highlight applescript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">public static <span class="type">boolean</span> isChecksumFile(Path <span class="type">file</span>) &#123;</span><br><span class="line">    String <span class="property">name</span> = <span class="type">file</span>.getName();</span><br><span class="line"><span class="command">    return</span> <span class="property">name</span>.startsWith(<span class="string">"."</span>) &amp;&amp; <span class="property">name</span>.endsWith(<span class="string">".crc"</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>  源数据的校验和保存的校验文件为”.srcName.crc”，其中srcName为源文件名。因此如果file以”.”开始以”.crc”结束则为校验文件。</p>
+</li>
+</ul>
+<p>构造:<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="title">ChecksumFileSystem</span><span class="params">(FileSystem fs)</span> </span>&#123; <span class="keyword">super</span>(fs); &#125;</span><br></pre></td></tr></table></figure></p>
+<p>直接调用父类FilterFileSystem的构造方法，底层文件系统fs。  </p>
+<hr>
+<h2 id="2_输出流ChecksumFSOutputSummer">2 输出流ChecksumFSOutputSummer</h2><p>ChecksumFileSystem实现的输出流为<code>ChecksumFSOutputSummer</code>，而ChecksumFSOutputSummer又继承自<code>FSOutputSummer</code>。<br><figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> static <span class="class"><span class="keyword">class</span> <span class="title">ChecksumFSOutputSummer</span> <span class="keyword"><span class="keyword">extends</span></span> <span class="title">FSOutputSummer</span></span></span><br></pre></td></tr></table></figure></p>
+<h3 id="2-1_FSOutputSummer">2.1 FSOutputSummer</h3><p>FSOutputSummer作为一个在写数据到底层流之前生成校验和的通用类，是一个抽象类</p>
+<h4 id="2-1-1_成员，构造">2.1.1 成员，构造</h4><p>成员如下:<br><figure class="highlight axapta"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> Checksum <span class="keyword">sum</span>;</span><br><span class="line"><span class="keyword">private</span> <span class="keyword">byte</span> buf[];</span><br><span class="line"><span class="keyword">private</span> <span class="keyword">byte</span> checksum[];</span><br><span class="line"><span class="keyword">private</span> <span class="keyword">int</span> <span class="keyword">count</span>;</span><br></pre></td></tr></table></figure></p>
+<ul>
+<li><code>sum</code>，使用的校验和对象，校验和对象通过<code>update</code>更新数据到内部缓冲，通过<code>getValue</code>计算当前内部缓冲数据的校验和，<code>reset</code>重置内部缓冲重新接收数据计算校验和</li>
+<li><code>buf</code>,保存一个源数据块的缓冲，大小为bytesPerChecksum</li>
+<li><code>checksum</code>，保存一个校验和的缓冲，大小为4</li>
+<li><code>count</code>，buf中合法数据的数目，当等于buf.length时，计算校验和输出，然后重置缓冲</li>
+</ul>
+<p>构造:<br><figure class="highlight axapta"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">protected</span> FSOutputSummer(Checksum <span class="keyword">sum</span>, <span class="keyword">int</span> maxChunkSize, <span class="keyword">int</span> checksumSize) &#123;</span><br><span class="line">    <span class="keyword">this</span>.<span class="keyword">sum</span> = <span class="keyword">sum</span>;</span><br><span class="line">    <span class="keyword">this</span>.buf = <span class="keyword">new</span> <span class="keyword">byte</span>[maxChunkSize];</span><br><span class="line">    <span class="keyword">this</span>.checksum = <span class="keyword">new</span> <span class="keyword">byte</span>[checksumSize];</span><br><span class="line">    <span class="keyword">this</span>.<span class="keyword">count</span> = <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<h4 id="2-1-2_写一个字节write">2.1.2 写一个字节write</h4><figure class="highlight gradle"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">synchronized</span> <span class="keyword">void</span> <span class="keyword">write</span>(<span class="keyword">int</span> b) <span class="keyword">throws</span> IOException &#123;</span><br><span class="line">    sum.update(b);<span class="comment">//校验和对象更新数据</span></span><br><span class="line">    buf[<span class="keyword">count</span>++] = (<span class="keyword">byte</span>)b;<span class="comment">//源数据放到buf缓冲中</span></span><br><span class="line">    <span class="keyword">if</span>(<span class="keyword">count</span> == buf.length) &#123;<span class="comment">//缓存了一个块数据，源数据计算校验和，刷新到相应的流中</span></span><br><span class="line">      flushBuffer();<span class="comment">//输出源数据到底层流，计算校验和输出到对应的校验和输出流</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>如上，源数据缓存在buf中，同时更新到校验和对象中。当buf满，即我们缓存了一个块的数据，通过flushBuffer将源数据刷新到底层流，计算校验和对象中缓存数据的校验和，并刷新到对应校验和输出流中。<br><figure class="highlight gradle"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">protected</span> <span class="keyword">synchronized</span> <span class="keyword">void</span> flushBuffer() <span class="keyword">throws</span> IOException &#123;</span><br><span class="line">    flushBuffer(<span class="keyword">false</span>);</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">protected</span> <span class="keyword">synchronized</span> <span class="keyword">void</span> flushBuffer(<span class="keyword">boolean</span> keep) <span class="keyword">throws</span> IOException &#123;</span><br><span class="line">    <span class="keyword">if</span> (<span class="keyword">count</span> != <span class="number">0</span>) &#123;</span><br><span class="line">      <span class="keyword">int</span> chunkLen = <span class="keyword">count</span>;</span><br><span class="line">      <span class="keyword">count</span> = <span class="number">0</span>;</span><br><span class="line">      writeChecksumChunk(buf, <span class="number">0</span>, chunkLen, keep);</span><br><span class="line">      <span class="keyword">if</span> (keep) &#123;</span><br><span class="line">        <span class="keyword">count</span> = chunkLen;</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，keep参数表示源数据和校验数据到底层流的同时不重置缓冲buf和校验和对象缓存的数据，默认为false，重置。<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="function"><span class="keyword">void</span> <span class="title">writeChecksumChunk</span><span class="params">(<span class="keyword">byte</span> b[], <span class="keyword">int</span> off, <span class="keyword">int</span> len, <span class="keyword">boolean</span> keep)</span><span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">    <span class="keyword">int</span> tempChecksum = (<span class="keyword">int</span>)sum.getValue();</span><br><span class="line">    <span class="keyword">if</span> (!keep) &#123;</span><br><span class="line">      sum.reset();</span><br><span class="line">    &#125;</span><br><span class="line">    int2byte(tempChecksum, checksum);</span><br><span class="line">    writeChunk(b, off, len, checksum);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，从校验和对象sum中通过<code>getValue</code>计算当前缓存的校验和，然后通过int2byte转换成字节数组存储在成员<code>checksum</code>字节数组中，最终通过<code>writeChunk</code>写出一个块的数据，即将buf中缓存的源数据和checksum缓存的校验和数据写到相应的流中。如果keep为false即重置，通过sum.reset重置校验和缓存的数据。<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">protected</span> <span class="keyword">abstract</span> <span class="function"><span class="keyword">void</span> <span class="title">writeChunk</span><span class="params">(<span class="keyword">byte</span>[] b, <span class="keyword">int</span> offset, <span class="keyword">int</span> len, <span class="keyword">byte</span>[] checksum)</span> <span class="keyword">throws</span> IOException</span>;</span><br></pre></td></tr></table></figure></p>
+<p>writeChunk本类中为抽象方法，其功能为将字节数组b中从偏移量offset开始处长度为len的源数据以及checksum字节数组中的校验数据写到相应的流中，子类应该具体实现，实现见后面ChecksumFSOutputSummer的分析。  </p>
+<h4 id="2-1-3_写指定长度write">2.1.3 写指定长度write</h4><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">synchronized</span> <span class="function"><span class="keyword">void</span> <span class="title">write</span><span class="params">(<span class="keyword">byte</span> b[], <span class="keyword">int</span> off, <span class="keyword">int</span> len)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (off &lt; <span class="number">0</span> || len &lt; <span class="number">0</span> || off &gt; b.length - len) &#123; <span class="keyword">throw</span> <span class="keyword">new</span> ArrayIndexOutOfBoundsException(); &#125;</span><br><span class="line">    <span class="keyword">for</span> (<span class="keyword">int</span> n=<span class="number">0</span>;n&lt;len;n+=write1(b, off+n, len-n)) &#123; &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>通过write1循环写，直到写完指定长度len的数据<br><figure class="highlight axapta"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="keyword">int</span> write1(<span class="keyword">byte</span> b[], <span class="keyword">int</span> off, <span class="keyword">int</span> len) throws IOException &#123;</span><br><span class="line">    <span class="comment">//buf缓冲中没有数据，且要写的长度大于buf的长度，直接更新校验和对象，写数据和校验和到相应流中，免去了写到buf缓冲的拷贝(没必要)</span></span><br><span class="line">    <span class="keyword">if</span>(<span class="keyword">count</span>==<span class="number">0</span> &amp;&amp; len&gt;=buf.length) &#123;</span><br><span class="line">      <span class="keyword">final</span> <span class="keyword">int</span> length = buf.length;</span><br><span class="line">      <span class="keyword">sum</span>.update(b, off, length);<span class="comment">//更新一整块数据到校验和对象</span></span><br><span class="line">      writeChecksumChunk(b, off, length, <span class="keyword">false</span>);<span class="comment">//计算校验和对象中现有数据校验和，写数据和校验和到相应流</span></span><br><span class="line">      <span class="keyword">return</span> length;</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">//buf缓冲中还有数据，填充buf缓冲，如果满，写出数据和校验和</span></span><br><span class="line">    <span class="keyword">int</span> bytesToCopy = buf.length-<span class="keyword">count</span>;<span class="comment">//buf中剩余空间</span></span><br><span class="line">    bytesToCopy = (len&lt;bytesToCopy) ? len : bytesToCopy;<span class="comment">//可以缓冲的数据</span></span><br><span class="line">    <span class="keyword">sum</span>.update(b, off, bytesToCopy);</span><br><span class="line">    System.arraycopy(b, off, buf, <span class="keyword">count</span>, bytesToCopy);<span class="comment">//b中数据拷贝到buf缓冲中</span></span><br><span class="line">    <span class="keyword">count</span> += bytesToCopy;</span><br><span class="line">    <span class="keyword">if</span> (<span class="keyword">count</span> == buf.length) &#123;<span class="comment">//buf缓冲满，刷新到流</span></span><br><span class="line">      flushBuffer();</span><br><span class="line">    &#125; </span><br><span class="line">    <span class="keyword">return</span> bytesToCopy;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，如果目前buf缓冲中没有数据，且要写的数据大于buf的长度(一个块数据)，则我们直接将整块的数据更新到校验和对象sum中，然后写出数据和校验和，从而免去拷贝这一整块数据到buf中(一整块数据拷贝到buf中肯定马上要flush)。否则拷贝b中数据到buf中，如果buf满，则flush，就像2.1.2节介绍的一样。<br>writeChecksumChunk和flushBuffer见上2.1.2。</p>
+<p>其他的辅助类方法比较简单不再分析。</p>
+<h3 id="2-2_成员，构造">2.2 成员，构造</h3><p>成员如下<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> FSDataOutputStream datas;    </span><br><span class="line"><span class="keyword">private</span> FSDataOutputStream sums;</span><br><span class="line"><span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="keyword">float</span> CHKSUM_AS_FRACTION = <span class="number">0.01</span>f;</span><br></pre></td></tr></table></figure></p>
+<ul>
+<li><code>datas</code>，底层文件系统中源文件对应的输出流</li>
+<li><code>sums</code>，底层文件系统中校验文件对应的输出流</li>
+<li><code>CHKSUM_AS_FRACTION</code>，校验文件占源文件大小大致比例(4/512)</li>
+</ul>
+<p>构造<br><figure class="highlight gradle"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> ChecksumFSOutputSummer(ChecksumFileSystem fs, Path <span class="keyword">file</span>, <span class="keyword">boolean</span> overwrite, </span><br><span class="line">       <span class="keyword">short</span> replication, <span class="keyword">long</span> blockSize, Configuration conf) <span class="keyword">throws</span> IOException &#123;</span><br><span class="line">  <span class="keyword">this</span>(fs, <span class="keyword">file</span>, overwrite, conf.getInt(<span class="string">"io.file.buffer.size"</span>, <span class="number">4096</span>), replication, blockSize, <span class="keyword">null</span>);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> ChecksumFSOutputSummer(ChecksumFileSystem fs,  Path <span class="keyword">file</span>, <span class="keyword">boolean</span> overwrite,<span class="keyword">int</span> bufferSize,</span><br><span class="line">       <span class="keyword">short</span> replication, <span class="keyword">long</span> blockSize, Progressable progress) <span class="keyword">throws</span> IOException &#123;</span><br><span class="line">  <span class="keyword">super</span>(<span class="keyword">new</span> PureJavaCrc32(), fs.getBytesPerSum(), <span class="number">4</span>);</span><br><span class="line">  <span class="keyword">int</span> bytesPerSum = fs.getBytesPerSum();</span><br><span class="line">  <span class="keyword">this</span>.datas = fs.getRawFileSystem().create(<span class="keyword">file</span>, overwrite, bufferSize, replication, blockSize, progress);</span><br><span class="line">  <span class="keyword">int</span> sumBufferSize = fs.getSumBufferSize(bytesPerSum, bufferSize);</span><br><span class="line">  <span class="keyword">this</span>.sums = fs.getRawFileSystem().create(fs.getChecksumFile(<span class="keyword">file</span>), <span class="keyword">true</span>, sumBufferSize, replication, blockSize);</span><br><span class="line">  sums.<span class="keyword">write</span>(CHECKSUM_VERSION, <span class="number">0</span>, CHECKSUM_VERSION.length);</span><br><span class="line">  sums.writeInt(bytesPerSum);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，调用父类FSOutputSummer的构造方法，指定的校验和对象为<code>PureJavaCrc32</code>，FSOutputSummer的buf大小为bytesPerChecksum(默认512)，checksum大小为4。<br><code>datas</code>初始化为底层文件系统通过create打开的源文件对应的输出流。<br><code>sums</code>初始化为底层文件系统通过create打开的源文件对应校验文件的输出流。源文件对应的校验文件通过<code>getChecksumFile</code>获得<br><figure class="highlight gradle"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> Path getChecksumFile(Path <span class="keyword">file</span>) &#123; <span class="keyword">return</span> <span class="keyword">new</span> Path(<span class="keyword">file</span>.getParent(), <span class="string">"."</span> + <span class="keyword">file</span>.getName() + <span class="string">".crc"</span>); &#125;</span><br></pre></td></tr></table></figure></p>
+<p>若源文件名为”srcName”，则校验文件名为”.srcName.crc”。<br>校验文件流创建后，先写4个字节的版本”crc0”以及4个字节的<code>bytesPerChecksum</code>(默认512)。  </p>
+<h3 id="2-3_写数据">2.3 写数据</h3><p>ChecksumFSOutputSummer的单个字节或多个字节的写方法直接继承自FSOutputSummer中对应的方法，具体见上2.1.2节和2.1.3节。  </p>
+<h3 id="2-4_close">2.4 close</h3><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">void</span> <span class="title">close</span><span class="params">()</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">  flushBuffer();</span><br><span class="line">  sums.close();</span><br><span class="line">  datas.close();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>flush出在buf中剩余的未满足一个块大小的数据，计算校验和并刷新。关闭源文件流和校验文件流。</p>
+<h3 id="2-5_Syncable相关">2.5 Syncable相关</h3><p>ChecksumFSOutputSummer没有实现Syncable接口，因此在封装成文件系统统一输出流FSDataOutputStream时，sync方法将使用底层流的flush方法。具体见<a href="../Hadoop抽象文件系统">Hadoop抽象文件系统</a>中的输出流部分。  </p>
+<hr>
+<h2 id="3_输入流ChecksumFSInputChecker">3 输入流ChecksumFSInputChecker</h2><p>ChecksumFileSystem的输入流为ChecksumFSInputChecker，继承自FSInputChecker。当通过该输入流读取数据时，会先读取一整块数据到输入流的内部缓冲中，根据需要对该块数据校验和进行验证，然后从内部缓冲中读取数据。<br><figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> static <span class="class"><span class="keyword">class</span> <span class="title">ChecksumFSInputChecker</span> <span class="keyword"><span class="keyword">extends</span></span> <span class="title">FSInputChecker</span></span></span><br></pre></td></tr></table></figure></p>
+<h3 id="3-1_FSInputChecker">3.1 FSInputChecker</h3><p>FSInputChecker作为一个在读取数据前验证校验和的通用类，是一个抽象类，继承自FSInputStream，即实现了Seekable和PositionedReadable接口<br><figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">abstract</span> public <span class="class"><span class="keyword">class</span> <span class="title">FSInputChecker</span> <span class="keyword"><span class="keyword">extends</span></span> <span class="title">FSInputStream</span></span></span><br></pre></td></tr></table></figure></p>
+<h4 id="3-1-1_成员，构造">3.1.1 成员，构造</h4><p>成员属性如下:<br><img src="../images/FSInputChecker成员属性.png" alt="FSInputChecker成员属性">  </p>
+<ul>
+<li><code>file</code>，对应该流在文件系统中的文件</li>
+<li><code>sum</code>，使用的校验和对象，PureJavaCrc32类，通过<code>update</code>更新数据到sum中，<code>getValue</code>计算当前缓冲数据校验和，<code>reset</code>重置内部缓冲数据</li>
+<li><code>verifyChecksum</code>，是否在读取数据时验证校验和</li>
+<li><code>buf</code>，缓存源数据的字节数组，大小为一个块的大小bytesPerChecksum，默认512字节，缓冲满时刷新到底层流</li>
+<li><code>checksum</code>，源数据缓冲计算的校验和，大小为4个字节</li>
+<li><code>pos</code>，buf中当前读取到的位置</li>
+<li><code>count</code>，buf中最大有效数据位置</li>
+<li><code>numOfRetries</code>，读数据失败时，可能切换到其他备份的源，最大重试次数</li>
+<li><code>chunkPos</code>，下一块在文件中开始位置，也就是当前在buf中的块的结束位置</li>
+</ul>
+<p>这里注意的是，读数据一般是从buf中读取的，若buf中没有数据需要从底层流中读取一个块的数据到buf中，读完一个快对这个块进行验证。count便记录了当前缓冲中最大有效数据的位置，一般来说为一个块的大小，可能到达文件最后剩余数据不足一个块则为不同的值。pos则记录了当前在buf中读取到的位置。  </p>
+<p>构造:<br><figure class="highlight gradle"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">protected</span> FSInputChecker( Path <span class="keyword">file</span>, <span class="keyword">int</span> numOfRetries) &#123;</span><br><span class="line">    <span class="keyword">this</span>.<span class="keyword">file</span> = <span class="keyword">file</span>;</span><br><span class="line">    <span class="keyword">this</span>.numOfRetries = numOfRetries;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，通过这种方式构造时一般会后续通过set方法设置其他成员的值<br><figure class="highlight axapta"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">final</span> <span class="keyword">protected</span> synchronized <span class="keyword">void</span> set(<span class="keyword">boolean</span> verifyChecksum, Checksum <span class="keyword">sum</span>, <span class="keyword">int</span> maxChunkSize, <span class="keyword">int</span> checksumSize ) &#123;</span><br><span class="line">    <span class="keyword">this</span>.verifyChecksum = verifyChecksum;</span><br><span class="line">    <span class="keyword">this</span>.<span class="keyword">sum</span> = <span class="keyword">sum</span>;</span><br><span class="line">    <span class="keyword">this</span>.buf = <span class="keyword">new</span> <span class="keyword">byte</span>[maxChunkSize];</span><br><span class="line">    <span class="keyword">this</span>.checksum = <span class="keyword">new</span> <span class="keyword">byte</span>[checksumSize];</span><br><span class="line">    <span class="keyword">this</span>.<span class="keyword">count</span> = <span class="number">0</span>;</span><br><span class="line">    <span class="keyword">this</span>.pos = <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>而另外一个构造方法则结合了这两个方法<br><figure class="highlight axapta"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">protected</span> FSInputChecker( Path file, <span class="keyword">int</span> numOfRetries, <span class="keyword">boolean</span> verifyChecksum, Checksum <span class="keyword">sum</span>, <span class="keyword">int</span> chunkSize, <span class="keyword">int</span> checksumSize ) &#123;</span><br><span class="line">    <span class="keyword">this</span>(file, numOfRetries);</span><br><span class="line">    set(verifyChecksum, <span class="keyword">sum</span>, chunkSize, checksumSize);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<h4 id="3-1-2_读取一个字节">3.1.2 读取一个字节</h4><figure class="highlight gradle"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">synchronized</span> <span class="keyword">int</span> <span class="keyword">read</span>() <span class="keyword">throws</span> IOException &#123;</span><br><span class="line">    <span class="keyword">if</span> (pos &gt;= <span class="keyword">count</span>) &#123;</span><br><span class="line">      fill();</span><br><span class="line">      <span class="keyword">if</span> (pos &gt;= <span class="keyword">count</span>) &#123;</span><br><span class="line">        <span class="keyword">return</span> -<span class="number">1</span>;</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> buf[pos++] &amp; <span class="number">0</span>xff;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>如上，如果buf中没有剩余数据，通过<code>fill</code>从底层流中读取一块数据到buf中，然后从buf中读取一个字节<br><figure class="highlight gradle"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="keyword">void</span> fill() <span class="keyword">throws</span> IOException &#123;</span><br><span class="line">    assert(pos&gt;=<span class="keyword">count</span>);</span><br><span class="line">    <span class="keyword">count</span> = readChecksumChunk(buf, <span class="number">0</span>, buf.length);</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">private</span> <span class="keyword">int</span> readChecksumChunk(<span class="keyword">byte</span> b[], <span class="keyword">int</span> off, <span class="keyword">int</span> len) <span class="keyword">throws</span> IOException &#123;</span><br><span class="line">    <span class="keyword">count</span> = pos = <span class="number">0</span>;</span><br><span class="line">          </span><br><span class="line">    <span class="keyword">int</span> <span class="keyword">read</span> = <span class="number">0</span>;</span><br><span class="line">    <span class="keyword">boolean</span> retry = <span class="keyword">true</span>;</span><br><span class="line">    <span class="keyword">int</span> retriesLeft = numOfRetries; </span><br><span class="line">    <span class="keyword">do</span> &#123;</span><br><span class="line">      retriesLeft--;</span><br><span class="line">      <span class="keyword">try</span> &#123;</span><br><span class="line">        <span class="comment">//读取块开始位置chunkPos的下一块长度为len的数据，源数据读取到字节数组b，偏移量offset处，校验数据读取到checksum中</span></span><br><span class="line">        <span class="keyword">read</span> = readChunk(chunkPos, b, off, len, checksum);</span><br><span class="line">        <span class="keyword">if</span>( <span class="keyword">read</span> &gt; <span class="number">0</span> ) &#123;</span><br><span class="line">          <span class="keyword">if</span>( needChecksum() ) &#123;<span class="comment">//如果需要验证校验和</span></span><br><span class="line">            sum.update(b, off, <span class="keyword">read</span>);<span class="comment">//读取的源数据更新到校验和对象中</span></span><br><span class="line">            verifySum(chunkPos);<span class="comment">//计算校验和对象中数据的校验和并与checksum验证，原校验和和新计算的校验和不相等抛出异常</span></span><br><span class="line">          &#125;</span><br><span class="line">          chunkPos += <span class="keyword">read</span>;</span><br><span class="line">        &#125; </span><br><span class="line">        retry = <span class="keyword">false</span>;</span><br><span class="line">      &#125; <span class="keyword">catch</span> (ChecksumException ce) &#123;</span><br><span class="line">          <span class="comment">//重试次数达到限制，抛出异常，读取失败</span></span><br><span class="line">          <span class="keyword">if</span> (retriesLeft == <span class="number">0</span>) &#123;</span><br><span class="line">            <span class="keyword">throw</span> ce;</span><br><span class="line">          &#125;</span><br><span class="line">          <span class="comment">//可以重试，尝试定位到新的源</span></span><br><span class="line">          <span class="keyword">if</span> (seekToNewSource(chunkPos)) &#123;</span><br><span class="line">            seek(chunkPos);<span class="comment">//定位到源的指定位置</span></span><br><span class="line">          &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            <span class="comment">//没有其他源可用，读取失败</span></span><br><span class="line">            <span class="keyword">throw</span> ce;</span><br><span class="line">          &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125; <span class="keyword">while</span> (retry);</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">read</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，通过readChunk读取块开始位置为chunkPos的下一块长度为len的数据，源数据读取到b的偏移量offset处，校验数据读取到checksum中。如果读取成功，根据是否要验证校验和进行校验和的重新计算以及验证。读取失败时，如果达到失败重试次数限制，抛出异常，读取失败，还未达到限制则重新定位到其他源，定位成功则使用新的源重新读取，否则没有可用源则抛出异常，读取失败。<br>读取一块源数据以及对应的校验数据通过readChunk完成<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">abstract</span> <span class="keyword">protected</span> <span class="function"><span class="keyword">int</span> <span class="title">readChunk</span><span class="params">(<span class="keyword">long</span> pos, <span class="keyword">byte</span>[] buf, <span class="keyword">int</span> offset, <span class="keyword">int</span> len, <span class="keyword">byte</span>[] checksum)</span> <span class="keyword">throws</span> IOException</span>;</span><br></pre></td></tr></table></figure></p>
+<p>该类中为抽象方法，具体见ChecksumFSInputChecker的实现。<br>读取成功时，会判断是否要验证校验和，通过needChecksum<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">protected</span> <span class="keyword">synchronized</span> <span class="function"><span class="keyword">boolean</span> <span class="title">needChecksum</span><span class="params">()</span> </span>&#123; <span class="keyword">return</span> verifyChecksum &amp;&amp; sum != <span class="keyword">null</span>; &#125;</span><br></pre></td></tr></table></figure></p>
+<p>当需要验证时，将读取到的源数据更新到校验和对象中，然后通过<code>verifySum</code>验证读取到的校验和和重新计算的校验和是否正确<br><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">verifySum</span><span class="params">(<span class="keyword">long</span> errPos)</span> throws ChecksumException </span>&#123;</span><br><span class="line">    <span class="keyword">long</span> crc = getChecksum();<span class="comment">//获取从校验文件读取到的校验和</span></span><br><span class="line">    <span class="keyword">long</span> sumValue = sum.getValue();<span class="comment">//计算读取到源数据的校验和</span></span><br><span class="line">    sum.reset();<span class="comment">//重置校验和对象中数据</span></span><br><span class="line">    <span class="keyword">if</span> (crc != sumValue) &#123;<span class="comment">//校验文件中校验和和读取到数据重新计算的校验和不相等抛出异常</span></span><br><span class="line">      <span class="keyword">throw</span> <span class="keyword">new</span> ChecksumException( <span class="string">"Checksum error: "</span>+file+<span class="string">" at "</span>+errPos, errPos);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">long</span> <span class="title">getChecksum</span><span class="params">()</span> </span>&#123; <span class="keyword">return</span> checksum2long(checksum); &#125;</span><br><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">public</span> <span class="keyword">long</span> <span class="title">checksum2long</span><span class="params">(byte[] checksum)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">long</span> crc = <span class="number">0L</span>;</span><br><span class="line">    <span class="keyword">for</span>(<span class="keyword">int</span> i=<span class="number">0</span>; i&lt;checksum.length; i++) &#123;</span><br><span class="line">      crc |= (<span class="number">0xff</span>L&amp;(<span class="keyword">long</span>)checksum[i])&lt;&lt;((checksum.length-i-<span class="number">1</span>)*<span class="number">8</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> crc;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，在此之前从校验文件读取到的校验和保存在checksum成员中，而对应的数据更新到了校验和对象sum中，分别取校验文件中校验和，读取到数据重新计算的校验和，两者进行比较若不等则源数据或校验数据出现错误，抛出异常。  </p>
+<h4 id="3-1-3_读取多个字节">3.1.3 读取多个字节</h4><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">synchronized</span> <span class="function"><span class="keyword">int</span> <span class="title">read</span><span class="params">(<span class="keyword">byte</span>[] b, <span class="keyword">int</span> off, <span class="keyword">int</span> len)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">    ...<span class="comment">//参数检查</span></span><br><span class="line">    <span class="keyword">int</span> n = <span class="number">0</span>;</span><br><span class="line">    <span class="keyword">for</span> (;;) &#123;</span><br><span class="line">      <span class="keyword">int</span> nread = read1(b, off + n, len - n);<span class="comment">//通过read1循环读取</span></span><br><span class="line">      <span class="keyword">if</span> (nread &lt;= <span class="number">0</span>) </span><br><span class="line">        <span class="keyword">return</span> (n == <span class="number">0</span>) ? nread : n;</span><br><span class="line">      n += nread;</span><br><span class="line">      <span class="keyword">if</span> (n &gt;= len)</span><br><span class="line">        <span class="keyword">return</span> n;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>与输出流类似，通过read1循环读取。<br><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line">private <span class="typename">int</span> read1(<span class="typename">byte</span> b[], <span class="typename">int</span> off, <span class="typename">int</span> <span class="built_in">len</span>) throws IOException &#123;</span><br><span class="line">    <span class="typename">int</span> avail = count-pos;</span><br><span class="line">    <span class="keyword">if</span>( avail &lt;= <span class="number">0</span> ) &#123;</span><br><span class="line">      <span class="keyword">if</span>(<span class="built_in">len</span>&gt;=buf.length) &#123;<span class="comment">//没有可读数据且要读取的长度大于buf的长度，直接从底层流读取一个块数据到b中</span></span><br><span class="line">        <span class="typename">int</span> nread = readChecksumChunk(b, off, <span class="built_in">len</span>);<span class="comment">//直接读取到b中</span></span><br><span class="line">        <span class="keyword">return</span> nread;</span><br><span class="line">      &#125; <span class="keyword">else</span> &#123;<span class="comment">//没有可读数据且要读取的长度小于buf的长度，先读取到内部缓冲中</span></span><br><span class="line">        fill();<span class="comment">//读取到内部缓冲</span></span><br><span class="line">        <span class="keyword">if</span>( count &lt;= <span class="number">0</span> ) &#123;</span><br><span class="line">          <span class="keyword">return</span> -<span class="number">1</span>;</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">          avail = count;</span><br><span class="line">        &#125;</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">//内部缓冲buf有可读数据</span></span><br><span class="line">    <span class="typename">int</span> cnt = (avail &lt; <span class="built_in">len</span>) ? avail : <span class="built_in">len</span>;<span class="comment">//缓冲区可读取长度</span></span><br><span class="line">    System.arraycopy(buf, pos, b, off, cnt);<span class="comment">//从缓冲区中拷贝数据到b中</span></span><br><span class="line">    pos += cnt;</span><br><span class="line">    <span class="keyword">return</span> cnt;    </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，类似输出流的处理过程。当buf没有可读数据时，如果要读取的长度大于buf的长度，直接从底层流中读取数据到b中，避免了一次拷贝。而如果要读取的长度小于buf的长度时，先读取一整块数据到buf中，然后从buf中读取len长度的数据给b。  </p>
+<h4 id="3-1-4_Seekable实现">3.1.4 Seekable实现</h4><p>首先是seek的实现<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">synchronized</span> <span class="function"><span class="keyword">void</span> <span class="title">seek</span><span class="params">(<span class="keyword">long</span> pos)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">    <span class="keyword">if</span>(pos&lt;<span class="number">0</span> ) &#123;</span><br><span class="line">      <span class="keyword">return</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">long</span> start = chunkPos - <span class="keyword">this</span>.count;</span><br><span class="line">    <span class="keyword">if</span>( pos&gt;=start &amp;&amp; pos&lt;chunkPos) &#123;<span class="comment">//pos在buf中，直接改变pos的位置即可</span></span><br><span class="line">      <span class="keyword">this</span>.pos = (<span class="keyword">int</span>)(pos-start);</span><br><span class="line">      <span class="keyword">return</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    resetState();<span class="comment">//重置buf和sum</span></span><br><span class="line">    </span><br><span class="line">    <span class="comment">//改变下一次从底层流中读取数据的开始块位置</span></span><br><span class="line">    chunkPos = getChunkPosition(pos);</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">int</span> delta = (<span class="keyword">int</span>)(pos - chunkPos);<span class="comment">//pos在块中偏移量</span></span><br><span class="line">    <span class="keyword">if</span>( delta &gt; <span class="number">0</span>) &#123;</span><br><span class="line">      readFully(<span class="keyword">this</span>, <span class="keyword">new</span> <span class="keyword">byte</span>[delta], <span class="number">0</span>, delta);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">private</span> <span class="function"><span class="keyword">void</span> <span class="title">resetState</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    count = <span class="number">0</span>;</span><br><span class="line">    pos = <span class="number">0</span>;</span><br><span class="line">    <span class="keyword">if</span> (sum != <span class="keyword">null</span>) &#123;</span><br><span class="line">      sum.reset();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">abstract</span> <span class="keyword">protected</span> <span class="function"><span class="keyword">long</span> <span class="title">getChunkPosition</span><span class="params">(<span class="keyword">long</span> pos)</span></span>;</span><br></pre></td></tr></table></figure></p>
+<p>如上，如果pos正好处于buf中，直接改变成员pos值即可。否则buf中数据无效了，重置buf和sum，然后获取pos所属块的开始位置，并设为chunkPos即下次从底层流中读取数据的开始位置，然后通过readFully读取pos在块偏移量大小的数据到临时缓冲中(即读取丢弃，会将pos所属块数据读取到buf中，然后buf的pos置为在块中的偏移量)。这里getChunkPosition返回pos所属块在文件中的偏移量，为抽象方法，见后面实现。<br><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">protected</span> <span class="keyword">static</span> <span class="keyword">int</span> <span class="title">readFully</span><span class="params">(InputStream stm, byte[] buf, <span class="keyword">int</span> offset, <span class="keyword">int</span> len)</span> throws IOException </span>&#123;</span><br><span class="line">    <span class="keyword">int</span> n = <span class="number">0</span>;</span><br><span class="line">    <span class="keyword">for</span> (;;) &#123;</span><br><span class="line">      <span class="keyword">int</span> nread = stm.read(buf, offset + n, len - n);</span><br><span class="line">      <span class="keyword">if</span> (nread &lt;= <span class="number">0</span>) </span><br><span class="line">        <span class="keyword">return</span> (n == <span class="number">0</span>) ? nread : n;</span><br><span class="line">      n += nread;</span><br><span class="line">      <span class="keyword">if</span> (n &gt;= len)</span><br><span class="line">        <span class="keyword">return</span> n;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>通过调用3.1.3节的read方法循环读取，直到读完指定长度的数据或达到流末尾。  </p>
+<p>然后看getPosition的实现<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">synchronized</span> <span class="function"><span class="keyword">long</span> <span class="title">getPos</span><span class="params">()</span> <span class="keyword">throws</span> IOException </span>&#123; <span class="keyword">return</span> chunkPos-Math.max(<span class="number">0</span>L, count - pos); &#125;</span><br></pre></td></tr></table></figure></p>
+<p>与BufferedInputStream类似，chunkPos保存的是下一次从底层流中开始读取数据时，在文件的偏移量，而我们当前读取到的位置是在buf中的pos处，因此需要用chunkPos减去buf中剩余数据量。<br>seekToNewSource这里没有实现，还是FSInputStream中的抽象方法，具体实现在子类ChecksumFSInputChecker中，见后面分析。  </p>
+<h4 id="3-1-5_PositionedReadable实现">3.1.5 PositionedReadable实现</h4><p>PositionedReadable接口的相应方法还是继承自FSInputStream，即依赖于seek方法，先保存当前位置，然后seek到指定位置，通过3.1.3节的多字节读取方法读取或循环读取数据(对应read和readFully)，读取完后通过seek再定位回先前保存的位置。  </p>
+<h4 id="3-1-6_其他方法">3.1.6 其他方法</h4><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">synchronized</span> <span class="function"><span class="keyword">int</span> <span class="title">available</span><span class="params">()</span> <span class="keyword">throws</span> IOException </span>&#123; <span class="function"><span class="keyword">return</span> Math.<span class="title">max</span><span class="params">(<span class="number">0</span>, count - pos)</span></span>; &#125;</span><br></pre></td></tr></table></figure>
+<p>返回缓冲中的可用数据。<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">synchronized</span> <span class="function"><span class="keyword">long</span> <span class="title">skip</span><span class="params">(<span class="keyword">long</span> n)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (n &lt;= <span class="number">0</span>) &#123;</span><br><span class="line">      <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    seek(getPos()+n);</span><br><span class="line">    <span class="keyword">return</span> n;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>skip直接通过seek实现，markSupported方法返回false<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">final</span> <span class="keyword">public</span> <span class="function"><span class="keyword">boolean</span> <span class="title">markSupported</span><span class="params">()</span> </span>&#123; <span class="keyword">return</span> <span class="keyword">false</span>; &#125;</span><br></pre></td></tr></table></figure></p>
+<p>不支持mark和reset的，相应的方法<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">final</span> <span class="keyword">public</span> <span class="function"><span class="keyword">void</span> <span class="title">mark</span><span class="params">(<span class="keyword">int</span> readlimit)</span> </span>&#123;&#125;</span><br><span class="line">  </span><br><span class="line"><span class="keyword">final</span> <span class="keyword">public</span> <span class="function"><span class="keyword">void</span> <span class="title">reset</span><span class="params">()</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">    <span class="keyword">throw</span> <span class="keyword">new</span> IOException(<span class="string">"mark/reset not supported"</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>因此skip方法没有BufferedInputStream里面对应的拷贝操作。跳过后如果位置在buf中直接改变buf的pos即可，否则改变ChunkPos，读取一块数据到buf中，改变buf的pos。<br>这里可以对比<a href="../Java流">BufferedInputStream</a>和<a href="../Hadoop抽象文件系统">BufferedFSInputStream</a>(相关实现还有疑问)中的实现。  </p>
+<h3 id="3-2_成员，构造">3.2 成员，构造</h3><p>成员如下:<br><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> ChecksumFileSystem fs;<span class="comment">//对应的文件系统</span></span><br><span class="line"><span class="keyword">private</span> FSDataInputStream datas;<span class="comment">//源数据文件在文件系统中的输入流</span></span><br><span class="line"><span class="keyword">private</span> FSDataInputStream sums;<span class="comment">//校验文件在文件系统中的输入流</span></span><br><span class="line"><span class="keyword">private</span> <span class="keyword">static</span> final <span class="keyword">int</span> HEADER_LENGTH = <span class="number">8</span>;<span class="comment">//头长度8字节</span></span><br><span class="line"><span class="keyword">private</span> <span class="keyword">int</span> bytesPerSum = <span class="number">1</span>;<span class="comment">//源数据块大小</span></span><br><span class="line"><span class="keyword">private</span> <span class="keyword">long</span> fileLen = -<span class="number">1L</span>;<span class="comment">//文件长度</span></span><br></pre></td></tr></table></figure></p>
+<p>构造:<br><figure class="highlight gradle"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> ChecksumFSInputChecker(ChecksumFileSystem fs, Path <span class="keyword">file</span>) <span class="keyword">throws</span> IOException &#123;</span><br><span class="line">  <span class="keyword">this</span>(fs, <span class="keyword">file</span>, fs.getConf().getInt(<span class="string">"io.file.buffer.size"</span>, <span class="number">4096</span>));</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">public</span> ChecksumFSInputChecker(ChecksumFileSystem fs, Path <span class="keyword">file</span>, <span class="keyword">int</span> bufferSize) <span class="keyword">throws</span> IOException &#123;</span><br><span class="line">  <span class="keyword">super</span>(<span class="keyword">file</span>, fs.getFileStatus(<span class="keyword">file</span>).getReplication() );</span><br><span class="line">  <span class="keyword">this</span>.datas = fs.getRawFileSystem().open(<span class="keyword">file</span>, bufferSize);</span><br><span class="line">  <span class="keyword">this</span>.fs = fs;</span><br><span class="line">  Path sumFile = fs.getChecksumFile(<span class="keyword">file</span>);</span><br><span class="line">  <span class="keyword">try</span> &#123;</span><br><span class="line">    <span class="keyword">int</span> sumBufferSize = fs.getSumBufferSize(fs.getBytesPerSum(), bufferSize);</span><br><span class="line">    sums = fs.getRawFileSystem().open(sumFile, sumBufferSize);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">byte</span>[] version = <span class="keyword">new</span> <span class="keyword">byte</span>[CHECKSUM_VERSION.length];</span><br><span class="line">    sums.readFully(version);</span><br><span class="line">    <span class="keyword">if</span> (!Arrays.equals(version, CHECKSUM_VERSION))</span><br><span class="line">      <span class="keyword">throw</span> <span class="keyword">new</span> IOException(<span class="string">"Not a checksum file: "</span>+sumFile);</span><br><span class="line">    <span class="keyword">this</span>.bytesPerSum = sums.readInt();</span><br><span class="line">    set(fs.verifyChecksum, <span class="keyword">new</span> PureJavaCrc32(), bytesPerSum, <span class="number">4</span>);</span><br><span class="line">  &#125; <span class="keyword">catch</span> (FileNotFoundException e) &#123;         <span class="comment">// quietly ignore</span></span><br><span class="line">    set(fs.verifyChecksum, <span class="keyword">null</span>, <span class="number">1</span>, <span class="number">0</span>);</span><br><span class="line">  &#125; <span class="keyword">catch</span> (IOException e) &#123;                   <span class="comment">// loudly ignore</span></span><br><span class="line">    LOG.warn(<span class="string">"Problem opening checksum file: "</span>+ <span class="keyword">file</span> + </span><br><span class="line">             <span class="string">".  Ignoring exception: "</span> + </span><br><span class="line">             StringUtils.stringifyException(e));</span><br><span class="line">    set(fs.verifyChecksum, <span class="keyword">null</span>, <span class="number">1</span>, <span class="number">0</span>);</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，调用父类FSInputChecker的构造函数，设置文件和对应读取失败时重试次数numOfRetries，numOfRetries为文件的备份数。<br>datas初始化为底层文件系统open方法打开文件获得的输入流。<br>通过文件获取校验文件名，然后同样的初始化sums为底层文件系统open校验文件得到的输入流。<br>初始化sums之后从校验文件中读取4个字节的版本，与当前版本比较，若不等抛出异常。否则继续读取4个字节的bytesPerChecksum初始化成员bytesPerSum。<br>最后通过父类的set方法设置父类的其他成员，其中读取数据时是否校验依赖于底层文件系统的<code>verifyChecksum</code>成员，在ChecksumFileSystem中默认为true。使用的校验和对象为<code>PureJavaCrc</code>，源数据块大小为刚才从校验文件头读取到的bytesPerSum，校验和为4个字节。  </p>
+<h3 id="3-3_父类FSInputChecker抽象方法实现">3.3 父类FSInputChecker抽象方法实现</h3><p>在3.1中分析知，FSInputChecker中的<code>getChunkPosition</code>，<code>readChunk</code>以及PositionedReadable接口的方法等都是抽象类，需要子类实现。  </p>
+<h4 id="3-3-1_getChunkPosition">3.3.1 getChunkPosition</h4><p>getChunkPosition方法返回指定位置对应块在文件中的开始偏移量，如下<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">protected</span> <span class="function"><span class="keyword">long</span> <span class="title">getChunkPosition</span><span class="params">( <span class="keyword">long</span> dataPos )</span> </span>&#123;</span><br><span class="line">  <span class="keyword">return</span> dataPos/bytesPerSum*bytesPerSum;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>一个块大小为bytesPerSum，因此对应块的开始位置如上。  </p>
+<h4 id="3-3-2_readChunk">3.3.2 readChunk</h4><p>readChunk从指定源文件位置开始读取指定长度的数据，源数据读取到一个字节数组的指定偏移量处，该位置对应的校验数据读取到另一个字节数组中，如下，pos为源文件中的位置，一般为块开始位置，从该位置读取len长度的数据(一般为一块)到buf的偏移量offset处，而在文件pos处的源数据所属块的校验和读取到checksum中(根据需要)<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="annotation">@Override</span></span><br><span class="line"><span class="keyword">protected</span> <span class="function"><span class="keyword">int</span> <span class="title">readChunk</span><span class="params">(<span class="keyword">long</span> pos, <span class="keyword">byte</span>[] buf, <span class="keyword">int</span> offset, <span class="keyword">int</span> len,</span><br><span class="line">    <span class="keyword">byte</span>[] checksum)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">  <span class="keyword">boolean</span> eof = <span class="keyword">false</span>;</span><br><span class="line">  <span class="keyword">if</span>(needChecksum()) &#123;<span class="comment">//需要读取校验和，则读取校验和到checksum中，该方法为父类方法，在需要验证校验和且校验和对象存在时为true</span></span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">      <span class="keyword">long</span> checksumPos = getChecksumFilePos(pos);<span class="comment">//获取pos位置所属块的校验和在校验和文件的位置</span></span><br><span class="line">      <span class="comment">//校验和文件输入流的位置不是要读取的位置，seek到读取的位置，这里注意seek为底层文件系统对应的流的seek方法，如对于RawLocalFileSystem为文件输入流的seek方法</span></span><br><span class="line">      <span class="comment">//即ChecksumFileSystem的seek方法设置完chunkPos后最终真正定位seek的是底层文件系统输入流的seek方法</span></span><br><span class="line">      <span class="keyword">if</span>(checksumPos != sums.getPos()) &#123;</span><br><span class="line">        sums.seek(checksumPos);</span><br><span class="line">      &#125;</span><br><span class="line">      sums.readFully(checksum);<span class="comment">//读取4个字节</span></span><br><span class="line">    &#125; <span class="keyword">catch</span> (EOFException e) &#123;</span><br><span class="line">      eof = <span class="keyword">true</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    len = bytesPerSum;<span class="comment">//如果读取了校验和，则接下来的源数据会读取整个块</span></span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">if</span>(pos != datas.getPos()) &#123;<span class="comment">//源文件输入流位置不是要读取的位置，定位到要读取的位置</span></span><br><span class="line">    datas.seek(pos);<span class="comment">//如上，最终定位的是底层文件系统的输入流的定位方法</span></span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">int</span> nread = readFully(datas, buf, offset, len);<span class="comment">//从datas中读取len长度的数据到buf的offset处</span></span><br><span class="line">  <span class="keyword">if</span>( eof &amp;&amp; nread &gt; <span class="number">0</span>) &#123;</span><br><span class="line">    <span class="keyword">throw</span> <span class="keyword">new</span> ChecksumException(<span class="string">"Checksum error: "</span>+file+<span class="string">" at "</span>+pos, pos);</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">return</span> nread;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，如果需要验证校验和且校验和对象存在，则需要根据pos计算所属区块的校验和在校验和文件的位置，然后读取4个字节的校验和，通过源文件位置获取所属块在校验文件位置的方法如下:<br><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">long</span> <span class="title">getChecksumFilePos</span><span class="params">( <span class="keyword">long</span> dataPos )</span> </span>&#123;</span><br><span class="line">    <span class="keyword">return</span> HEADER_LENGTH + <span class="number">4</span>*(dataPos/bytesPerSum);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如果读取了校验和，则接下来一定会读取整块的数据，不然验证校验和不对。然后从源文件输入流中读取指定长度的数据到字节数组中。<br>另外，不管从校验和文件输入流还是源文件输入流，如果当前流位置不是要读取的位置，则会使用流的seek方法定位到指定位置。这也是在父类seek方法中，要定位的位置不在buf缓冲内时改变<code>chunkPos</code>可以达到效果的原因，在下一次读取数据时会定位到指定位置。  </p>
+<h4 id="3-3-3_PositionedReadable接口">3.3.3 PositionedReadable接口</h4><figure class="highlight gradle"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">int</span> <span class="keyword">read</span>(<span class="keyword">long</span> position, <span class="keyword">byte</span>[] b, <span class="keyword">int</span> off, <span class="keyword">int</span> len) <span class="keyword">throws</span> IOException &#123;</span><br><span class="line">  ...<span class="comment">//参数检查</span></span><br><span class="line">  ChecksumFSInputChecker checker = <span class="keyword">new</span> ChecksumFSInputChecker(fs, <span class="keyword">file</span>);</span><br><span class="line">  checker.seek(position);</span><br><span class="line">  <span class="keyword">int</span> nread = checker.<span class="keyword">read</span>(b, off, len);</span><br><span class="line">  checker.close();</span><br><span class="line">  <span class="keyword">return</span> nread;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>如上，重新创建一个新的临时<code>ChecksumFSInputChecker</code>输入流对象，然后定位到position位置，读取数据后关闭该输入流对象，从而不影响当前输入流对象。<br>该实现覆盖了父类FSInputChecker继承FSInputStream的默认的read实现，即利用seek方法，先保存当前position，然后seek到指定position，读取玩数据后再seek回记录的位置。<br>其他两个从指定位置读取的readFully方法继承FSInputStream，依赖于该方法，循环读取。  </p>
+<h4 id="3-3-4_seekToNewSource">3.3.4 seekToNewSource</h4><p>在读取数据失败时，有效失败重试次数范围内，会尝试定位到其他可用资源，重试次数就是文件的备份数，而校验文件的备份和源文件备份一样。<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">boolean</span> <span class="title">seekToNewSource</span><span class="params">(<span class="keyword">long</span> targetPos)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">  <span class="keyword">long</span> sumsPos = getChecksumFilePos(targetPos);</span><br><span class="line">  fs.reportChecksumFailure(file, datas, targetPos, sums, sumsPos);</span><br><span class="line">  <span class="keyword">boolean</span> newDataSource = datas.seekToNewSource(targetPos);</span><br><span class="line">  <span class="keyword">return</span> sums.seekToNewSource(sumsPos) || newDataSource;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>依赖于底层文件系统的实现，即报告校验失败后，通过校验文件输入流或源文件输入流的<code>seekToNewSource</code>方法定位到新的源。  </p>
+<h3 id="3-4_其他方法">3.4 其他方法</h3><h4 id="3-4-1_available">3.4.1 available</h4><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">int</span> <span class="title">available</span><span class="params">()</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">  <span class="keyword">return</span> datas.available() + <span class="keyword">super</span>.available();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>父类FSInputChecker的available方法返回的是内部缓冲buf的剩余数据，输入流要加上这一部分。  </p>
+<h4 id="3-4-2_close">3.4.2 close</h4><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">void</span> <span class="title">close</span><span class="params">()</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">  datas.close();</span><br><span class="line">  <span class="keyword">if</span>( sums != <span class="keyword">null</span> ) &#123;</span><br><span class="line">    sums.close();</span><br><span class="line">  &#125;</span><br><span class="line">  set(fs.verifyChecksum, <span class="keyword">null</span>, <span class="number">1</span>, <span class="number">0</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>关闭源文件输入流，校验文件输入流，将校验和对象置null。</p>
+<h4 id="3-4-3_skip">3.4.3 skip</h4><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">synchronized</span> <span class="function"><span class="keyword">long</span> <span class="title">skip</span><span class="params">(<span class="keyword">long</span> n)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">  <span class="keyword">long</span> curPos = getPos();</span><br><span class="line">  <span class="keyword">long</span> fileLength = getFileLength();</span><br><span class="line">  <span class="keyword">if</span>( n+curPos &gt; fileLength ) &#123;</span><br><span class="line">    n = fileLength - curPos;</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="function"><span class="keyword">return</span> <span class="keyword">super</span>.<span class="title">skip</span><span class="params">(n)</span></span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>做了相应的安全性检查设置后，调用父类的skip方法(注意不支持mark和reset)</p>
+<hr>
+<h2 id="4_文件系统操作实现">4 文件系统操作实现</h2><h3 id="4-1_open，create，append">4.1 open，create，append</h3><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="function">FSDataInputStream <span class="title">open</span><span class="params">(Path f, <span class="keyword">int</span> bufferSize)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">new</span> FSDataInputStream(<span class="keyword">new</span> ChecksumFSInputChecker(<span class="keyword">this</span>, f, bufferSize));</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>如上，创建该文件系统的输入流对象，然后封装成FSDataInputStream添加DataInput的功能<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="function">FSDataOutputStream <span class="title">append</span><span class="params">(Path f, <span class="keyword">int</span> bufferSize, Progressable progress)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">    <span class="keyword">throw</span> <span class="keyword">new</span> IOException(<span class="string">"Not supported"</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，追加append不支持<br><figure class="highlight zephir"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> FSDataOutputStream create(Path f, FsPermission permission,<span class="keyword">boolean</span> overwrite, <span class="keyword">boolean</span> createParent, <span class="keyword">int</span> bufferSize, </span><br><span class="line">      short replication, <span class="keyword">long</span> blockSize, Progressable progress) throws IOException &#123;</span><br><span class="line">    Path <span class="keyword">parent</span> = f.getParent();</span><br><span class="line">    <span class="keyword">if</span> (<span class="keyword">parent</span> != <span class="keyword">null</span>) &#123;</span><br><span class="line">      <span class="keyword">if</span> (!createParent &amp;&amp; !exists(<span class="keyword">parent</span>)) &#123;</span><br><span class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> FileNotFoundException(<span class="string">"Parent directory doesn't exist: "</span></span><br><span class="line">            + <span class="keyword">parent</span>);</span><br><span class="line">      &#125; <span class="keyword">else</span> <span class="keyword">if</span> (!mkdirs(<span class="keyword">parent</span>)) &#123;</span><br><span class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> IOException(<span class="string">"Mkdirs failed to create "</span> + <span class="keyword">parent</span>);</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">final</span> FSDataOutputStream out = <span class="keyword">new</span> FSDataOutputStream(</span><br><span class="line">        <span class="keyword">new</span> ChecksumFSOutputSummer(this, f, overwrite, bufferSize, replication, blockSize, progress), <span class="keyword">null</span>);</span><br><span class="line">    <span class="keyword">if</span> (permission != <span class="keyword">null</span>) &#123;</span><br><span class="line">      setPermission(f, permission);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> out;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，如果允许递归创建父目录(createParent)，则在父目录不存在时先创建父目录，如果不允许且父目录不存在则抛出异常。<br>父目录正常时，创建该文件系统的输出流对象ChecksumFSOutputSummer，然后封装成FSDataInputStream提供DataOutput功能。<br>对应的有createParent分别为true和false的创建方法<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//父目录不存在时，允许创建父目录</span></span><br><span class="line"><span class="keyword">public</span> <span class="function">FSDataOutputStream <span class="title">create</span><span class="params">(Path f, FsPermission permission, <span class="keyword">boolean</span> overwrite, <span class="keyword">int</span> bufferSize,</span><br><span class="line">    <span class="keyword">short</span> replication, <span class="keyword">long</span> blockSize, Progressable progress)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">return</span> <span class="title">create</span><span class="params">(f, permission, overwrite, <span class="keyword">true</span>, bufferSize, replication, blockSize, progress)</span></span>;</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">//父目录不存在时，不允许创建父目录</span></span><br><span class="line"><span class="keyword">public</span> <span class="function">FSDataOutputStream <span class="title">createNonRecursive</span><span class="params">(Path f, FsPermission permission,<span class="keyword">boolean</span> overwrite, <span class="keyword">int</span> bufferSize,</span><br><span class="line">    <span class="keyword">short</span> replication, <span class="keyword">long</span> blockSize,Progressable progress)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">return</span> <span class="title">create</span><span class="params">(f, permission, overwrite, <span class="keyword">false</span>, bufferSize, replication, blockSize, progress)</span></span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<h3 id="4-2_文件状态">4.2 文件状态</h3><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> FileStatus[] listStatus(Path f) <span class="keyword">throws</span> IOException &#123; <span class="function"><span class="keyword">return</span> fs.<span class="title">listStatus</span><span class="params">(f, DEFAULT_FILTER)</span></span>; &#125;</span><br></pre></td></tr></table></figure>
+<p>listStatus依赖于底层文件系统的操作，不过指定路径过滤器为DEFAULT_FILTER，即过滤掉校验文件，只允许源文件。</p>
+<h3 id="4-3_delete">4.3 delete</h3><figure class="highlight gradle"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">boolean</span> <span class="keyword">delete</span>(Path f, <span class="keyword">boolean</span> recursive) <span class="keyword">throws</span> IOException&#123;</span><br><span class="line">    FileStatus fstatus = <span class="keyword">null</span>;</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">      fstatus = fs.getFileStatus(f);</span><br><span class="line">    &#125; <span class="keyword">catch</span>(FileNotFoundException e) &#123;</span><br><span class="line">      <span class="keyword">return</span> <span class="keyword">false</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span>(fstatus.isDir()) &#123;</span><br><span class="line">      <span class="keyword">return</span> fs.<span class="keyword">delete</span>(f, recursive);</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">      Path checkFile = getChecksumFile(f);</span><br><span class="line">      <span class="keyword">if</span> (fs.exists(checkFile)) &#123;</span><br><span class="line">        fs.<span class="keyword">delete</span>(checkFile, <span class="keyword">true</span>);</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="keyword">return</span> fs.<span class="keyword">delete</span>(f, <span class="keyword">true</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>删除时，要同时删除对应的校验文件。如果是目录则以来底层文件系统进行删除，允许递归删除时会删除目录下所有文件以及目录本身，而校验文件在对应文件的同级目录下，因此这样也会将目录下所有文件的校验文件删除，而如果是文件则删除对应的校验文件和源文件。</p>
+<h4 id="4-4_rename">4.4 rename</h4><figure class="highlight dos"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line">public boolean <span class="built_in">rename</span>(<span class="built_in">Path</span> src, <span class="built_in">Path</span> dst) throws IOException &#123;</span><br><span class="line">    <span class="flow">if</span> (<span class="built_in">fs</span>.isDirectory(src)) &#123;</span><br><span class="line">      return <span class="built_in">fs</span>.<span class="built_in">rename</span>(src, dst);</span><br><span class="line">    &#125; <span class="flow">else</span> &#123;</span><br><span class="line">      boolean value = <span class="built_in">fs</span>.<span class="built_in">rename</span>(src, dst);</span><br><span class="line">      <span class="flow">if</span> (!value)</span><br><span class="line">        return false;</span><br><span class="line">      <span class="built_in">Path</span> checkFile = getChecksumFile(src);</span><br><span class="line">      <span class="flow">if</span> (<span class="built_in">fs</span>.exists(checkFile)) &#123; //try to <span class="built_in">rename</span> checksum</span><br><span class="line">        <span class="flow">if</span> (<span class="built_in">fs</span>.isDirectory(dst)) &#123;</span><br><span class="line">          value = <span class="built_in">fs</span>.<span class="built_in">rename</span>(checkFile, dst);</span><br><span class="line">        &#125; <span class="flow">else</span> &#123;</span><br><span class="line">          value = <span class="built_in">fs</span>.<span class="built_in">rename</span>(checkFile, getChecksumFile(dst));</span><br><span class="line">        &#125;</span><br><span class="line">      &#125;</span><br><span class="line"></span><br><span class="line">      return value;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>如上，重命名还需要处理对应的校验文件。<br>如果src为目录通过底层文件系统重命名为dst目录，src目录下包含校验文件，因此重命名后包含在dst下。<br>如果src为文件通过底层文件系统重命名为dst(可能文件可能目录，目录时拷贝到目录下)，失败直接返回false，成功时处理校验文件。如果src对应校验文件存在且dst为目录则通过底层文件系统拷贝到dst下，而dst为文件时需要重命名校验文件为dst对应的校验文件。<br>以上对底层文件系统的rename的处理根据程序逻辑猜测，实际不知道底层文件系统的rename对(文件，目录)，(目录，目录)的处理过程  </p>
+<h4 id="4-5_mkdirs">4.5 mkdirs</h4><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">boolean</span> <span class="title">mkdirs</span><span class="params">(Path f)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">return</span> fs.<span class="title">mkdirs</span><span class="params">(f)</span></span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>依赖底层文件系统实现。</p>
+<h4 id="4-6_文件系统关闭close">4.6 文件系统关闭close</h4><p>没有具体实现，继承自FilterFileSystem的close方法，即依赖于底层文件系统的关闭。</p>
+</span>
+      
+    </div>
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/HDFS/" rel="tag">#HDFS</a>
+          
+            <a href="/tags/Hadoop-1-2-1/" rel="tag">#Hadoop-1.2.1</a>
+          
+            <a href="/tags/Java/" rel="tag">#Java</a>
+          
+        </div>
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/压缩/" rel="next" title="Common源码阅读---压缩">
+                <i class="fa fa-chevron-left"></i> Common源码阅读---压缩
+              </a>
+            
+          </div>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/Hadoop抽象文件系统/" rel="prev" title="Hadoop抽象文件系统">
+                Hadoop抽象文件系统 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </article>
+
+
+
+    <div class="post-spread">
+      
+        <!-- JiaThis Button BEGIN -->
+<div class="jiathis_style">
+  <a class="jiathis_button_tsina"></a>
+  <a class="jiathis_button_tqq"></a>
+  <a class="jiathis_button_weixin"></a>
+  <a class="jiathis_button_cqq"></a>
+  <a class="jiathis_button_douban"></a>
+  <a class="jiathis_button_renren"></a>
+  <a class="jiathis_button_qzone"></a>
+  <a class="jiathis_button_kaixin001"></a>
+  <a class="jiathis_button_copy"></a>
+  <a href="http://www.jiathis.com/share" class="jiathis jiathis_txt jiathis_separator jtico jtico_jiathis" target="_blank"></a>
+  <a class="jiathis_counter_style"></a>
+</div>
+<script type="text/javascript" >
+  var jiathis_config={
+    hideMore:false
+  }
+</script>
+<script type="text/javascript" src="http://v3.jiathis.com/code/jia.js" charset="utf-8"></script>
+<!-- JiaThis Button END -->
+
+      
+    </div>
+  </div>
+
+
+        </div>
+
+        
+
+
+        
+  <div class="comments" id="comments">
+    
+      <div class="ds-thread" data-thread-key="ChecksumFileSystem/"
+           data-title="Hadoop FileSystem实现---ChecksumFileSystem" data-url="http://xiao-yun.github.io/ChecksumFileSystem/">
+      </div>
+    
+  </div>
+
+
+      </div>
+
+      
+        
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap" >
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel ">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+          <img class="site-author-image" src="/images/hero.jpg" alt="xiaoyun" itemprop="image"/>
+          <p class="site-author-name" itemprop="name">xiaoyun</p>
+        </div>
+        <p class="site-description motion-element" itemprop="description">学习笔记，网上资源摘要等</p>
+        <nav class="site-state motion-element">
+          <div class="site-state-item site-state-posts">
+            <a href="/archives">
+              <span class="site-state-item-count">25</span>
+              <span class="site-state-item-name">日志</span>
+            </a>
+          </div>
+
+          <div class="site-state-item site-state-categories">
+            <a href="/categories">
+              <span class="site-state-item-count">23</span>
+              <span class="site-state-item-name">分类</span>
+              </a>
+          </div>
+
+          <div class="site-state-item site-state-tags">
+            <a href="/tags">
+              <span class="site-state-item-count">14</span>
+              <span class="site-state-item-name">标签</span>
+              </a>
+          </div>
+
+        </nav>
+
+        
+
+        <div class="links-of-author motion-element">
+          
+            
+              <span class="links-of-author-item">
+                <a href="https://github.com/xiao-yun" target="_blank">
+                  
+                    <i class="fa fa-globe"></i> github
+                  
+                </a>
+              </span>
+            
+          
+        </div>
+
+        
+        
+
+        <div class="links-of-author motion-element">
+          
+        </div>
+
+      </section>
+
+      
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc-indicator-top post-toc-indicator">
+            <i class="fa fa-angle-double-up"></i>
+          </div>
+          <div class="post-toc">
+            
+              
+            
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#1_成员，构造"><span class="nav-number">1.</span> <span class="nav-text">1 成员，构造</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2_输出流ChecksumFSOutputSummer"><span class="nav-number">2.</span> <span class="nav-text">2 输出流ChecksumFSOutputSummer</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1_FSOutputSummer"><span class="nav-number">2.1.</span> <span class="nav-text">2.1 FSOutputSummer</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#2-1-1_成员，构造"><span class="nav-number">2.1.1.</span> <span class="nav-text">2.1.1 成员，构造</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-1-2_写一个字节write"><span class="nav-number">2.1.2.</span> <span class="nav-text">2.1.2 写一个字节write</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-1-3_写指定长度write"><span class="nav-number">2.1.3.</span> <span class="nav-text">2.1.3 写指定长度write</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-2_成员，构造"><span class="nav-number">2.2.</span> <span class="nav-text">2.2 成员，构造</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-3_写数据"><span class="nav-number">2.3.</span> <span class="nav-text">2.3 写数据</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-4_close"><span class="nav-number">2.4.</span> <span class="nav-text">2.4 close</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-5_Syncable相关"><span class="nav-number">2.5.</span> <span class="nav-text">2.5 Syncable相关</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3_输入流ChecksumFSInputChecker"><span class="nav-number">3.</span> <span class="nav-text">3 输入流ChecksumFSInputChecker</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#3-1_FSInputChecker"><span class="nav-number">3.1.</span> <span class="nav-text">3.1 FSInputChecker</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#3-1-1_成员，构造"><span class="nav-number">3.1.1.</span> <span class="nav-text">3.1.1 成员，构造</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-1-2_读取一个字节"><span class="nav-number">3.1.2.</span> <span class="nav-text">3.1.2 读取一个字节</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-1-3_读取多个字节"><span class="nav-number">3.1.3.</span> <span class="nav-text">3.1.3 读取多个字节</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-1-4_Seekable实现"><span class="nav-number">3.1.4.</span> <span class="nav-text">3.1.4 Seekable实现</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-1-5_PositionedReadable实现"><span class="nav-number">3.1.5.</span> <span class="nav-text">3.1.5 PositionedReadable实现</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-1-6_其他方法"><span class="nav-number">3.1.6.</span> <span class="nav-text">3.1.6 其他方法</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-2_成员，构造"><span class="nav-number">3.2.</span> <span class="nav-text">3.2 成员，构造</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-3_父类FSInputChecker抽象方法实现"><span class="nav-number">3.3.</span> <span class="nav-text">3.3 父类FSInputChecker抽象方法实现</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#3-3-1_getChunkPosition"><span class="nav-number">3.3.1.</span> <span class="nav-text">3.3.1 getChunkPosition</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-3-2_readChunk"><span class="nav-number">3.3.2.</span> <span class="nav-text">3.3.2 readChunk</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-3-3_PositionedReadable接口"><span class="nav-number">3.3.3.</span> <span class="nav-text">3.3.3 PositionedReadable接口</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-3-4_seekToNewSource"><span class="nav-number">3.3.4.</span> <span class="nav-text">3.3.4 seekToNewSource</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-4_其他方法"><span class="nav-number">3.4.</span> <span class="nav-text">3.4 其他方法</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#3-4-1_available"><span class="nav-number">3.4.1.</span> <span class="nav-text">3.4.1 available</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-4-2_close"><span class="nav-number">3.4.2.</span> <span class="nav-text">3.4.2 close</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-4-3_skip"><span class="nav-number">3.4.3.</span> <span class="nav-text">3.4.3 skip</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4_文件系统操作实现"><span class="nav-number">4.</span> <span class="nav-text">4 文件系统操作实现</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#4-1_open，create，append"><span class="nav-number">4.1.</span> <span class="nav-text">4.1 open，create，append</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-2_文件状态"><span class="nav-number">4.2.</span> <span class="nav-text">4.2 文件状态</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-3_delete"><span class="nav-number">4.3.</span> <span class="nav-text">4.3 delete</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#4-4_rename"><span class="nav-number">4.3.1.</span> <span class="nav-text">4.4 rename</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#4-5_mkdirs"><span class="nav-number">4.3.2.</span> <span class="nav-text">4.5 mkdirs</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#4-6_文件系统关闭close"><span class="nav-number">4.3.3.</span> <span class="nav-text">4.6 文件系统关闭close</span></a></li></ol></li></ol></li></ol></div>
+            
+          </div>
+          <div class="post-toc-indicator-bottom post-toc-indicator">
+            <i class="fa fa-angle-double-down"></i>
+          </div>
+        </section>
+      
+
+    </div>
+  </aside>
+
+
+      
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright" >
+  
+  &copy; 
+  <span itemprop="copyrightYear">2015</span>
+  <span class="with-love">
+    <i class="icon-next-heart fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">xiaoyun</span>
+</div>
+
+<div class="powered-by">
+  由 <a class="theme-link" href="http://hexo.io">Hexo</a> 强力驱动
+</div>
+
+<div class="theme-info">
+  主题 -
+  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
+    NexT.Mist
+  </a>
+</div>
+
+
+
+      </div>
+    </footer>
+
+    <div class="back-to-top"></div>
+  </div>
+
+  <script type="text/javascript" src="/vendors/jquery/index.js?v=2.1.3"></script>
+
+  
+  
+
+  
+    
+
+  
+    
+  
+
+  <script type="text/javascript">
+    var duoshuoQuery = {short_name:"xiaoyuncom"};
+    (function() {
+      var ds = document.createElement('script');
+      ds.type = 'text/javascript';ds.async = true;
+      ds.id = 'duoshuo-script';
+      ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+      ds.charset = 'UTF-8';
+      (document.getElementsByTagName('head')[0]
+      || document.getElementsByTagName('body')[0]).appendChild(ds);
+    })();
+  </script>
+    
+     
+
+
+    
+  
+
+  
+  <script type="text/javascript" src="/vendors/fancybox/source/jquery.fancybox.pack.js"></script>
+  <script type="text/javascript" src="/js/fancy-box.js?v=0.4.5.2"></script>
+
+
+  <script type="text/javascript" src="/js/helpers.js?v=0.4.5.2"></script>
+  <script type="text/javascript" src="/vendors/velocity/velocity.min.js"></script>
+<script type="text/javascript" src="/vendors/velocity/velocity.ui.min.js"></script>
+
+<script type="text/javascript" src="/js/motion.js?v=0.4.5.2" id="motion.global"></script>
+
+
+  <script type="text/javascript" src="/vendors/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  <script type="text/javascript" src="/vendors/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  
+<script type="text/javascript" src="/js/bootstrap.scrollspy.js?v=0.4.5.2" id="bootstrap.scrollspy.custom"></script>
+
+
+<script type="text/javascript" id="sidebar.toc.highlight">
+  $(document).ready(function () {
+    var tocSelector = '.post-toc';
+    var $tocSelector = $(tocSelector);
+    var activeCurrentSelector = '.active-current';
+
+    $tocSelector
+      .on('activate.bs.scrollspy', function () {
+        var $currentActiveElement = $(tocSelector + ' .active').last();
+
+        removeCurrentActiveClass();
+        $currentActiveElement.addClass('active-current');
+
+        $tocSelector[0].scrollTop = $currentActiveElement.position().top;
+      })
+      .on('clear.bs.scrollspy', function () {
+        removeCurrentActiveClass();
+      });
+
+    function removeCurrentActiveClass () {
+      $(tocSelector + ' ' + activeCurrentSelector)
+        .removeClass(activeCurrentSelector.substring(1));
+    }
+
+    function processTOC () {
+      getTOCMaxHeight();
+      toggleTOCOverflowIndicators();
+    }
+
+    function getTOCMaxHeight () {
+      var height = $('.sidebar').height() -
+                   $tocSelector.position().top -
+                   $('.post-toc-indicator-bottom').height();
+
+      $tocSelector.css('height', height);
+
+      return height;
+    }
+
+    function toggleTOCOverflowIndicators () {
+      tocOverflowIndicator(
+        '.post-toc-indicator-top',
+        $tocSelector.scrollTop() > 0 ? 'show' : 'hide'
+      );
+
+      tocOverflowIndicator(
+        '.post-toc-indicator-bottom',
+        $tocSelector.scrollTop() >= $tocSelector.find('ol').height() - $tocSelector.height() ? 'hide' : 'show'
+      )
+    }
+
+    $(document).on('sidebar.motion.complete', function () {
+      processTOC();
+    });
+
+    $('body').scrollspy({ target: tocSelector });
+    $(window).on('resize', function () {
+      if ( $('.sidebar').hasClass('sidebar-active') ) {
+        processTOC();
+      }
+    });
+
+    onScroll($tocSelector);
+
+    function onScroll (element) {
+      element.on('mousewheel DOMMouseScroll', function (event) {
+          var oe = event.originalEvent;
+          var delta = oe.wheelDelta || -oe.detail;
+
+          this.scrollTop += ( delta < 0 ? 1 : -1 ) * 30;
+          event.preventDefault();
+
+          toggleTOCOverflowIndicators();
+      });
+    }
+
+    function tocOverflowIndicator (indicator, action) {
+      var $indicator = $(indicator);
+      var opacity = action === 'show' ? 1 : 0;
+      $indicator.velocity ?
+        $indicator.velocity('stop').velocity({
+          opacity: opacity
+        }, { duration: 100 }) :
+        $indicator.stop().animate({
+          opacity: opacity
+        }, 100);
+    }
+
+  });
+</script>
+
+<script type="text/javascript" id="sidebar.nav">
+  $(document).ready(function () {
+    var html = $('html');
+    var TAB_ANIMATE_DURATION = 200;
+    var hasVelocity = $.isFunction(html.velocity);
+
+    $('.sidebar-nav li').on('click', function () {
+      var item = $(this);
+      var activeTabClassName = 'sidebar-nav-active';
+      var activePanelClassName = 'sidebar-panel-active';
+      if (item.hasClass(activeTabClassName)) {
+        return;
+      }
+
+      var currentTarget = $('.' + activePanelClassName);
+      var target = $('.' + item.data('target'));
+
+      hasVelocity ?
+        currentTarget.velocity('transition.slideUpOut', TAB_ANIMATE_DURATION, function () {
+          target
+            .velocity('stop')
+            .velocity('transition.slideDownIn', TAB_ANIMATE_DURATION)
+            .addClass(activePanelClassName);
+        }) :
+        currentTarget.animate({ opacity: 0 }, TAB_ANIMATE_DURATION, function () {
+          currentTarget.hide();
+          target
+            .stop()
+            .css({'opacity': 0, 'display': 'block'})
+            .animate({ opacity: 1 }, TAB_ANIMATE_DURATION, function () {
+              currentTarget.removeClass(activePanelClassName);
+              target.addClass(activePanelClassName);
+            });
+        });
+
+      item.siblings().removeClass(activeTabClassName);
+      item.addClass(activeTabClassName);
+    });
+
+    $('.post-toc a').on('click', function (e) {
+      e.preventDefault();
+      var targetSelector = escapeSelector(this.getAttribute('href'));
+      var offset = $(targetSelector).offset().top;
+      hasVelocity ?
+        html.velocity('stop').velocity('scroll', {
+          offset: offset  + 'px',
+          mobileHA: false
+        }) :
+        $('html, body').stop().animate({
+          scrollTop: offset
+        }, 500);
+    });
+
+    // Expand sidebar on post detail page by default, when post has a toc.
+    motionMiddleWares.sidebar = function () {
+      var $tocContent = $('.post-toc-content');
+      if (CONFIG.sidebar === 'post') {
+        if ($tocContent.length > 0 && $tocContent.html().trim().length > 0) {
+          displaySidebar();
+        }
+      }
+    };
+  });
+</script>
+
+
+
+  <script type="text/javascript" src="/js/bootstrap.js"></script>
+
+  
+  
+
+  
+  
+
+</body>
+</html>

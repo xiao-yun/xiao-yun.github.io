@@ -235,8 +235,8 @@
             
               
                 
-                <a class="post-title-link" href="/RPC概述/" itemprop="url">
-                  RPC源码阅读---概述
+                <a class="post-title-link" href="/ChecksumFileSystem/" itemprop="url">
+                  Hadoop FileSystem实现---ChecksumFileSystem
                 </a>
               
             
@@ -246,8 +246,8 @@
         <div class="post-meta">
           <span class="post-time">
             发表于
-            <time itemprop="dateCreated" datetime="2015-12-28T11:19:25+08:00" content="2015-12-28">
-              2015-12-28
+            <time itemprop="dateCreated" datetime="2015-12-29T15:45:28+08:00" content="2015-12-29">
+              2015-12-29
             </time>
           </span>
 
@@ -268,19 +268,7 @@
 
               
                 <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
-                  <a href="/categories/Java/Hadoop/" itemprop="url" rel="index">
-                    <span itemprop="name">Hadoop</span>
-                  </a>
-                </span>
-
-                
-                
-                  ， 
-                
-
-              
-                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
-                  <a href="/categories/Java/Hadoop/Hadoop-1-2-1/" itemprop="url" rel="index">
+                  <a href="/categories/Java/Hadoop-1-2-1/" itemprop="url" rel="index">
                     <span itemprop="name">Hadoop-1.2.1</span>
                   </a>
                 </span>
@@ -292,8 +280,8 @@
 
               
                 <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
-                  <a href="/categories/Java/Hadoop/Hadoop-1-2-1/Common/" itemprop="url" rel="index">
-                    <span itemprop="name">Common</span>
+                  <a href="/categories/Java/Hadoop-1-2-1/HDFS/" itemprop="url" rel="index">
+                    <span itemprop="name">HDFS</span>
                   </a>
                 </span>
 
@@ -304,19 +292,7 @@
 
               
                 <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
-                  <a href="/categories/Java/Hadoop/Hadoop-1-2-1/Common/RPC/" itemprop="url" rel="index">
-                    <span itemprop="name">RPC</span>
-                  </a>
-                </span>
-
-                
-                
-                  ， 
-                
-
-              
-                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
-                  <a href="/categories/Java/Hadoop/Hadoop-1-2-1/Common/RPC/源码阅读/" itemprop="url" rel="index">
+                  <a href="/categories/Java/Hadoop-1-2-1/HDFS/源码阅读/" itemprop="url" rel="index">
                     <span itemprop="name">源码阅读</span>
                   </a>
                 </span>
@@ -332,8 +308,8 @@
             
               <span class="post-comments-count">
                 &nbsp; | &nbsp;
-                <a href="/RPC概述/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="RPC概述/" itemprop="commentsCount"></span>
+                <a href="/ChecksumFileSystem/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="ChecksumFileSystem/" itemprop="commentsCount"></span>
                 </a>
               </span>
             
@@ -355,12 +331,13 @@
         
           <span itemprop="articleBody">
             
-            Hadoop版本:Hadoop-1.2.1参考：《Hadoop技术内幕-深入解析Hadoop Common和HDFS架构设计与实现原理》,后文简称技术内幕RPC中用到的通道和选择器另见通道和选择器，缓冲区另见缓冲区,以及序列化(主要是ObjectWritable)另见序列化
-Hadoop RPC作为
+            Hadoop版本:Hadoop-1.2.1  
+
+ChecksumFilesystem继承自FilterFileSystem，FilterInputStream和FilterInputStream类似，在提供的底层文件系统上增加了新的功能，底层文件系统在构造时由传入的参数初始化，所有的方法直接依赖于
             ...
           </span>
           <div class="post-more-link text-center">
-            <a class="btn" href="/RPC概述/#more" rel="contents">
+            <a class="btn" href="/ChecksumFileSystem/#more" rel="contents">
               阅读全文 &raquo;
             </a>
           </div>
@@ -403,8 +380,8 @@ Hadoop RPC作为
             
               
                 
-                <a class="post-title-link" href="/RPC源码分析上篇/" itemprop="url">
-                  RPC源码阅读---源码分析上篇
+                <a class="post-title-link" href="/压缩/" itemprop="url">
+                  Common源码阅读---压缩
                 </a>
               
             
@@ -424,31 +401,7 @@ Hadoop RPC作为
               &nbsp; | &nbsp; 分类于
               
                 <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
-                  <a href="/categories/Java/" itemprop="url" rel="index">
-                    <span itemprop="name">Java</span>
-                  </a>
-                </span>
-
-                
-                
-                  ， 
-                
-
-              
-                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
-                  <a href="/categories/Java/Hadoop/" itemprop="url" rel="index">
-                    <span itemprop="name">Hadoop</span>
-                  </a>
-                </span>
-
-                
-                
-                  ， 
-                
-
-              
-                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
-                  <a href="/categories/Java/Hadoop/Hadoop-1-2-1/" itemprop="url" rel="index">
+                  <a href="/categories/Hadoop-1-2-1/" itemprop="url" rel="index">
                     <span itemprop="name">Hadoop-1.2.1</span>
                   </a>
                 </span>
@@ -460,7 +413,7 @@ Hadoop RPC作为
 
               
                 <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
-                  <a href="/categories/Java/Hadoop/Hadoop-1-2-1/Common/" itemprop="url" rel="index">
+                  <a href="/categories/Hadoop-1-2-1/Common/" itemprop="url" rel="index">
                     <span itemprop="name">Common</span>
                   </a>
                 </span>
@@ -472,19 +425,7 @@ Hadoop RPC作为
 
               
                 <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
-                  <a href="/categories/Java/Hadoop/Hadoop-1-2-1/Common/RPC/" itemprop="url" rel="index">
-                    <span itemprop="name">RPC</span>
-                  </a>
-                </span>
-
-                
-                
-                  ， 
-                
-
-              
-                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
-                  <a href="/categories/Java/Hadoop/Hadoop-1-2-1/Common/RPC/源码阅读/" itemprop="url" rel="index">
+                  <a href="/categories/Hadoop-1-2-1/Common/源码阅读/" itemprop="url" rel="index">
                     <span itemprop="name">源码阅读</span>
                   </a>
                 </span>
@@ -500,8 +441,8 @@ Hadoop RPC作为
             
               <span class="post-comments-count">
                 &nbsp; | &nbsp;
-                <a href="/RPC源码分析上篇/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="RPC源码分析上篇/" itemprop="commentsCount"></span>
+                <a href="/压缩/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="压缩/" itemprop="commentsCount"></span>
                 </a>
               </span>
             
@@ -523,11 +464,12 @@ Hadoop RPC作为
         
           <span itemprop="articleBody">
             
-            Hadoop版本:Hadoop-1.2.1参考：《Hadoop技术内幕-深入解析Hadoop Common和HDFS架构设计与实现原理》,后文简称技术内幕RPC中用到的通道和选择器另见通道和选择器，缓冲区另见缓冲区,以及序列化(主要是ObjectWritable)另见序列化下文所说的[概述]为上篇R
+            Hadoop版本:Hadoop-1.2.1参考：《Hadoop技术内幕-深入解析Hadoop Common和HDFS架构设计与实现原理》
+编解码器Hadoop中每一种压缩/解压算法有一个对应的编解码器，编解码器接口为CompressionCodec12345678910111213141516171
             ...
           </span>
           <div class="post-more-link text-center">
-            <a class="btn" href="/RPC源码分析上篇/#more" rel="contents">
+            <a class="btn" href="/压缩/#more" rel="contents">
               阅读全文 &raquo;
             </a>
           </div>
@@ -873,8 +815,8 @@ Hadoop RPC作为
             
               
                 
-                <a class="post-title-link" href="/配置相关RaidNode/" itemprop="url">
-                  Hadoop配置相关---RaidNode
+                <a class="post-title-link" href="/RPC源码分析上篇/" itemprop="url">
+                  RPC源码阅读---源码分析上篇
                 </a>
               
             
@@ -884,7 +826,7 @@ Hadoop RPC作为
         <div class="post-meta">
           <span class="post-time">
             发表于
-            <time itemprop="dateCreated" datetime="2015-12-28T11:19:07+08:00" content="2015-12-28">
+            <time itemprop="dateCreated" datetime="2015-12-28T11:19:25+08:00" content="2015-12-28">
               2015-12-28
             </time>
           </span>
@@ -894,8 +836,8 @@ Hadoop RPC作为
               &nbsp; | &nbsp; 分类于
               
                 <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
-                  <a href="/categories/Hadoop-0-20/" itemprop="url" rel="index">
-                    <span itemprop="name">Hadoop-0.20</span>
+                  <a href="/categories/Java/" itemprop="url" rel="index">
+                    <span itemprop="name">Java</span>
                   </a>
                 </span>
 
@@ -906,8 +848,56 @@ Hadoop RPC作为
 
               
                 <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
-                  <a href="/categories/Hadoop-0-20/RaidNode/" itemprop="url" rel="index">
-                    <span itemprop="name">RaidNode</span>
+                  <a href="/categories/Java/Hadoop/" itemprop="url" rel="index">
+                    <span itemprop="name">Hadoop</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Java/Hadoop/Hadoop-1-2-1/" itemprop="url" rel="index">
+                    <span itemprop="name">Hadoop-1.2.1</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Java/Hadoop/Hadoop-1-2-1/Common/" itemprop="url" rel="index">
+                    <span itemprop="name">Common</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Java/Hadoop/Hadoop-1-2-1/Common/RPC/" itemprop="url" rel="index">
+                    <span itemprop="name">RPC</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Java/Hadoop/Hadoop-1-2-1/Common/RPC/源码阅读/" itemprop="url" rel="index">
+                    <span itemprop="name">源码阅读</span>
                   </a>
                 </span>
 
@@ -922,8 +912,8 @@ Hadoop RPC作为
             
               <span class="post-comments-count">
                 &nbsp; | &nbsp;
-                <a href="/配置相关RaidNode/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="配置相关RaidNode/" itemprop="commentsCount"></span>
+                <a href="/RPC源码分析上篇/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="RPC源码分析上篇/" itemprop="commentsCount"></span>
                 </a>
               </span>
             
@@ -945,30 +935,11 @@ Hadoop RPC作为
         
           <span itemprop="articleBody">
             
-            
-Hadoop版本:hadoop-20-master
-
-源码阅读配置记录
-RaidNode
-
-
-属性
-缺省值
-说明
-
-
-
-
-raid.classname
-DistRaidNode
-RaidNode实现类,默认DistRaidNode在createRaidNode中读取conf设置
-
-
-fs.raid
+            Hadoop版本:Hadoop-1.2.1参考：《Hadoop技术内幕-深入解析Hadoop Common和HDFS架构设计与实现原理》,后文简称技术内幕RPC中用到的通道和选择器另见通道和选择器，缓冲区另见缓冲区,以及序列化(主要是ObjectWritable)另见序列化下文所说的[概述]为上篇R
             ...
           </span>
           <div class="post-more-link text-center">
-            <a class="btn" href="/配置相关RaidNode/#more" rel="contents">
+            <a class="btn" href="/RPC源码分析上篇/#more" rel="contents">
               阅读全文 &raquo;
             </a>
           </div>
@@ -1036,14 +1007,14 @@ fs.raid
         <nav class="site-state motion-element">
           <div class="site-state-item site-state-posts">
             <a href="/archives">
-              <span class="site-state-item-count">22</span>
+              <span class="site-state-item-count">25</span>
               <span class="site-state-item-name">日志</span>
             </a>
           </div>
 
           <div class="site-state-item site-state-categories">
             <a href="/categories">
-              <span class="site-state-item-count">22</span>
+              <span class="site-state-item-count">23</span>
               <span class="site-state-item-name">分类</span>
               </a>
           </div>

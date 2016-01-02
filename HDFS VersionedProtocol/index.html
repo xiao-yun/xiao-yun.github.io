@@ -1,0 +1,896 @@
+<!doctype html>
+<html class="theme-next   use-motion ">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+  <link href="/vendors/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css"/>
+
+
+
+
+  <link href="//fonts.googleapis.com/css?family=Lato:300,400,700,400italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+
+
+
+<link href="/vendors/font-awesome/css/font-awesome.min.css?v=4.4.0" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=0.4.5.2" rel="stylesheet" type="text/css" />
+
+
+  <meta name="keywords" content="HDFS,Hadoop-1.2.1,Java," />
+
+
+
+
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=0.4.5.2" />
+
+
+
+
+
+
+<meta name="description" content="Hadoop版本:Hadoop-1.2.1参考：《Hadoop技术内幕-深入解析Hadoop Common和HDFS架构设计与实现原理》
+
+HDFS中有NameNode节点，DataNode节点，SecondaryNameNode以及Client，他们之间的通信使用RPC进行通信。在Hadoop中使用RPC远程过程调用，客户端和服务器之间的协议必须实现VersionedProtocol接口，HDF">
+<meta property="og:type" content="article">
+<meta property="og:title" content="HDFS节点的VersionedProtocol实现">
+<meta property="og:url" content="http://xiao-yun.github.io/HDFS VersionedProtocol/index.html">
+<meta property="og:site_name" content="xiaoyun">
+<meta property="og:description" content="Hadoop版本:Hadoop-1.2.1参考：《Hadoop技术内幕-深入解析Hadoop Common和HDFS架构设计与实现原理》
+
+HDFS中有NameNode节点，DataNode节点，SecondaryNameNode以及Client，他们之间的通信使用RPC进行通信。在Hadoop中使用RPC远程过程调用，客户端和服务器之间的协议必须实现VersionedProtocol接口，HDF">
+<meta property="og:image" content="http://xiao-yun.github.io/../images/HDFS VersionedProtocol.png">
+<meta property="og:image" content="http://xiao-yun.github.io/../images/ClientProtocol方法.png">
+<meta property="og:image" content="http://xiao-yun.github.io/../images/DatanodeProtocol方法.png">
+<meta property="og:image" content="http://xiao-yun.github.io/../images/NamenodeProtocol方法.png">
+<meta property="og:updated_time" content="2016-01-01T13:38:51.988Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="HDFS节点的VersionedProtocol实现">
+<meta name="twitter:description" content="Hadoop版本:Hadoop-1.2.1参考：《Hadoop技术内幕-深入解析Hadoop Common和HDFS架构设计与实现原理》
+
+HDFS中有NameNode节点，DataNode节点，SecondaryNameNode以及Client，他们之间的通信使用RPC进行通信。在Hadoop中使用RPC远程过程调用，客户端和服务器之间的协议必须实现VersionedProtocol接口，HDF">
+
+
+
+<script type="text/javascript" id="hexo.configuration">
+  var CONFIG = {
+    scheme: 'Mist',
+    sidebar: 'hide',
+    motion: true
+  };
+</script>
+
+  <title> HDFS节点的VersionedProtocol实现 | xiaoyun </title>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  <!--[if lte IE 8]>
+  <div style=' clear: both; height: 59px; padding:0 0 0 15px; position: relative;margin:0 auto;'>
+    <a href="http://windows.microsoft.com/en-US/internet-explorer/products/ie/home?ocid=ie6_countdown_bannercode">
+      <img src="http://7u2nvr.com1.z0.glb.clouddn.com/picouterie.jpg" border="0" height="42" width="820"
+           alt="You are using an outdated browser. For a faster, safer browsing experience, upgrade for free today or use other browser ,like chrome firefox safari."
+           style='margin-left:auto;margin-right:auto;display: block;'/>
+    </a>
+  </div>
+<![endif]-->
+  
+
+
+
+  <script type="text/javascript">
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "//hm.baidu.com/hm.js?caeb4129c91d1e6fb3d562d35fedef0d";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+  <div class="container one-column page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-meta ">
+  
+
+  <div class="custom-logo-site-title">
+    <a href="/"  class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <span class="site-title">xiaoyun</span>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+  <p class="site-subtitle"></p>
+</div>
+
+<div class="site-nav-toggle">
+  <button>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+  </button>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu ">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-home fa-fw"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives" rel="section">
+            
+              <i class="menu-item-icon fa fa-archive fa-fw"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories" rel="section">
+            
+              <i class="menu-item-icon fa fa-th fa-fw"></i> <br />
+            
+            分类
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+              <i class="menu-item-icon fa fa-tags fa-fw"></i> <br />
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about" rel="section">
+            
+              <i class="menu-item-icon fa fa-user fa-fw"></i> <br />
+            
+            关于
+          </a>
+        </li>
+      
+
+      
+      
+    </ul>
+  
+
+  
+</nav>
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div id="content" class="content">
+          
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                HDFS节点的VersionedProtocol实现
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            发表于
+            <time itemprop="dateCreated" datetime="2016-01-01T21:38:51+08:00" content="2016-01-01">
+              2016-01-01
+            </time>
+          </span>
+
+          
+            <span class="post-category" >
+              &nbsp; | &nbsp; 分类于
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Hadoop-1-2-1/" itemprop="url" rel="index">
+                    <span itemprop="name">Hadoop-1.2.1</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Hadoop-1-2-1/HDFS/" itemprop="url" rel="index">
+                    <span itemprop="name">HDFS</span>
+                  </a>
+                </span>
+
+                
+                
+
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                &nbsp; | &nbsp;
+                <a href="/HDFS VersionedProtocol/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="HDFS VersionedProtocol/" itemprop="commentsCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+
+        </div>
+      </header>
+    
+
+
+    <div class="post-body">
+
+      
+      
+
+      
+        <span itemprop="articleBody"><p>Hadoop版本:<a href="https://archive.apache.org/dist/hadoop/core/hadoop-1.2.1/" target="_blank" rel="external">Hadoop-1.2.1</a><br>参考：《Hadoop技术内幕-深入解析Hadoop Common和HDFS架构设计与实现原理》</p>
+<hr>
+<p>HDFS中有NameNode节点，DataNode节点，SecondaryNameNode以及Client，他们之间的通信使用<a href="../RPC源码分析上篇">RPC</a>进行通信。在Hadoop中使用RPC远程过程调用，客户端和服务器之间的协议必须实现VersionedProtocol接口，HDFS中与VersionedProtocol相关的接口如下:<br><img src="../images/HDFS VersionedProtocol.png" alt="HDFS VersionedProtocol">  </p>
+<ul>
+<li><code>ClientProtocol</code>,由NameNode实现，为Client和NameNode之间RPC的协议，NameNode作为服务器，Client为客户端；  </li>
+<li><code>DatanodeProtocol</code>,NameNode实现，为DataNode和NameNode之间RPC的协议，NameNode作为服务器，DataNode作为客户端；</li>
+<li><code>RefreshUserMappingsProtocol</code>和<code>RefreshAuthorizationPolicyProtocol</code>，安全相关；</li>
+<li><code>NamenodeProtocol</code>，NameNode实现，为SecondaryNameNode和NameNode之间RPC协议，NameNode作为服务器，DataNode作为客户端；</li>
+<li><code>InterDatanodeProtocol</code>，DataNode实现，为DataNode和DataNode之间的RPC协议；</li>
+<li><code>ClientDatanodeProtocol</code>，DataNode实现，为Client和DataNode之间的RPC协议，DataNode作为服务器，Client为客户端；</li>
+</ul>
+<hr>
+<h2 id="1_ClientProtocol(大部分参考技术内幕)">1 ClientProtocol(大部分参考技术内幕)</h2><p>ClientProtocol是Client和NameNode之间RPC使用的协议，由NameNode充当服务器，Client调用NameNode上实现的相关方法，声明的方法如下:<br><img src="../images/ClientProtocol方法.png" alt="ClientProtocol方法">  </p>
+<h3 id="1-1_文件/目录相关(下表摘自技术内幕)">1.1 文件/目录相关(下表摘自技术内幕)</h3><table>
+<thead>
+<tr>
+<th style="text-align:center">Hadoop抽象文件系统FileSystem操作</th>
+<th style="text-align:center">ClientProtocol接口上操作</th>
+<th style="text-align:center">描述</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">URL.openStream<br>FileSystem.open<br>FileSystem.create<br>FileSystem.append<br></td>
+<td style="text-align:center">create<br>append<br>getBlockLocations<br></td>
+<td style="text-align:center">打开一个文件。可以通过创建文件即create，或是在已有文件上追加append。也可以通过open，为读操作打开文件，这时需要通过getBlockLocations获取数据块的保存位置</td>
+</tr>
+<tr>
+<td style="text-align:center">FSDataInputStream.read</td>
+<td style="text-align:center">getBlockLocations<br>reportBadBlocks</td>
+<td style="text-align:center">从文件中读取数据。读数据的read操作会转换成对数据块的读操作，通过getBlockLocations获得数据块的位置。读数据发现数据有错误的时候，通过reportBadBlocks报告给NameNode</td>
+</tr>
+<tr>
+<td style="text-align:center">FSDataOutputStream.write</td>
+<td style="text-align:center">addBlock<br>abandonBlock</td>
+<td style="text-align:center">向文件中写数据。写数据的过程中，如果需要新的数据块，必须通过addBlock向NameNode申请。写数据出现错误时，可以通过abandBlock放弃申请到的数据块</td>
+</tr>
+<tr>
+<td style="text-align:center">FSDataInputStream.close<br>FSDataOutputStream.close</td>
+<td style="text-align:center">fsync<br>complete</td>
+<td style="text-align:center">关闭一个文件。关闭文件时，先调用fsync，持久化数据，然后调用complete方法，通知NameNode文件关闭</td>
+</tr>
+<tr>
+<td style="text-align:center">FSDataInputStream.seek</td>
+<td style="text-align:center">getBlockLocations</td>
+<td style="text-align:center">改变文件读写位置，有时需要通过getBlockLocations，重新定位数据块位置</td>
+</tr>
+<tr>
+<td style="text-align:center">FileSystem.getFileStatus<br>FileSystem.getContentSummary<br>FileSystem.get*</td>
+<td style="text-align:center">getFileInfo<br>getContentSummary</td>
+<td style="text-align:center">getFileInfo用于获取文件/目录的属性，getContentSummary可获得文件/目录使用的存储空间信息</td>
+</tr>
+<tr>
+<td style="text-align:center">FileSystem.set*</td>
+<td style="text-align:center">setPermission<br>setOwner<br>setTimes<br>setReplication</td>
+<td style="text-align:center">修改文件属性</td>
+</tr>
+<tr>
+<td style="text-align:center">FileSystem.createNewFile</td>
+<td style="text-align:center">N/A</td>
+<td style="text-align:center">创建一个文件。在FileSystem中，默认通过create创建一个文件，然后立即通过输出流的close方法关闭文件，从而达到创建一个新的空文件的目的</td>
+</tr>
+<tr>
+<td style="text-align:center">FileSystem.delete</td>
+<td style="text-align:center">delete</td>
+<td style="text-align:center">删除一个文件/目录</td>
+</tr>
+<tr>
+<td style="text-align:center">FileSystem.rename</td>
+<td style="text-align:center">rename</td>
+<td style="text-align:center">更改文件名</td>
+</tr>
+<tr>
+<td style="text-align:center">FileSystem.mkdirs</td>
+<td style="text-align:center">mkdirs</td>
+<td style="text-align:center">创建子目录</td>
+</tr>
+<tr>
+<td style="text-align:center">FileSystem.listStatus</td>
+<td style="text-align:center">getListing</td>
+<td style="text-align:center">读取一个目录下的项目</td>
+</tr>
+<tr>
+<td style="text-align:center">FileSystem.setWorkingDirectory<br>FileSystem.getWorkingDirectory</td>
+<td style="text-align:center">N/A</td>
+<td style="text-align:center">设置/获取当前工作目录，HDFS中不存在当前工作目录的概念，所有路径为绝对路径</td>
+</tr>
+</tbody>
+</table>
+<p>上表中涉及HDFS中使用的一些对象，如<code>getBlockLocations</code>返回的<code>LocatedBlocks</code>对象，为指定路径开始偏移量指定长度数据所属的多个Block信息，包含所属的DataNode信息。<code>addBlock</code>返回的向NameNode申请到的<code>LocatedBlock</code>对象，为一个Block信息，包含所属的DataNode信息。<code>getFileInfo</code>返回的<code>HdfsFileStatus</code>，为HDFS中的文件状态对象。<code>getListing</code>返回的<code>DirectoryListing</code>对象，维护了目录下的所有文件状态，具体见<a href="../HDFS相关实体对象">HDFS相关实体对象</a>。</p>
+<p>关于上表还需注意的是，在FileSystem中，open，create，append返回的是对应的文件系统输入/输出流，而在ClientProtocol中的create和append方法返回的是void，他们只是实现FileSystem中同名方法的一个步骤。</p>
+<h3 id="1-2_写数据相关">1.2 写数据相关</h3><p>可以通过create创建一个新的文件或者append追加文件，然后向文件中写数据。  </p>
+<h4 id="1-2-1_create">1.2.1 create</h4><p>ClientProtocol.create在HDFS目录树中创建一个新的文件<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">public void <span class="operator"><span class="keyword">create</span>(<span class="keyword">String</span> src, FsPermission masked, <span class="keyword">String</span> clientName, <span class="built_in">boolean</span> overwrite, </span><br><span class="line">                         <span class="built_in">boolean</span> createParent, <span class="keyword">short</span> <span class="keyword">replication</span>, <span class="keyword">long</span> <span class="keyword">blockSize</span> ) throws IOException;</span></span><br></pre></td></tr></table></figure></p>
+<p>在文件系统中创建一个空文件src，src必须是绝对路径，HDFS中没有当前工作目录的概念。创建完成后，该文件能够被其他客户端访问(写数据等)，不过其他客户端不能delete，重新创建，rename该文件直到该文件被通知完成(complete方法)或者租约到期。<br>create创建文件后，该文件可被客户端访问，通过addBlock为指定的已经打开的文件添加一个数据块，然后往数据块中写数据<br><figure class="highlight processing"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> LocatedBlock addBlock(<span class="keyword">String</span> src, <span class="keyword">String</span> clientName, DatanodeInfo[] excludedNodes) <span class="keyword">throws</span> IOException;</span><br></pre></td></tr></table></figure></p>
+<p>如上，<code>excludedNodes</code>告知名字节点在选择数据节点时排除某些数据节点。该方法返回LocatedBlock，接下来客户端便可连接对应的DataNode然后往该数据块写数据。<br>当客户端联系不上名字节点通过addBlock返回的数据节点时，需要通过abandonBlock方法放弃这个数据块，并重新申请新的数据块。</p>
+<h4 id="1-2-2_append">1.2.2 append</h4><p>append直接返回指定的需要写数据的数据块LocatedBlock对象<br><figure class="highlight processing"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> LocatedBlock <span class="built_in">append</span>(<span class="keyword">String</span> src, <span class="keyword">String</span> clientName) <span class="keyword">throws</span> IOException;</span><br></pre></td></tr></table></figure></p>
+<h4 id="1-2-3_fsync">1.2.3 fsync</h4><p>fsync方法通知名字节点持久化对应文件的相关信息，包括文件的元数据，文件包含的数据块，当前打开的这个文件的客户端标识等，但不保证写到数据节点上的数据持久化<br><figure class="highlight processing"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> fsync(<span class="keyword">String</span> src, <span class="keyword">String</span> client) <span class="keyword">throws</span> IOException;</span><br></pre></td></tr></table></figure></p>
+<h4 id="1-2-4_complete">1.2.4 complete</h4><p>无论是通过create然后addBlock写数据还是直接通过append写数据，写数据结束后，都应该将其关闭，complete方法通知名字节点客户端已经完成文件的写操作<br><figure class="highlight processing"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="built_in">boolean</span> complete(<span class="keyword">String</span> src, <span class="keyword">String</span> clientName) <span class="keyword">throws</span> IOException;</span><br></pre></td></tr></table></figure></p>
+<h4 id="1-2-5_租约(摘自技术内幕)">1.2.5 租约(摘自技术内幕)</h4><p>在名字节点，租约记录了客户端为写数据而打开文件的信息，也可以理解为名字节点将写特定文件的权限授权给该客户端，客户端通过renewLease定时更新它的租约。<br>客户端调用ClientProtocol.renewLease，相当于往名字节点发送心跳信息，如果名字节点长时间没有收到客户端的租约更新，就可以认为客户端已经崩溃，名字节点会试图关闭文件，以防止资源泄漏。<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">void</span> <span class="title">renewLease</span><span class="params">(String clientName)</span> <span class="keyword">throws</span> IOException</span>;</span><br></pre></td></tr></table></figure></p>
+<p>如果客户端从崩溃中回复，并试图继续未完成的写文件操作，这时候使用recoverLease回复租约<br><figure class="highlight processing"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="built_in">boolean</span> recoverLease(<span class="keyword">String</span> src, <span class="keyword">String</span> clientName) <span class="keyword">throws</span> IOException;</span><br></pre></td></tr></table></figure></p>
+<p>src用于指定需要恢复租约的文件路径，如果方法返回true，表明这个文件已经被成功关闭，可以通过append打开文件，继续写数据。  </p>
+<p>而如果名字节点出现问题，发生崩溃，当名字节点从错误中恢复时，可以根据名字节点的日志记录，恢复租约信息。</p>
+<h3 id="1-3_读数据相关">1.3 读数据相关</h3><p>主要通过getBlockLocations返回指定的数据块信息，然后进行相应的读取<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="function">LocatedBlocks  <span class="title">getBlockLocations</span><span class="params">(String src, <span class="keyword">long</span> offset, <span class="keyword">long</span> length)</span> <span class="keyword">throws</span> IOException</span>;</span><br></pre></td></tr></table></figure></p>
+<p>当读数据出错(校验)时，通过reportBadBlocks向名字节点报告<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">void</span> <span class="title">reportBadBlocks</span><span class="params">(LocatedBlock[] blocks)</span> <span class="keyword">throws</span> IOException</span>;</span><br></pre></td></tr></table></figure></p>
+<h3 id="1-4_dfsadmin相关">1.4 dfsadmin相关</h3><p>ClientProtocol其他的方法用于实现多功能工具dfsadmin</p>
+<h4 id="1-4-1_setQuota">1.4.1 setQuota</h4><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">void</span> <span class="title">setQuota</span><span class="params">(String path, <span class="keyword">long</span> namespaceQuota, <span class="keyword">long</span> diskspaceQuota)</span> <span class="keyword">throws</span> IOException</span>;</span><br></pre></td></tr></table></figure>
+<p>设置目录path的配额，namespaceQuota为path下文件或目录的数量限制，diskspaceQuota为path下占磁盘空间大小的限制。<br>配额可以有四种值:</p>
+<ul>
+<li><code>&gt;=0</code>,设置配额为该值；</li>
+<li><code>FSConstants.QUOTA_DONT_SET</code>(Long.MAX_VALUE)维持原来的值；</li>
+<li><code>FSConstants.QUOTA_RESET</code>(-1)，配额重置</li>
+<li>其他，运行时异常<h4 id="1-4-2_setSafeMode">1.4.2 setSafeMode</h4><figure class="highlight crystal"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">public boolean setSafeMode(<span class="constant">FSConstants</span>.<span class="constant">SafeModeAction</span> action) throws <span class="constant">IOException</span>;</span><br><span class="line">public <span class="class"><span class="keyword">enum</span> <span class="title">SafeModeAction</span>&#123; <span class="title">SAFEMODE_LEAVE</span>, <span class="title">SAFEMODE_ENTER</span>, <span class="title">SAFEMODE_GET</span>;</span> &#125;</span><br></pre></td></tr></table></figure>
+</li>
+</ul>
+<p>安全模式下，HDFS向客户端提供只读视图，不接受对名字空间的更改，包括创建文件，删除目录等操作；同时，名字节点也不会进行数据块的复制或删除，如副本数小于正常水平的数据块复制。<br>如上，可设置离开安全模式，进入安全模式，获取当前安全模式状态。</p>
+<h4 id="1-4-3_saveNamespace">1.4.3 saveNamespace</h4><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">void</span> <span class="title">saveNamespace</span><span class="params">()</span> <span class="keyword">throws</span> IOException</span>;</span><br></pre></td></tr></table></figure>
+<p>名字节点将当前内存中文件系统镜像保存到新的命名空间镜像(fsimage)中，并重置日志文件，需要工作在超级用户权限且为安全模式中。</p>
+<h4 id="1-4-4_metaSave(技术内幕)">1.4.4 metaSave(技术内幕)</h4><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">void</span> <span class="title">metaSave</span><span class="params">(String filename)</span> <span class="keyword">throws</span> IOException</span>;</span><br></pre></td></tr></table></figure>
+<p>将名字节点中主要数据结构保存到指定文件filename中，该文件包含的信息有:名字节点收到的数据节点心跳信号，等待被复制的数据块，正在被复制的数据块，等待被删除的数据块等。<br>不需要处于安全模式中。  </p>
+<h4 id="1-4-5_refreshNodes(技术内幕)">1.4.5 refreshNodes(技术内幕)</h4><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">void</span> <span class="title">refreshNodes</span><span class="params">()</span> <span class="keyword">throws</span> IOException</span>;</span><br></pre></td></tr></table></figure>
+<p>通知名字节点重新读hosts文件和exclude文件。Hadoop管理员可能随时添加或者移除节点，因此通过该方法通知名字节点重新读取节点信息。<br>该方法不带参数，所需要的信息保存在两个文件中:<code>include</code>文件(一般在配置目录下)用于指定可以连接到名字节点的数据节点列表，exclude文件指定要移除的数据节点。  </p>
+<h4 id="1-4-6_升级">1.4.6 升级</h4><p>升级相关的有distributedUpgradeProgress查询升级的进度，finalizeUpgrade提交升级<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="function">UpgradeStatusReport <span class="title">distributedUpgradeProgress</span><span class="params">(UpgradeAction action)</span> <span class="keyword">throws</span> IOException</span>;</span><br><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">void</span> <span class="title">finalizeUpgrade</span><span class="params">()</span> <span class="keyword">throws</span> IOException</span>;</span><br></pre></td></tr></table></figure></p>
+<p>通过”-upgrade”选项启动HDFS可以开始一次系统升级，升级启动后，可以通过distributedUpgradeProgress使用不同的参数，获得当前系统的升级状态，升级状态的细节，或者进行强制升级操作。<br>finalizeUpgrade提交HDFS的升级操作，通过提交后才能完成升级操作。finalizeUpgrade会让数据节点和名字节点执行一些升级后的清理操作，清理操作完成后，升级过程完成。</p>
+<hr>
+<h2 id="2_DatanodeProtocol">2 DatanodeProtocol</h2><p>DatanodeProtocol为数据节点和名字节点之间通信的接口，包含的方法如下:<br><img src="../images/DatanodeProtocol方法.png" alt="DatanodeProtocol方法">  </p>
+<h3 id="2-1_握手，注册，数据块上报和心跳(技术内幕)">2.1 握手，注册，数据块上报和心跳(技术内幕)</h3><p>数据节点启动时，会先和名字节点进行握手，使用的是<code>versionRequest</code>方法，返回值为NamespaceInfo对象，检查相应数据节点和名字节点的版本号，不匹配导致数据节点退出。<br>数据节点通过register方法向名字节点注册，参数为<code>DatanodeRegistration</code>对象，见<a href="../HDFS相关实体对象">HDFS相关实体对象</a>，包含了NameNode标识一个数据节点所需的全部数据。<br>注册成功后，数据节点通过<code>blockReport</code>方法，上报它所管理的全部数据块信息，帮助名字节点建立数据块和数据节点的映射关系。blockReport的第一个参数用来标识数据节点，第二个参数包含数据块的信息。blockReport一般只在数据节点启动的时候使用，而一般情况下通过心跳向名字节点报告自己的状态。<br>DataNode通过<code>sendHeartbeat</code>来向NameNode发送心跳信息。除了携带标识DataNode身份的DatanodeRegistration对象外，还包括数据节点当前的运行情况的信息。这些信息包括数据节点的容量，已经使用的容量，剩余容量，正在写文件的连接数，读写数据使用的线程数等。返回值为DatanodeCommand对象，执行相应的命令。</p>
+<h3 id="2-2_数据块操作相关(技术内幕)">2.2 数据块操作相关(技术内幕)</h3><p>HDFS使用CRC32进行错误检测，会在3中情况下检验校验和:</p>
+<ul>
+<li>数据节点接收数据后，存储数据前</li>
+<li>(某些情况下)客户端读取数据节点上的数据时</li>
+<li>数据节点上DataBlockScanner扫描线程定期扫描数据块</li>
+</ul>
+<p>当发现数据块有问题(校验出错)时，就会通过<code>reportBadBlocks</code>上报给名字节点，参数为LocatedBlock数组，即出错的区块信息。<br>数据节点使用<code>blockReceived</code>向名字节点报告它已经完整的接受了一些数据块，接收来源可以是客户端(用户往HDFS中写文件)，也可以是其他的数据节点(数据块复制DNA_TRANSFER)或者均衡器触发的数据复制。blockReceived第一个参数为报告接收完成的数据节点标识，第二个为接收完成的区块，第三个参数由均衡器使用<br><figure class="highlight armasm"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="label">public</span> void <span class="keyword">blockReceived(DatanodeRegistration </span>registration, <span class="keyword">Block </span><span class="keyword">blocks[], </span><span class="keyword">String[] </span>delHints) throws IOException<span class="comment">;</span></span><br></pre></td></tr></table></figure></p>
+<p>方法<code>blocksBeingWrittenReport</code>，<code>nextGenerationStamp</code>和<code>commitBlockSynchronization</code>都和系统异常处理有关。<br>当系统支持append时，数据节点会在注册后，调用<code>blocksBeingWrittenReport</code>向名字节点报告当前正处于写状态的数据块信息，以帮助名字节点进行租约恢复。<br><code>nextGenerationStamp</code>用于向名字节点申请一个新的数据块版本号，数据块恢复过程中需要一个新的数据块版本号，以区分同一数据块修复前后的差别。<br>数据块恢复完成后，无论结果是成功还是失败，都需要通过<code>commitBlockSynchronization</code>告知数据块恢复的执行情况。<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">void</span> <span class="title">commitBlockSynchronization</span><span class="params">(Block block, <span class="keyword">long</span> newgenerationstamp, <span class="keyword">long</span> newlength,</span><br><span class="line">      <span class="keyword">boolean</span> closeFile, <span class="keyword">boolean</span> deleteblock, DatanodeID[] newtargets )</span> <span class="keyword">throws</span> IOException</span>;</span><br></pre></td></tr></table></figure></p>
+<p>参数分别为进行修复的数据块，通过nextGenerationStamp申请的新版本号，数据块恢复后新的长度，所述文件是否由名字节点关闭，是否删除名字节点上的数据块信息，成功参与数据块恢复的数据节点列表。  </p>
+<h3 id="2-3_errorReport和processUpgradeCommand">2.3 errorReport和processUpgradeCommand</h3><p>DataNode通过<code>errorReport</code>向NameNode上报运行过程中发生的一些状况，如磁盘不可用，等待被复制的数据块不存在等。<br><code>processUpgradeCommand</code>和系统升级有关，用于向名字节点报告升级状态。</p>
+<hr>
+<h2 id="3_RefreshUserProtocol和RefreshAuthorizationPolicyProtocol">3 RefreshUserProtocol和RefreshAuthorizationPolicyProtocol</h2><p>这两个接口与安全相关<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">interface</span> <span class="title">RefreshUserMappingsProtocol</span> <span class="keyword">extends</span> <span class="title">VersionedProtocol</span> </span>&#123;</span><br><span class="line">  <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="keyword">long</span> versionID = <span class="number">1L</span>;</span><br><span class="line">  </span><br><span class="line">  <span class="comment">//刷新用户-组的映射</span></span><br><span class="line">  <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">refreshUserToGroupsMappings</span><span class="params">()</span> <span class="keyword">throws</span> IOException</span>;</span><br><span class="line">  </span><br><span class="line">  <span class="comment">//刷新超级用户代理列表</span></span><br><span class="line">  <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">refreshSuperUserGroupsConfiguration</span><span class="params">()</span> <span class="keyword">throws</span> IOException</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">interface</span> <span class="title">RefreshAuthorizationPolicyProtocol</span> <span class="keyword">extends</span> <span class="title">VersionedProtocol</span> </span>&#123;</span><br><span class="line">  <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="keyword">long</span> versionID = <span class="number">1L</span>;</span><br><span class="line">  <span class="function"><span class="keyword">void</span> <span class="title">refreshServiceAcl</span><span class="params">()</span> <span class="keyword">throws</span> IOException</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<hr>
+<h2 id="4_NamenodeProtocol(技术内幕)">4 NamenodeProtocol(技术内幕)</h2><p>NameNodeProtocol由NameNode实现，由SecondaryNameNode和均衡器作为客户端调用。<br>方法如下:<br><img src="../images/NamenodeProtocol方法.png" alt="NamenodeProtocol方法"><br>前两个方法<code>getBlocks</code>和<code>getBlockKeys</code>被均衡器使用，getBlocks获得某一个数据节点上指定大小数据对应的数据块信息，根据这些信息，均衡器可以把数据块从该数据节点移动到其他数据节点，达到平衡各个数据节点数据块数量的目的。getBlockKeys用于支持这个过程中需要的安全特性。   </p>
+<p>后三个方法被SecondaryNameNode使用。<br><code>getEditLogSize</code>可获得名字节点上编辑日志的大小，如果日志很小，第二名字节点就不需要合并镜像数据和编辑日志，即使名字节点发生故障也可以很快就恢复过来。<br>SecondaryNameNode通过<code>rollEditLog</code>通知名字节点开始一次合并过程，这时名字节点会停止使用当前的编辑日志，并启用新的日志文件以方便第二名字节点通过基于http的流式接口，获取待合并的命名空间镜像和镜像编辑日志。rollEditLog返回一个CheckpointSignature对象，标识一次合并点。<br>SecondaryNameNode上的合并完成后，通过http接口上传新的元数据镜像，操作完成后，无参的远程方法<code>rollFSImage</code>被调用，名字节点进行一些必要的处理，最终完成一次元数据合并。</p>
+<hr>
+<h2 id="5_InterDatanodeProtocol">5 InterDatanodeProtocol</h2><p>InterDatanodeProtocol为数据节点间的接口。<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">interface</span> <span class="title">InterDatanodeProtocol</span> <span class="keyword">extends</span> <span class="title">VersionedProtocol</span> </span>&#123;</span><br><span class="line">  <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> Log LOG = LogFactory.getLog(InterDatanodeProtocol.class);</span><br><span class="line">  <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="keyword">long</span> versionID = <span class="number">3L</span>;</span><br><span class="line"></span><br><span class="line">  <span class="comment">//返回一个区块的元信息</span></span><br><span class="line">  <span class="function">BlockMetaDataInfo <span class="title">getBlockMetaDataInfo</span><span class="params">(Block block)</span> <span class="keyword">throws</span> IOException</span>;</span><br><span class="line"></span><br><span class="line">  <span class="function">BlockRecoveryInfo <span class="title">startBlockRecovery</span><span class="params">(Block block)</span> <span class="keyword">throws</span> IOException</span>;</span><br><span class="line">  </span><br><span class="line">  <span class="comment">//更新旧oldblock为newblock，finalize数据节点完成更新后是否提交数据块</span></span><br><span class="line">  <span class="function"><span class="keyword">void</span> <span class="title">updateBlock</span><span class="params">(Block oldblock, Block newblock, <span class="keyword">boolean</span> finalize)</span> <span class="keyword">throws</span> IOException</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p><code>startBlockRecovery</code>用于获得参与到数据块恢复过程的各个数据节点上的数据块信息，返回值是一个<code>BlockRecoveryInfo</code>对象，见<a href="../HDFS相关实体对象">HDFS相关实体对象</a>。处于协调者地位的数据节点，根据BlockRecoveryInfo中的信息，计算出数据块恢复后数据块的新长度，和名字节点交换一些信息后，通过<code>updateBlock</code>方法通知其他数据节点，将各个节点上的待修复数据块更新。</p>
+<hr>
+<h2 id="6_ClientDatanodeProtocol">6 ClientDatanodeProtocol</h2><p>ClientDatanodeProtocol为客户端和数据节点之间的接口。支持的方法如下:<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">interface</span> <span class="title">ClientDatanodeProtocol</span> <span class="keyword">extends</span> <span class="title">VersionedProtocol</span> </span>&#123;</span><br><span class="line">  <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> Log LOG = LogFactory.getLog(ClientDatanodeProtocol.class);</span><br><span class="line">  <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="keyword">long</span> versionID = <span class="number">4L</span>;</span><br><span class="line"></span><br><span class="line">  <span class="function">LocatedBlock <span class="title">recoverBlock</span><span class="params">(Block block, <span class="keyword">boolean</span> keepLength, DatanodeInfo[] targets)</span> <span class="keyword">throws</span> IOException</span>;</span><br><span class="line"></span><br><span class="line">  <span class="function">Block <span class="title">getBlockInfo</span><span class="params">(Block block)</span> <span class="keyword">throws</span> IOException</span>;</span><br><span class="line"></span><br><span class="line">  <span class="function">BlockLocalPathInfo <span class="title">getBlockLocalPathInfo</span><span class="params">(Block block, Token&lt;BlockTokenIdentifier&gt; token)</span> <span class="keyword">throws</span> IOException</span>;           </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p><code>recoverBlock</code>方法应用于HDFS客户端DFSClient的输出流DFSOutputStream中，客户端往数据节点输出数据的过程中，如果某个副本所在的数据节点出现错误，客户端会使用recoverBlock尝试进行数据快恢复，从正常工作的数据节点中找到恢复点，然后才能继续输出数据。<br><code>getBlockInfo</code>和HDFS的文件爱你一致性模型有关，输入的是一个Block对象，输出的是(可能)更新过的，反映数据变化的新的Block对象。<br><code>BlockLocalPathInfo</code>用于本地读优化，获得某个数据块对应的数据块文件和数据校验信息文件的本地路径。  </p>
+</span>
+      
+    </div>
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/HDFS/" rel="tag">#HDFS</a>
+          
+            <a href="/tags/Hadoop-1-2-1/" rel="tag">#Hadoop-1.2.1</a>
+          
+            <a href="/tags/Java/" rel="tag">#Java</a>
+          
+        </div>
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/InMemoryFileSystem/" rel="next" title="Hadoop FileSystem实现---InMemoryFileSystem">
+                <i class="fa fa-chevron-left"></i> Hadoop FileSystem实现---InMemoryFileSystem
+              </a>
+            
+          </div>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/HDFS相关实体对象/" rel="prev" title="HDFS相关实体对象">
+                HDFS相关实体对象 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </article>
+
+
+
+    <div class="post-spread">
+      
+        <!-- JiaThis Button BEGIN -->
+<div class="jiathis_style">
+  <a class="jiathis_button_tsina"></a>
+  <a class="jiathis_button_tqq"></a>
+  <a class="jiathis_button_weixin"></a>
+  <a class="jiathis_button_cqq"></a>
+  <a class="jiathis_button_douban"></a>
+  <a class="jiathis_button_renren"></a>
+  <a class="jiathis_button_qzone"></a>
+  <a class="jiathis_button_kaixin001"></a>
+  <a class="jiathis_button_copy"></a>
+  <a href="http://www.jiathis.com/share" class="jiathis jiathis_txt jiathis_separator jtico jtico_jiathis" target="_blank"></a>
+  <a class="jiathis_counter_style"></a>
+</div>
+<script type="text/javascript" >
+  var jiathis_config={
+    hideMore:false
+  }
+</script>
+<script type="text/javascript" src="http://v3.jiathis.com/code/jia.js" charset="utf-8"></script>
+<!-- JiaThis Button END -->
+
+      
+    </div>
+  </div>
+
+
+        </div>
+
+        
+
+
+        
+  <div class="comments" id="comments">
+    
+      <div class="ds-thread" data-thread-key="HDFS VersionedProtocol/"
+           data-title="HDFS节点的VersionedProtocol实现" data-url="http://xiao-yun.github.io/HDFS VersionedProtocol/">
+      </div>
+    
+  </div>
+
+
+      </div>
+
+      
+        
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap" >
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel ">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+          <img class="site-author-image" src="/images/hero.jpg" alt="xiaoyun" itemprop="image"/>
+          <p class="site-author-name" itemprop="name">xiaoyun</p>
+        </div>
+        <p class="site-description motion-element" itemprop="description">学习笔记，网上资源摘要等</p>
+        <nav class="site-state motion-element">
+          <div class="site-state-item site-state-posts">
+            <a href="/archives">
+              <span class="site-state-item-count">29</span>
+              <span class="site-state-item-name">日志</span>
+            </a>
+          </div>
+
+          <div class="site-state-item site-state-categories">
+            <a href="/categories">
+              <span class="site-state-item-count">24</span>
+              <span class="site-state-item-name">分类</span>
+              </a>
+          </div>
+
+          <div class="site-state-item site-state-tags">
+            <a href="/tags">
+              <span class="site-state-item-count">14</span>
+              <span class="site-state-item-name">标签</span>
+              </a>
+          </div>
+
+        </nav>
+
+        
+
+        <div class="links-of-author motion-element">
+          
+            
+              <span class="links-of-author-item">
+                <a href="https://github.com/xiao-yun" target="_blank">
+                  
+                    <i class="fa fa-globe"></i> github
+                  
+                </a>
+              </span>
+            
+          
+        </div>
+
+        
+        
+
+        <div class="links-of-author motion-element">
+          
+        </div>
+
+      </section>
+
+      
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc-indicator-top post-toc-indicator">
+            <i class="fa fa-angle-double-up"></i>
+          </div>
+          <div class="post-toc">
+            
+              
+            
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#1_ClientProtocol(大部分参考技术内幕)"><span class="nav-number">1.</span> <span class="nav-text">1 ClientProtocol(大部分参考技术内幕)</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-1_文件/目录相关(下表摘自技术内幕)"><span class="nav-number">1.1.</span> <span class="nav-text">1.1 文件/目录相关(下表摘自技术内幕)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-2_写数据相关"><span class="nav-number">1.2.</span> <span class="nav-text">1.2 写数据相关</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#1-2-1_create"><span class="nav-number">1.2.1.</span> <span class="nav-text">1.2.1 create</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#1-2-2_append"><span class="nav-number">1.2.2.</span> <span class="nav-text">1.2.2 append</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#1-2-3_fsync"><span class="nav-number">1.2.3.</span> <span class="nav-text">1.2.3 fsync</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#1-2-4_complete"><span class="nav-number">1.2.4.</span> <span class="nav-text">1.2.4 complete</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#1-2-5_租约(摘自技术内幕)"><span class="nav-number">1.2.5.</span> <span class="nav-text">1.2.5 租约(摘自技术内幕)</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-3_读数据相关"><span class="nav-number">1.3.</span> <span class="nav-text">1.3 读数据相关</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-4_dfsadmin相关"><span class="nav-number">1.4.</span> <span class="nav-text">1.4 dfsadmin相关</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#1-4-1_setQuota"><span class="nav-number">1.4.1.</span> <span class="nav-text">1.4.1 setQuota</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#1-4-2_setSafeMode"><span class="nav-number">1.4.2.</span> <span class="nav-text">1.4.2 setSafeMode</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#1-4-3_saveNamespace"><span class="nav-number">1.4.3.</span> <span class="nav-text">1.4.3 saveNamespace</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#1-4-4_metaSave(技术内幕)"><span class="nav-number">1.4.4.</span> <span class="nav-text">1.4.4 metaSave(技术内幕)</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#1-4-5_refreshNodes(技术内幕)"><span class="nav-number">1.4.5.</span> <span class="nav-text">1.4.5 refreshNodes(技术内幕)</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#1-4-6_升级"><span class="nav-number">1.4.6.</span> <span class="nav-text">1.4.6 升级</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2_DatanodeProtocol"><span class="nav-number">2.</span> <span class="nav-text">2 DatanodeProtocol</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1_握手，注册，数据块上报和心跳(技术内幕)"><span class="nav-number">2.1.</span> <span class="nav-text">2.1 握手，注册，数据块上报和心跳(技术内幕)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-2_数据块操作相关(技术内幕)"><span class="nav-number">2.2.</span> <span class="nav-text">2.2 数据块操作相关(技术内幕)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-3_errorReport和processUpgradeCommand"><span class="nav-number">2.3.</span> <span class="nav-text">2.3 errorReport和processUpgradeCommand</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3_RefreshUserProtocol和RefreshAuthorizationPolicyProtocol"><span class="nav-number">3.</span> <span class="nav-text">3 RefreshUserProtocol和RefreshAuthorizationPolicyProtocol</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4_NamenodeProtocol(技术内幕)"><span class="nav-number">4.</span> <span class="nav-text">4 NamenodeProtocol(技术内幕)</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#5_InterDatanodeProtocol"><span class="nav-number">5.</span> <span class="nav-text">5 InterDatanodeProtocol</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#6_ClientDatanodeProtocol"><span class="nav-number">6.</span> <span class="nav-text">6 ClientDatanodeProtocol</span></a></li></ol></div>
+            
+          </div>
+          <div class="post-toc-indicator-bottom post-toc-indicator">
+            <i class="fa fa-angle-double-down"></i>
+          </div>
+        </section>
+      
+
+    </div>
+  </aside>
+
+
+      
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright" >
+  
+  &copy; 
+  <span itemprop="copyrightYear">2016</span>
+  <span class="with-love">
+    <i class="icon-next-heart fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">xiaoyun</span>
+</div>
+
+<div class="powered-by">
+  由 <a class="theme-link" href="http://hexo.io">Hexo</a> 强力驱动
+</div>
+
+<div class="theme-info">
+  主题 -
+  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
+    NexT.Mist
+  </a>
+</div>
+
+
+
+      </div>
+    </footer>
+
+    <div class="back-to-top"></div>
+  </div>
+
+  <script type="text/javascript" src="/vendors/jquery/index.js?v=2.1.3"></script>
+
+  
+  
+
+  
+    
+
+  
+    
+  
+
+  <script type="text/javascript">
+    var duoshuoQuery = {short_name:"xiaoyuncom"};
+    (function() {
+      var ds = document.createElement('script');
+      ds.type = 'text/javascript';ds.async = true;
+      ds.id = 'duoshuo-script';
+      ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+      ds.charset = 'UTF-8';
+      (document.getElementsByTagName('head')[0]
+      || document.getElementsByTagName('body')[0]).appendChild(ds);
+    })();
+  </script>
+    
+     
+
+
+    
+  
+
+  
+  <script type="text/javascript" src="/vendors/fancybox/source/jquery.fancybox.pack.js"></script>
+  <script type="text/javascript" src="/js/fancy-box.js?v=0.4.5.2"></script>
+
+
+  <script type="text/javascript" src="/js/helpers.js?v=0.4.5.2"></script>
+  <script type="text/javascript" src="/vendors/velocity/velocity.min.js"></script>
+<script type="text/javascript" src="/vendors/velocity/velocity.ui.min.js"></script>
+
+<script type="text/javascript" src="/js/motion.js?v=0.4.5.2" id="motion.global"></script>
+
+
+  <script type="text/javascript" src="/vendors/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  <script type="text/javascript" src="/vendors/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  
+<script type="text/javascript" src="/js/bootstrap.scrollspy.js?v=0.4.5.2" id="bootstrap.scrollspy.custom"></script>
+
+
+<script type="text/javascript" id="sidebar.toc.highlight">
+  $(document).ready(function () {
+    var tocSelector = '.post-toc';
+    var $tocSelector = $(tocSelector);
+    var activeCurrentSelector = '.active-current';
+
+    $tocSelector
+      .on('activate.bs.scrollspy', function () {
+        var $currentActiveElement = $(tocSelector + ' .active').last();
+
+        removeCurrentActiveClass();
+        $currentActiveElement.addClass('active-current');
+
+        $tocSelector[0].scrollTop = $currentActiveElement.position().top;
+      })
+      .on('clear.bs.scrollspy', function () {
+        removeCurrentActiveClass();
+      });
+
+    function removeCurrentActiveClass () {
+      $(tocSelector + ' ' + activeCurrentSelector)
+        .removeClass(activeCurrentSelector.substring(1));
+    }
+
+    function processTOC () {
+      getTOCMaxHeight();
+      toggleTOCOverflowIndicators();
+    }
+
+    function getTOCMaxHeight () {
+      var height = $('.sidebar').height() -
+                   $tocSelector.position().top -
+                   $('.post-toc-indicator-bottom').height();
+
+      $tocSelector.css('height', height);
+
+      return height;
+    }
+
+    function toggleTOCOverflowIndicators () {
+      tocOverflowIndicator(
+        '.post-toc-indicator-top',
+        $tocSelector.scrollTop() > 0 ? 'show' : 'hide'
+      );
+
+      tocOverflowIndicator(
+        '.post-toc-indicator-bottom',
+        $tocSelector.scrollTop() >= $tocSelector.find('ol').height() - $tocSelector.height() ? 'hide' : 'show'
+      )
+    }
+
+    $(document).on('sidebar.motion.complete', function () {
+      processTOC();
+    });
+
+    $('body').scrollspy({ target: tocSelector });
+    $(window).on('resize', function () {
+      if ( $('.sidebar').hasClass('sidebar-active') ) {
+        processTOC();
+      }
+    });
+
+    onScroll($tocSelector);
+
+    function onScroll (element) {
+      element.on('mousewheel DOMMouseScroll', function (event) {
+          var oe = event.originalEvent;
+          var delta = oe.wheelDelta || -oe.detail;
+
+          this.scrollTop += ( delta < 0 ? 1 : -1 ) * 30;
+          event.preventDefault();
+
+          toggleTOCOverflowIndicators();
+      });
+    }
+
+    function tocOverflowIndicator (indicator, action) {
+      var $indicator = $(indicator);
+      var opacity = action === 'show' ? 1 : 0;
+      $indicator.velocity ?
+        $indicator.velocity('stop').velocity({
+          opacity: opacity
+        }, { duration: 100 }) :
+        $indicator.stop().animate({
+          opacity: opacity
+        }, 100);
+    }
+
+  });
+</script>
+
+<script type="text/javascript" id="sidebar.nav">
+  $(document).ready(function () {
+    var html = $('html');
+    var TAB_ANIMATE_DURATION = 200;
+    var hasVelocity = $.isFunction(html.velocity);
+
+    $('.sidebar-nav li').on('click', function () {
+      var item = $(this);
+      var activeTabClassName = 'sidebar-nav-active';
+      var activePanelClassName = 'sidebar-panel-active';
+      if (item.hasClass(activeTabClassName)) {
+        return;
+      }
+
+      var currentTarget = $('.' + activePanelClassName);
+      var target = $('.' + item.data('target'));
+
+      hasVelocity ?
+        currentTarget.velocity('transition.slideUpOut', TAB_ANIMATE_DURATION, function () {
+          target
+            .velocity('stop')
+            .velocity('transition.slideDownIn', TAB_ANIMATE_DURATION)
+            .addClass(activePanelClassName);
+        }) :
+        currentTarget.animate({ opacity: 0 }, TAB_ANIMATE_DURATION, function () {
+          currentTarget.hide();
+          target
+            .stop()
+            .css({'opacity': 0, 'display': 'block'})
+            .animate({ opacity: 1 }, TAB_ANIMATE_DURATION, function () {
+              currentTarget.removeClass(activePanelClassName);
+              target.addClass(activePanelClassName);
+            });
+        });
+
+      item.siblings().removeClass(activeTabClassName);
+      item.addClass(activeTabClassName);
+    });
+
+    $('.post-toc a').on('click', function (e) {
+      e.preventDefault();
+      var targetSelector = escapeSelector(this.getAttribute('href'));
+      var offset = $(targetSelector).offset().top;
+      hasVelocity ?
+        html.velocity('stop').velocity('scroll', {
+          offset: offset  + 'px',
+          mobileHA: false
+        }) :
+        $('html, body').stop().animate({
+          scrollTop: offset
+        }, 500);
+    });
+
+    // Expand sidebar on post detail page by default, when post has a toc.
+    motionMiddleWares.sidebar = function () {
+      var $tocContent = $('.post-toc-content');
+      if (CONFIG.sidebar === 'post') {
+        if ($tocContent.length > 0 && $tocContent.html().trim().length > 0) {
+          displaySidebar();
+        }
+      }
+    };
+  });
+</script>
+
+
+
+  <script type="text/javascript" src="/js/bootstrap.js"></script>
+
+  
+  
+
+  
+  
+
+</body>
+</html>

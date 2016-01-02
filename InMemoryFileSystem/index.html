@@ -1,0 +1,848 @@
+<!doctype html>
+<html class="theme-next   use-motion ">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+  <link href="/vendors/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css"/>
+
+
+
+
+  <link href="//fonts.googleapis.com/css?family=Lato:300,400,700,400italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+
+
+
+<link href="/vendors/font-awesome/css/font-awesome.min.css?v=4.4.0" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=0.4.5.2" rel="stylesheet" type="text/css" />
+
+
+  <meta name="keywords" content="HDFS,Hadoop-1.2.1,Java," />
+
+
+
+
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=0.4.5.2" />
+
+
+
+
+
+
+<meta name="description" content="Hadoop版本:Hadoop-1.2.1参考：《Hadoop技术内幕-深入解析Hadoop Common和HDFS架构设计与实现原理》
+
+InMemoryFileSystem是内存文件系统的实现，继承自ChecksumFileSystem，拥有校验和的功能，InMemoryFileSystem目前被标记为Deprecated，这里主要分析其底层文件系统RawInMemoryFileSyStem，">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Hadoop FileSystem实现---InMemoryFileSystem">
+<meta property="og:url" content="http://xiao-yun.github.io/InMemoryFileSystem/index.html">
+<meta property="og:site_name" content="xiaoyun">
+<meta property="og:description" content="Hadoop版本:Hadoop-1.2.1参考：《Hadoop技术内幕-深入解析Hadoop Common和HDFS架构设计与实现原理》
+
+InMemoryFileSystem是内存文件系统的实现，继承自ChecksumFileSystem，拥有校验和的功能，InMemoryFileSystem目前被标记为Deprecated，这里主要分析其底层文件系统RawInMemoryFileSyStem，">
+<meta property="og:updated_time" content="2016-01-01T13:30:37.880Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Hadoop FileSystem实现---InMemoryFileSystem">
+<meta name="twitter:description" content="Hadoop版本:Hadoop-1.2.1参考：《Hadoop技术内幕-深入解析Hadoop Common和HDFS架构设计与实现原理》
+
+InMemoryFileSystem是内存文件系统的实现，继承自ChecksumFileSystem，拥有校验和的功能，InMemoryFileSystem目前被标记为Deprecated，这里主要分析其底层文件系统RawInMemoryFileSyStem，">
+
+
+
+<script type="text/javascript" id="hexo.configuration">
+  var CONFIG = {
+    scheme: 'Mist',
+    sidebar: 'hide',
+    motion: true
+  };
+</script>
+
+  <title> Hadoop FileSystem实现---InMemoryFileSystem | xiaoyun </title>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  <!--[if lte IE 8]>
+  <div style=' clear: both; height: 59px; padding:0 0 0 15px; position: relative;margin:0 auto;'>
+    <a href="http://windows.microsoft.com/en-US/internet-explorer/products/ie/home?ocid=ie6_countdown_bannercode">
+      <img src="http://7u2nvr.com1.z0.glb.clouddn.com/picouterie.jpg" border="0" height="42" width="820"
+           alt="You are using an outdated browser. For a faster, safer browsing experience, upgrade for free today or use other browser ,like chrome firefox safari."
+           style='margin-left:auto;margin-right:auto;display: block;'/>
+    </a>
+  </div>
+<![endif]-->
+  
+
+
+
+  <script type="text/javascript">
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "//hm.baidu.com/hm.js?caeb4129c91d1e6fb3d562d35fedef0d";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+  <div class="container one-column page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-meta ">
+  
+
+  <div class="custom-logo-site-title">
+    <a href="/"  class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <span class="site-title">xiaoyun</span>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+  <p class="site-subtitle"></p>
+</div>
+
+<div class="site-nav-toggle">
+  <button>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+  </button>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu ">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-home fa-fw"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives" rel="section">
+            
+              <i class="menu-item-icon fa fa-archive fa-fw"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories" rel="section">
+            
+              <i class="menu-item-icon fa fa-th fa-fw"></i> <br />
+            
+            分类
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+              <i class="menu-item-icon fa fa-tags fa-fw"></i> <br />
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about" rel="section">
+            
+              <i class="menu-item-icon fa fa-user fa-fw"></i> <br />
+            
+            关于
+          </a>
+        </li>
+      
+
+      
+      
+    </ul>
+  
+
+  
+</nav>
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div id="content" class="content">
+          
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                Hadoop FileSystem实现---InMemoryFileSystem
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            发表于
+            <time itemprop="dateCreated" datetime="2016-01-01T21:30:37+08:00" content="2016-01-01">
+              2016-01-01
+            </time>
+          </span>
+
+          
+            <span class="post-category" >
+              &nbsp; | &nbsp; 分类于
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Java/" itemprop="url" rel="index">
+                    <span itemprop="name">Java</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Java/Hadoop-1-2-1/" itemprop="url" rel="index">
+                    <span itemprop="name">Hadoop-1.2.1</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Java/Hadoop-1-2-1/HDFS/" itemprop="url" rel="index">
+                    <span itemprop="name">HDFS</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Java/Hadoop-1-2-1/HDFS/源码阅读/" itemprop="url" rel="index">
+                    <span itemprop="name">源码阅读</span>
+                  </a>
+                </span>
+
+                
+                
+
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                &nbsp; | &nbsp;
+                <a href="/InMemoryFileSystem/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="InMemoryFileSystem/" itemprop="commentsCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+
+        </div>
+      </header>
+    
+
+
+    <div class="post-body">
+
+      
+      
+
+      
+        <span itemprop="articleBody"><p>Hadoop版本:<a href="https://archive.apache.org/dist/hadoop/core/hadoop-1.2.1/" target="_blank" rel="external">Hadoop-1.2.1</a><br>参考：《Hadoop技术内幕-深入解析Hadoop Common和HDFS架构设计与实现原理》</p>
+<hr>
+<p>InMemoryFileSystem是内存文件系统的实现，继承自ChecksumFileSystem，拥有校验和的功能，InMemoryFileSystem目前被标记为Deprecated，这里主要分析其底层文件系统RawInMemoryFileSyStem，是不带校验和的内存文件系统实现。  </p>
+<p>RawInMemoryFileSystem继承自FileSystem，该文件系统的uri以”ramfs://“开始<br><figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> static <span class="class"><span class="keyword">class</span> <span class="title">RawInMemoryFileSystem</span> <span class="keyword"><span class="keyword">extends</span></span> <span class="title">FileSystem</span></span></span><br></pre></td></tr></table></figure></p>
+<hr>
+<h2 id="1_成员，构造">1 成员，构造</h2><h3 id="1-1_成员">1.1 成员</h3><p>RawInMemoryFileSystem的成员如下:<br><figure class="highlight processing"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> URI uri;</span><br><span class="line"><span class="keyword">private</span> <span class="keyword">long</span> fsSize;</span><br><span class="line"><span class="keyword">private</span> <span class="keyword">volatile</span> <span class="keyword">long</span> totalUsed;</span><br><span class="line"><span class="keyword">private</span> Path staticWorkingDir;</span><br><span class="line"></span><br><span class="line"><span class="keyword">private</span> Map&lt;<span class="keyword">String</span>, FileAttributes&gt; pathToFileAttribs = <span class="keyword">new</span> <span class="keyword">HashMap</span>&lt;<span class="keyword">String</span>, FileAttributes&gt;();</span><br><span class="line"></span><br><span class="line"><span class="keyword">private</span> Map&lt;<span class="keyword">String</span>, FileAttributes&gt; tempFileAttribs =  <span class="keyword">new</span> <span class="keyword">HashMap</span>&lt;<span class="keyword">String</span>, FileAttributes&gt;();</span><br></pre></td></tr></table></figure></p>
+<ul>
+<li><code>uri</code>，工作目录uri</li>
+<li><code>fsSize</code>，文件系统最大大小，即所占内存大小</li>
+<li><code>totalUsed</code>，目前文件系统使用量</li>
+<li><code>staticWorkingDir</code>，静态工作目录，即当前工作目录</li>
+<li><code>pathToFileAttribs</code>，成功创建的文件，值为FileAttributes保存文件的内容</li>
+<li><code>tempFileAttribs</code>，保存已经分配了空间，但还没有写入数据或正在写入数据的文件，文件关闭时会被移到pathToFileAttribs中</li>
+</ul>
+<h3 id="1-2_FileAttributes">1.2 FileAttributes</h3><figure class="highlight gradle"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">class</span> FileAttributes &#123;</span><br><span class="line">  <span class="keyword">private</span> <span class="keyword">byte</span>[] data;</span><br><span class="line">  <span class="keyword">private</span> <span class="keyword">int</span> <span class="keyword">size</span>;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">public</span> FileAttributes(<span class="keyword">int</span> <span class="keyword">size</span>) &#123;</span><br><span class="line">    <span class="keyword">this</span>.<span class="keyword">size</span> = <span class="keyword">size</span>;</span><br><span class="line">    <span class="keyword">this</span>.data = <span class="keyword">new</span> <span class="keyword">byte</span>[<span class="keyword">size</span>];</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>如上，<code>data</code>用于保存该文件的数据，size为文件的大小。</p>
+<h3 id="1-3_构造">1.3 构造</h3><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="title">RawInMemoryFileSystem</span><span class="params">()</span> </span>&#123; setConf(<span class="keyword">new</span> Configuration()); &#125;</span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="title">RawInMemoryFileSystem</span><span class="params">(URI uri, Configuration conf)</span> </span>&#123; initialize(uri, conf); &#125;</span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">initialize</span><span class="params">(URI uri, Configuration conf)</span> </span>&#123;</span><br><span class="line">  setConf(conf);</span><br><span class="line">  <span class="keyword">int</span> size = Integer.parseInt(conf.get(<span class="string">"fs.inmemory.size.mb"</span>, <span class="string">"100"</span>));</span><br><span class="line">  <span class="keyword">this</span>.fsSize = size * <span class="number">1024L</span> * <span class="number">1024L</span>;<span class="comment">//内存文件系统大小为fs.inmemory.size.mb，默认100MB</span></span><br><span class="line">  <span class="keyword">this</span>.uri = URI.create(uri.getScheme() + <span class="string">"://"</span> + uri.getAuthority());<span class="comment">//初始化uri</span></span><br><span class="line">  String path = <span class="keyword">this</span>.uri.getPath();</span><br><span class="line">  <span class="keyword">if</span> (path.length() == <span class="number">0</span>) &#123;</span><br><span class="line">    path = Path.CUR_DIR;</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">this</span>.staticWorkingDir = <span class="keyword">new</span> Path(path);</span><br><span class="line">  LOG.info(<span class="string">"Initialized InMemoryFileSystem: "</span> + uri.toString() + <span class="string">" of size (in bytes): "</span> + fsSize);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>如上，根据传入的uri初始化成员uri和staticWorkingDir，从配置<code>fs.inmemory.size.mb</code>读取内存文件系统的大小为100MB。  </p>
+<hr>
+<h2 id="2_输入流">2 输入流</h2><p>RawInMemoryFileSystem的输入流为InMemoryInputStream，继承自FSInputStream。<br><figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="class"><span class="keyword">class</span> <span class="title">InMemoryInputStream</span> <span class="keyword"><span class="keyword">extends</span></span> <span class="title">FSInputStream</span> &#123;</span></span><br></pre></td></tr></table></figure></p>
+<h3 id="2-1_成员，构造">2.1 成员，构造</h3><figure class="highlight actionscript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> DataInputBuffer din = <span class="keyword">new</span> DataInputBuffer();</span><br><span class="line"><span class="keyword">private</span> FileAttributes fAttr;</span><br></pre></td></tr></table></figure>
+<p>使用DataInputBuffer来进行数据的读取，对应的文件为fAttr。<br>构造:<br><figure class="highlight processing"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> InMemoryInputStream(Path f) <span class="keyword">throws</span> IOException &#123;</span><br><span class="line">    <span class="keyword">synchronized</span> (RawInMemoryFileSystem.<span class="keyword">this</span>) &#123;</span><br><span class="line">      fAttr = pathToFileAttribs.<span class="built_in">get</span>(getPath(f));</span><br><span class="line">      <span class="keyword">if</span> (fAttr == <span class="keyword">null</span>) &#123; </span><br><span class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> FileNotFoundException(<span class="string">"File "</span> + f + <span class="string">" does not exist"</span>);</span><br><span class="line">      &#125;                            </span><br><span class="line">      din.reset(fAttr.data, <span class="number">0</span>, fAttr.<span class="built_in">size</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，从pathToFileAttribs中获取指定路径的文件对象FileAttributes，不存在时抛出异常，存在时使用FileAttributes中的数据重置DataInputBuffer，即文件数据目前缓存在din中了。  </p>
+<h3 id="2-2_Seekable接口实现">2.2 Seekable接口实现</h3><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">long</span> <span class="title">getPos</span><span class="params">()</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">   <span class="function"><span class="keyword">return</span> din.<span class="title">getPosition</span><span class="params">()</span></span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>因为文件的数据都缓存在din中，因此当前位置通过DataInputBuffer的getPosition获取即可。<br><figure class="highlight gradle"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> seek(<span class="keyword">long</span> pos) <span class="keyword">throws</span> IOException &#123;</span><br><span class="line">    <span class="keyword">if</span> ((<span class="keyword">int</span>)pos &gt; fAttr.<span class="keyword">size</span>) <span class="keyword">throw</span> <span class="keyword">new</span> IOException(<span class="string">"Cannot seek after EOF"</span>);</span><br><span class="line">    din.reset(fAttr.data, (<span class="keyword">int</span>)pos, fAttr.<span class="keyword">size</span> - (<span class="keyword">int</span>)pos);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>seek方法，直接重新缓存文件从pos开始到文件尾数据，通过DataInputBuffer的reset方法<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">boolean</span> <span class="title">seekToNewSource</span><span class="params">(<span class="keyword">long</span> targetPos)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">false</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>内存文件系统不支持定位到其他源，没有备份</p>
+<h3 id="2-3_PositionedReadable接口实现">2.3 PositionedReadable接口实现</h3><p>继承自FSInputStream的相应read和readFully实现，即依赖于seek和read方法循环读取。  </p>
+<h3 id="2-4_流的关闭close">2.4 流的关闭close</h3><p>没有重写，继承自FSInputStream的close方法，即最终继承自InputStream的close方法，没有实现。其实不需要关闭输入流，因为文件数据就保存在内存中，在文件系统关闭时将相应的pathToFileAttribs清理就行。</p>
+<h3 id="2-5_其他方法">2.5 其他方法</h3><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">int</span> <span class="title">available</span><span class="params">()</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">return</span> din.<span class="title">available</span><span class="params">()</span></span>; </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>可用数据即为缓冲区中可用数据<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">boolean</span> <span class="title">markSupport</span><span class="params">()</span> </span>&#123; <span class="keyword">return</span> <span class="keyword">false</span>; &#125;</span><br></pre></td></tr></table></figure></p>
+<p>不支持mark和reset<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">int</span> <span class="title">read</span><span class="params">()</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">return</span> din.<span class="title">read</span><span class="params">()</span></span>;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">public</span> <span class="function"><span class="keyword">int</span> <span class="title">read</span><span class="params">(<span class="keyword">byte</span>[] b, <span class="keyword">int</span> off, <span class="keyword">int</span> len)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">return</span> din.<span class="title">read</span><span class="params">(b, off, len)</span></span>;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">public</span> <span class="function"><span class="keyword">long</span> <span class="title">skip</span><span class="params">(<span class="keyword">long</span> n)</span> <span class="keyword">throws</span> IOException </span>&#123; <span class="function"><span class="keyword">return</span> din.<span class="title">skip</span><span class="params">(n)</span></span>; &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>read和skip方法都依赖于DataInputBuffer，因为文件数据直接缓存在DataInputBuffer中</p>
+<hr>
+<h2 id="3_输出流">3 输出流</h2><p>RawInMemoryFileSystem的输出流为InMemoryOutputStream，继承自OutputStream<br><figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="class"><span class="keyword">class</span> <span class="title">InMemoryOutputStream</span> <span class="keyword"><span class="keyword">extends</span></span> <span class="title">OutputStream</span></span></span><br></pre></td></tr></table></figure></p>
+<h3 id="3-1_成员，构造">3.1 成员，构造</h3><figure class="highlight axapta"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="keyword">int</span> <span class="keyword">count</span>;</span><br><span class="line"><span class="keyword">private</span> FileAttributes fAttr;</span><br><span class="line"><span class="keyword">private</span> Path f;</span><br></pre></td></tr></table></figure>
+<ul>
+<li><code>count</code>，输出流位置</li>
+<li><code>fAttr</code>，输出流对应的文件</li>
+<li><code>f</code>，输出流对应文件的路径</li>
+</ul>
+<p>构造<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="title">InMemoryOutputStream</span><span class="params">(Path f, FileAttributes fAttr)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">    <span class="keyword">this</span>.fAttr = fAttr;</span><br><span class="line">    <span class="keyword">this</span>.f = f;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<h3 id="3-2_数据写">3.2 数据写</h3><p>写一个字节<br><figure class="highlight gradle"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="keyword">write</span>(<span class="keyword">int</span> b) <span class="keyword">throws</span> IOException &#123;</span><br><span class="line">    <span class="keyword">int</span> newcount = <span class="keyword">count</span> + <span class="number">1</span>;</span><br><span class="line">    <span class="keyword">if</span> (newcount &gt; fAttr.<span class="keyword">size</span>) &#123;</span><br><span class="line">      <span class="keyword">throw</span> <span class="keyword">new</span> IOException(<span class="string">"Insufficient space"</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    fAttr.data[<span class="keyword">count</span>] = (<span class="keyword">byte</span>)b;</span><br><span class="line">    <span class="keyword">count</span> = newcount;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，写的数据保存在FileAttributes的datas中，即为文件数据，增加count值<br>写指定字节<br><figure class="highlight gradle"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="keyword">write</span>(<span class="keyword">byte</span>[] b, <span class="keyword">int</span> off, <span class="keyword">int</span> len) <span class="keyword">throws</span> IOException &#123;</span><br><span class="line">    ...<span class="comment">//参数检查</span></span><br><span class="line">    <span class="keyword">int</span> newcount = <span class="keyword">count</span> + len;<span class="comment">//文件新的长度</span></span><br><span class="line">    <span class="keyword">if</span> (newcount &gt; fAttr.<span class="keyword">size</span>) &#123;<span class="comment">//文件新的长度超出文件大小，抛出异常</span></span><br><span class="line">      <span class="keyword">throw</span> <span class="keyword">new</span> IOException(<span class="string">"Insufficient space"</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    System.arraycopy(b, off, fAttr.data, <span class="keyword">count</span>, len);<span class="comment">//从b中拷贝数据到文件的datas成员中</span></span><br><span class="line">    <span class="keyword">count</span> = newcount;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，不允许超过文件指定的长度，超出时没有内存来保存超出的数据，因此此时抛出异常，正常情况下将数据拷贝到文件FileAttributes的datas成员中。  </p>
+<h3 id="3-3_流的关闭close">3.3 流的关闭close</h3><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">void</span> <span class="title">close</span><span class="params">()</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">    <span class="keyword">synchronized</span> (RawInMemoryFileSystem.<span class="keyword">this</span>) &#123;</span><br><span class="line">      pathToFileAttribs.put(getPath(f), fAttr);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>如上，关闭时需要将文件名及对应的FileAttributes映射放到pathToFileAttribs中。  </p>
+<h3 id="3-4_其他方法">3.4 其他方法</h3><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">long</span> <span class="title">getPos</span><span class="params">()</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">    <span class="keyword">return</span> count;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<hr>
+<h2 id="4_文件状态">4 文件状态</h2><p>RawInMemoryFileSystem的文件状态对应为InMemoryFileStatus<br><figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="class"><span class="keyword">class</span> <span class="title">InMemoryFileStatus</span> <span class="keyword"><span class="keyword">extends</span></span> <span class="title">FileStatus</span> &#123;</span></span><br><span class="line">  <span class="type">InMemoryFileStatus</span>(<span class="type">Path</span> f, <span class="type">FileAttributes</span> attr) <span class="keyword">throws</span> <span class="type">IOException</span> &#123;</span><br><span class="line">    <span class="keyword">super</span>(attr.size, <span class="literal">false</span>, <span class="number">1</span>, getDefaultBlockSize(), <span class="number">0</span>, f);</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，FileAttributes的大小即为文件大小，内存文件系统不支持目录，因此所有的文件状态的第二个参数<code>isDir</code>为false，内存文件系统没有备份，因此所有文件状态的第三个参数<code>block_replication</code>为1，内存文件系统没有记录修改时间等元信息，因此所有文件状态的第五个参数<code>modification_time</code>为0。<br>所以，内存文件系统的文件状态主要有用信息为文件大小和文件路径。</p>
+<hr>
+<h2 id="5_RawInMemoryFileSystem操作实现">5 RawInMemoryFileSystem操作实现</h2><h3 id="5-1_open，create，append">5.1 open，create，append</h3><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="function">FSDataInputStream <span class="title">open</span><span class="params">(Path f, <span class="keyword">int</span> bufferSize)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">  <span class="keyword">return</span> <span class="keyword">new</span> FSDataInputStream(<span class="keyword">new</span> InMemoryInputStream(f));</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>创建内存文件系统对应的输入流对象，封装成文件系统统一的输入流对象FSDataInputStream，因为InMemoryInputStream没有实现HasFileDescriptor接口，也不是FileInputStream的子类，在最后封装的FSDataInputStream的getFileDescriptor方法将返回null，即没有文件描述符。<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="function">FSDataOutputStream <span class="title">append</span><span class="params">(Path f, <span class="keyword">int</span> bufferSize, Progressable progress)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">  <span class="keyword">throw</span> <span class="keyword">new</span> IOException(<span class="string">"Not supported"</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>内存文件系统不支持追加<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="function">FSDataOutputStream <span class="title">create</span><span class="params">(Path f, FsPermission permission, <span class="keyword">boolean</span> overwrite, <span class="keyword">int</span> bufferSize,</span><br><span class="line">                          <span class="keyword">short</span> replication, <span class="keyword">long</span> blockSize, Progressable progress)</span><span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">  <span class="keyword">synchronized</span> (<span class="keyword">this</span>) &#123;</span><br><span class="line">    <span class="keyword">if</span> (exists(f) &amp;&amp; !overwrite) &#123;<span class="comment">//存在(在pathTOFileAttribs中)且不允许覆盖，抛出异常</span></span><br><span class="line">      <span class="keyword">throw</span> <span class="keyword">new</span> IOException(<span class="string">"File already exists:"</span>+f);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">//如果在tempFileAttribs中了(创建前预留空间)，从中移除返回对应的文件对象</span></span><br><span class="line">    FileAttributes fAttr = tempFileAttribs.remove(getPath(f));</span><br><span class="line">    <span class="keyword">if</span> (fAttr != <span class="keyword">null</span>)</span><br><span class="line">      <span class="function"><span class="keyword">return</span> <span class="title">create</span><span class="params">(f, fAttr)</span></span>;</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">null</span>;<span class="comment">//如果没有预留该文件的空间，不能创建，创建前应该先预留空间</span></span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">public</span> <span class="function">FSDataOutputStream <span class="title">create</span><span class="params">(Path f, FileAttributes fAttr)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">  <span class="keyword">return</span> <span class="keyword">new</span> FSDataOutputStream(<span class="keyword">new</span> InMemoryOutputStream(f, fAttr), statistics);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，创建文件之前需要先分配文件对应的空间，然后将FileAttributes对象添加到tempFileAttributes中，在这之后才能创建文件。即从tempFileAttributes中取出文件对应的FileAttributes对象，创建相应的InMemoryOutputStream封装成FSDataOutputStream。<br>预留空间通过reserveSpace完成，为路径f预留大小为size的空间<br><figure class="highlight gradle"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">boolean</span> reserveSpace(Path f, <span class="keyword">long</span> <span class="keyword">size</span>) &#123;</span><br><span class="line">  <span class="keyword">synchronized</span> (<span class="keyword">this</span>) &#123;</span><br><span class="line">    <span class="keyword">if</span> (!canFitInMemory(<span class="keyword">size</span>))</span><br><span class="line">      <span class="keyword">return</span> <span class="keyword">false</span>;</span><br><span class="line">    FileAttributes fileAttr;</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">      fileAttr = <span class="keyword">new</span> FileAttributes((<span class="keyword">int</span>)<span class="keyword">size</span>);</span><br><span class="line">    &#125; <span class="keyword">catch</span> (OutOfMemoryError o) &#123;</span><br><span class="line">      <span class="keyword">return</span> <span class="keyword">false</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    totalUsed += <span class="keyword">size</span>;</span><br><span class="line">    tempFileAttribs.put(getPath(f), fileAttr);</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">true</span>;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">private</span> <span class="keyword">boolean</span> canFitInMemory(<span class="keyword">long</span> <span class="keyword">size</span>) &#123;</span><br><span class="line">  <span class="keyword">if</span> ((<span class="keyword">size</span> &lt;= Integer.MAX_VALUE) &amp;&amp; ((<span class="keyword">size</span> + totalUsed) &lt; fsSize)) &#123;</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">true</span>;</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">return</span> <span class="keyword">false</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，文件系统新增大小size的文件后，不能超出文件系统的大小，否则直接返回false。创建对应的FileAttributes对象，然后放到tempFileAttributes中，等待写数据。<br>而与之相反的操作为unreserveSpace，从tempFileAttributes中删除对应的文件记录，然后减少文件系统相应的统计量，如下。<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">void</span> <span class="title">unreserveSpace</span><span class="params">(Path f)</span> </span>&#123;</span><br><span class="line">  <span class="keyword">synchronized</span> (<span class="keyword">this</span>) &#123;</span><br><span class="line">    FileAttributes fAttr = tempFileAttribs.remove(getPath(f));</span><br><span class="line">    <span class="keyword">if</span> (fAttr != <span class="keyword">null</span>) &#123;</span><br><span class="line">      fAttr.data = <span class="keyword">null</span>;</span><br><span class="line">      totalUsed -= fAttr.size;</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<h3 id="5-2_文件删除delete">5.2 文件删除delete</h3><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="annotation">@Deprecated</span></span><br><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">boolean</span> <span class="title">delete</span><span class="params">(Path f)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">  <span class="function"><span class="keyword">return</span> <span class="title">delete</span><span class="params">(f, <span class="keyword">true</span>)</span></span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">boolean</span> <span class="title">delete</span><span class="params">(Path f, <span class="keyword">boolean</span> recursive)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">  <span class="keyword">synchronized</span> (<span class="keyword">this</span>) &#123;</span><br><span class="line">    FileAttributes fAttr = pathToFileAttribs.remove(getPath(f));</span><br><span class="line">    <span class="keyword">if</span> (fAttr != <span class="keyword">null</span>) &#123;</span><br><span class="line">      fAttr.data = <span class="keyword">null</span>;</span><br><span class="line">      totalUsed -= fAttr.size;</span><br><span class="line">      <span class="keyword">return</span> <span class="keyword">true</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">false</span>;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>内存文件系统不支持递归删除，因为没有目录，参数recursive无效。从pathToFileAttribs中移除，如果对应的文件存在相应减少文件系统的相关统计量。  </p>
+<h3 id="5-3_文件重命名rename">5.3 文件重命名rename</h3><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">boolean</span> <span class="title">rename</span><span class="params">(Path src, Path dst)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">  <span class="keyword">synchronized</span> (<span class="keyword">this</span>) &#123;</span><br><span class="line">    <span class="keyword">if</span> (exists(dst)) &#123;</span><br><span class="line">      <span class="keyword">throw</span> <span class="keyword">new</span> IOException (<span class="string">"Path "</span> + dst + <span class="string">" already exists"</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    FileAttributes fAttr = pathToFileAttribs.remove(getPath(src));</span><br><span class="line">    <span class="keyword">if</span> (fAttr == <span class="keyword">null</span>) <span class="keyword">return</span> <span class="keyword">false</span>;</span><br><span class="line">    pathToFileAttribs.put(getPath(dst), fAttr);</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">true</span>;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>重命名时不允许覆盖，如果目的路径存在直接抛出异常。<br>否则，从pathToFileAttribs中移除源文件，如果源文件不存在，不能重命名返回false。否则将源文件的FileAttributes对象作为新文件的值重新放入pathToFileAttribs中。  </p>
+<h3 id="5-4_文件状态">5.4 文件状态</h3><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="function">FileStatus <span class="title">getFileStatus</span><span class="params">(Path f)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">  <span class="keyword">synchronized</span> (<span class="keyword">this</span>) &#123;</span><br><span class="line">    FileAttributes attr = pathToFileAttribs.get(getPath(f));</span><br><span class="line">    <span class="keyword">if</span> (attr==<span class="keyword">null</span>) &#123;</span><br><span class="line">      <span class="keyword">throw</span> <span class="keyword">new</span> FileNotFoundException(<span class="string">"File "</span> + f + <span class="string">" does not exist."</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">new</span> InMemoryFileStatus(f.makeQualified(<span class="keyword">this</span>), attr);</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>如上，单个文件的文件状态获取文件对应的FileAttributes后构建文件状态对象即可。<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> FileStatus[] listStatus(Path f) <span class="keyword">throws</span> IOException &#123;</span><br><span class="line">  <span class="keyword">return</span> <span class="keyword">null</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>而对于listStatus这种可能为目录级别的文件状态不支持，直接返回null。  </p>
+<h3 id="5-5_其他操作">5.5 其他操作</h3><h4 id="5-5-1_文件系统中所有文件">5.5.1 文件系统中所有文件</h4><figure class="highlight processing"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> Path[] getFiles(PathFilter <span class="built_in">filter</span>) &#123;</span><br><span class="line">  <span class="keyword">synchronized</span> (<span class="keyword">this</span>) &#123;</span><br><span class="line">    List&lt;<span class="keyword">String</span>&gt; closedFilesList = <span class="keyword">new</span> ArrayList&lt;<span class="keyword">String</span>&gt;();</span><br><span class="line">    <span class="keyword">synchronized</span> (pathToFileAttribs) &#123;</span><br><span class="line">      Set paths = pathToFileAttribs.keySet();</span><br><span class="line">      <span class="keyword">if</span> (paths == <span class="keyword">null</span> || paths.isEmpty()) &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">new</span> Path[<span class="number">0</span>];</span><br><span class="line">      &#125;</span><br><span class="line">      Iterator iter = paths.iterator();</span><br><span class="line">      <span class="keyword">while</span> (iter.hasNext()) &#123;<span class="comment">//所有已关闭的文件</span></span><br><span class="line">        <span class="keyword">String</span> f = (<span class="keyword">String</span>)iter.next();</span><br><span class="line">        <span class="keyword">if</span> (<span class="built_in">filter</span>.accept(<span class="keyword">new</span> Path(f))) &#123;</span><br><span class="line">          closedFilesList.<span class="built_in">add</span>(f);</span><br><span class="line">        &#125;</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">String</span> [] names = closedFilesList.toArray(<span class="keyword">new</span> <span class="keyword">String</span>[closedFilesList.<span class="built_in">size</span>()]);</span><br><span class="line">    Path [] results = <span class="keyword">new</span> Path[names.length];</span><br><span class="line">    <span class="keyword">for</span> (<span class="built_in">int</span> i = <span class="number">0</span>; i &lt; names.length; i++) &#123;</span><br><span class="line">      results[i] = <span class="keyword">new</span> Path(names[i]);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> results;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br><span class="line">如上，获取文件系统所有路径(所有已关闭文件，不包括创建了还在写或在等待写的文件)，从pathToFileAttribs中获取每一个记录，经路径过滤器<span class="built_in">filter</span>过滤后返回。</span><br></pre></td></tr></table></figure>
+<h4 id="5-5-2_文件系统使用比例">5.5.2 文件系统使用比例</h4><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">float</span> <span class="title">getPercentUsed</span><span class="params">()</span> </span>&#123;</span><br><span class="line">  <span class="keyword">if</span> (fsSize &gt; <span class="number">0</span>)</span><br><span class="line">    <span class="keyword">return</span> (<span class="keyword">float</span>)totalUsed/fsSize;</span><br><span class="line">  <span class="keyword">else</span> <span class="keyword">return</span> <span class="number">0.1f</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h4 id="5-5-3_当前工作目录">5.5.3 当前工作目录</h4><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="function">Path <span class="title">getWorkingDirectory</span><span class="params">()</span> </span>&#123;</span><br><span class="line">  <span class="keyword">return</span> staticWorkingDir;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h4 id="5-5-4_文件系统中的文件数目">5.5.4 文件系统中的文件数目</h4><figure class="highlight processing"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="built_in">int</span> getNumFiles(PathFilter <span class="built_in">filter</span>) &#123;</span><br><span class="line">  <span class="keyword">return</span> getFiles(<span class="built_in">filter</span>).length;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h4 id="5-5-5_文件系统大小">5.5.5 文件系统大小</h4><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">long</span> <span class="title">getFSSize</span><span class="params">()</span> </span>&#123;</span><br><span class="line">  <span class="keyword">return</span> fsSize;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<hr>
+<h2 id="6_RawInMemoryFileSystem关闭close">6 RawInMemoryFileSystem关闭close</h2><figure class="highlight processing"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> close() <span class="keyword">throws</span> IOException &#123;</span><br><span class="line">  <span class="keyword">super</span>.close();</span><br><span class="line">  <span class="keyword">synchronized</span> (<span class="keyword">this</span>) &#123;</span><br><span class="line">    <span class="keyword">if</span> (pathToFileAttribs != <span class="keyword">null</span>) &#123; </span><br><span class="line">      pathToFileAttribs.<span class="built_in">clear</span>();</span><br><span class="line">    &#125;</span><br><span class="line">    pathToFileAttribs = <span class="keyword">null</span>;</span><br><span class="line">    <span class="keyword">if</span> (tempFileAttribs != <span class="keyword">null</span>) &#123;</span><br><span class="line">      tempFileAttribs.<span class="built_in">clear</span>();</span><br><span class="line">    &#125;</span><br><span class="line">    tempFileAttribs = <span class="keyword">null</span>;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>如上调用父类FileSystem的close方法，删除deleteOnExit的文件，如果文件系统是通过FileSystem的get方法生成的且注册在CACHE中，还要从CACHE中移除。<br>之后清除pathToFileAttribs和tempFileAttributes中的文件。  </p>
+<hr>
+<h2 id="7_InMemoryFileSystem相关">7 InMemoryFileSystem相关</h2><p>InMemoryFileSystem已经声明为Deprecated，继承自ChecksumFileSystem，这里简单分析<br><figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="annotation">@Deprecated</span></span><br><span class="line">public <span class="class"><span class="keyword">class</span> <span class="title">InMemoryFileSystem</span> <span class="keyword"><span class="keyword">extends</span></span> <span class="title">ChecksumFileSystem</span> &#123;</span></span><br></pre></td></tr></table></figure></p>
+<h3 id="7-1_构造">7.1 构造</h3><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="title">InMemoryFileSystem</span><span class="params">()</span> </span>&#123; <span class="keyword">super</span>(<span class="keyword">new</span> RawInMemoryFileSystem()); &#125;</span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="title">InMemoryFileSystem</span><span class="params">(URI uri, Configuration conf)</span> </span>&#123; <span class="keyword">super</span>(<span class="keyword">new</span> RawInMemoryFileSystem(uri, conf)); &#125;</span><br></pre></td></tr></table></figure>
+<p>如上，底层文件系统为RawInMemoryFileSystem，继承自CheckSumFileSystem，使用继承的相应的读写方法在读写时完成相应的校验操作。</p>
+<h3 id="7-2_其他方法">7.2 其他方法</h3><figure class="highlight gradle"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">boolean</span> reserveSpaceWithCheckSum(Path f, <span class="keyword">long</span> <span class="keyword">size</span>) &#123;</span><br><span class="line">    RawInMemoryFileSystem mfs = (RawInMemoryFileSystem)getRawFileSystem();</span><br><span class="line">    <span class="keyword">synchronized</span>(mfs) &#123;</span><br><span class="line">      <span class="keyword">boolean</span> b = mfs.reserveSpace(f, <span class="keyword">size</span>);</span><br><span class="line">      <span class="keyword">if</span> (b) &#123;</span><br><span class="line">        <span class="keyword">long</span> checksumSize = getChecksumFileLength(f, <span class="keyword">size</span>);</span><br><span class="line">        b = mfs.reserveSpace(getChecksumFile(f), checksumSize);</span><br><span class="line">        <span class="keyword">if</span> (!b) &#123;</span><br><span class="line">          mfs.unreserveSpace(f);</span><br><span class="line">        &#125;</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="keyword">return</span> b;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>因为底层文件系统的预留空间方法只在文件系统中预留了源文件的空间，因此对于InMemoryFileSystem来说同时要预留校验文件的空间。<br><figure class="highlight processing"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> Path[] getFiles(PathFilter <span class="built_in">filter</span>) &#123; <span class="keyword">return</span> ((RawInMemoryFileSystem)getRawFileSystem()).getFiles(<span class="built_in">filter</span>); &#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="built_in">int</span> getNumFiles(PathFilter <span class="built_in">filter</span>) &#123; <span class="keyword">return</span> ((RawInMemoryFileSystem)getRawFileSystem()).getNumFiles(<span class="built_in">filter</span>); &#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">long</span> getFSSize() &#123; <span class="keyword">return</span> ((RawInMemoryFileSystem)getRawFileSystem()).getFSSize(); &#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="built_in">float</span> getPercentUsed() &#123; <span class="keyword">return</span> ((RawInMemoryFileSystem)getRawFileSystem()).getPercentUsed(); &#125;</span><br></pre></td></tr></table></figure></p>
+<p>都使用底层文件系统的相应方法实现。</p>
+</span>
+      
+    </div>
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/HDFS/" rel="tag">#HDFS</a>
+          
+            <a href="/tags/Hadoop-1-2-1/" rel="tag">#Hadoop-1.2.1</a>
+          
+            <a href="/tags/Java/" rel="tag">#Java</a>
+          
+        </div>
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/配置相关HDFS/" rel="next" title="Hadoop配置相关---HDFS">
+                <i class="fa fa-chevron-left"></i> Hadoop配置相关---HDFS
+              </a>
+            
+          </div>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/HDFS VersionedProtocol/" rel="prev" title="HDFS节点的VersionedProtocol实现">
+                HDFS节点的VersionedProtocol实现 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </article>
+
+
+
+    <div class="post-spread">
+      
+        <!-- JiaThis Button BEGIN -->
+<div class="jiathis_style">
+  <a class="jiathis_button_tsina"></a>
+  <a class="jiathis_button_tqq"></a>
+  <a class="jiathis_button_weixin"></a>
+  <a class="jiathis_button_cqq"></a>
+  <a class="jiathis_button_douban"></a>
+  <a class="jiathis_button_renren"></a>
+  <a class="jiathis_button_qzone"></a>
+  <a class="jiathis_button_kaixin001"></a>
+  <a class="jiathis_button_copy"></a>
+  <a href="http://www.jiathis.com/share" class="jiathis jiathis_txt jiathis_separator jtico jtico_jiathis" target="_blank"></a>
+  <a class="jiathis_counter_style"></a>
+</div>
+<script type="text/javascript" >
+  var jiathis_config={
+    hideMore:false
+  }
+</script>
+<script type="text/javascript" src="http://v3.jiathis.com/code/jia.js" charset="utf-8"></script>
+<!-- JiaThis Button END -->
+
+      
+    </div>
+  </div>
+
+
+        </div>
+
+        
+
+
+        
+  <div class="comments" id="comments">
+    
+      <div class="ds-thread" data-thread-key="InMemoryFileSystem/"
+           data-title="Hadoop FileSystem实现---InMemoryFileSystem" data-url="http://xiao-yun.github.io/InMemoryFileSystem/">
+      </div>
+    
+  </div>
+
+
+      </div>
+
+      
+        
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap" >
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel ">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+          <img class="site-author-image" src="/images/hero.jpg" alt="xiaoyun" itemprop="image"/>
+          <p class="site-author-name" itemprop="name">xiaoyun</p>
+        </div>
+        <p class="site-description motion-element" itemprop="description">学习笔记，网上资源摘要等</p>
+        <nav class="site-state motion-element">
+          <div class="site-state-item site-state-posts">
+            <a href="/archives">
+              <span class="site-state-item-count">29</span>
+              <span class="site-state-item-name">日志</span>
+            </a>
+          </div>
+
+          <div class="site-state-item site-state-categories">
+            <a href="/categories">
+              <span class="site-state-item-count">24</span>
+              <span class="site-state-item-name">分类</span>
+              </a>
+          </div>
+
+          <div class="site-state-item site-state-tags">
+            <a href="/tags">
+              <span class="site-state-item-count">14</span>
+              <span class="site-state-item-name">标签</span>
+              </a>
+          </div>
+
+        </nav>
+
+        
+
+        <div class="links-of-author motion-element">
+          
+            
+              <span class="links-of-author-item">
+                <a href="https://github.com/xiao-yun" target="_blank">
+                  
+                    <i class="fa fa-globe"></i> github
+                  
+                </a>
+              </span>
+            
+          
+        </div>
+
+        
+        
+
+        <div class="links-of-author motion-element">
+          
+        </div>
+
+      </section>
+
+      
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc-indicator-top post-toc-indicator">
+            <i class="fa fa-angle-double-up"></i>
+          </div>
+          <div class="post-toc">
+            
+              
+            
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#1_成员，构造"><span class="nav-number">1.</span> <span class="nav-text">1 成员，构造</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-1_成员"><span class="nav-number">1.1.</span> <span class="nav-text">1.1 成员</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-2_FileAttributes"><span class="nav-number">1.2.</span> <span class="nav-text">1.2 FileAttributes</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-3_构造"><span class="nav-number">1.3.</span> <span class="nav-text">1.3 构造</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2_输入流"><span class="nav-number">2.</span> <span class="nav-text">2 输入流</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1_成员，构造"><span class="nav-number">2.1.</span> <span class="nav-text">2.1 成员，构造</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-2_Seekable接口实现"><span class="nav-number">2.2.</span> <span class="nav-text">2.2 Seekable接口实现</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-3_PositionedReadable接口实现"><span class="nav-number">2.3.</span> <span class="nav-text">2.3 PositionedReadable接口实现</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-4_流的关闭close"><span class="nav-number">2.4.</span> <span class="nav-text">2.4 流的关闭close</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-5_其他方法"><span class="nav-number">2.5.</span> <span class="nav-text">2.5 其他方法</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3_输出流"><span class="nav-number">3.</span> <span class="nav-text">3 输出流</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#3-1_成员，构造"><span class="nav-number">3.1.</span> <span class="nav-text">3.1 成员，构造</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-2_数据写"><span class="nav-number">3.2.</span> <span class="nav-text">3.2 数据写</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-3_流的关闭close"><span class="nav-number">3.3.</span> <span class="nav-text">3.3 流的关闭close</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-4_其他方法"><span class="nav-number">3.4.</span> <span class="nav-text">3.4 其他方法</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4_文件状态"><span class="nav-number">4.</span> <span class="nav-text">4 文件状态</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#5_RawInMemoryFileSystem操作实现"><span class="nav-number">5.</span> <span class="nav-text">5 RawInMemoryFileSystem操作实现</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#5-1_open，create，append"><span class="nav-number">5.1.</span> <span class="nav-text">5.1 open，create，append</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#5-2_文件删除delete"><span class="nav-number">5.2.</span> <span class="nav-text">5.2 文件删除delete</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#5-3_文件重命名rename"><span class="nav-number">5.3.</span> <span class="nav-text">5.3 文件重命名rename</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#5-4_文件状态"><span class="nav-number">5.4.</span> <span class="nav-text">5.4 文件状态</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#5-5_其他操作"><span class="nav-number">5.5.</span> <span class="nav-text">5.5 其他操作</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#5-5-1_文件系统中所有文件"><span class="nav-number">5.5.1.</span> <span class="nav-text">5.5.1 文件系统中所有文件</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#5-5-2_文件系统使用比例"><span class="nav-number">5.5.2.</span> <span class="nav-text">5.5.2 文件系统使用比例</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#5-5-3_当前工作目录"><span class="nav-number">5.5.3.</span> <span class="nav-text">5.5.3 当前工作目录</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#5-5-4_文件系统中的文件数目"><span class="nav-number">5.5.4.</span> <span class="nav-text">5.5.4 文件系统中的文件数目</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#5-5-5_文件系统大小"><span class="nav-number">5.5.5.</span> <span class="nav-text">5.5.5 文件系统大小</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#6_RawInMemoryFileSystem关闭close"><span class="nav-number">6.</span> <span class="nav-text">6 RawInMemoryFileSystem关闭close</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#7_InMemoryFileSystem相关"><span class="nav-number">7.</span> <span class="nav-text">7 InMemoryFileSystem相关</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#7-1_构造"><span class="nav-number">7.1.</span> <span class="nav-text">7.1 构造</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#7-2_其他方法"><span class="nav-number">7.2.</span> <span class="nav-text">7.2 其他方法</span></a></li></ol></li></ol></div>
+            
+          </div>
+          <div class="post-toc-indicator-bottom post-toc-indicator">
+            <i class="fa fa-angle-double-down"></i>
+          </div>
+        </section>
+      
+
+    </div>
+  </aside>
+
+
+      
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright" >
+  
+  &copy; 
+  <span itemprop="copyrightYear">2016</span>
+  <span class="with-love">
+    <i class="icon-next-heart fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">xiaoyun</span>
+</div>
+
+<div class="powered-by">
+  由 <a class="theme-link" href="http://hexo.io">Hexo</a> 强力驱动
+</div>
+
+<div class="theme-info">
+  主题 -
+  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
+    NexT.Mist
+  </a>
+</div>
+
+
+
+      </div>
+    </footer>
+
+    <div class="back-to-top"></div>
+  </div>
+
+  <script type="text/javascript" src="/vendors/jquery/index.js?v=2.1.3"></script>
+
+  
+  
+
+  
+    
+
+  
+    
+  
+
+  <script type="text/javascript">
+    var duoshuoQuery = {short_name:"xiaoyuncom"};
+    (function() {
+      var ds = document.createElement('script');
+      ds.type = 'text/javascript';ds.async = true;
+      ds.id = 'duoshuo-script';
+      ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+      ds.charset = 'UTF-8';
+      (document.getElementsByTagName('head')[0]
+      || document.getElementsByTagName('body')[0]).appendChild(ds);
+    })();
+  </script>
+    
+     
+
+
+    
+  
+
+  
+  <script type="text/javascript" src="/vendors/fancybox/source/jquery.fancybox.pack.js"></script>
+  <script type="text/javascript" src="/js/fancy-box.js?v=0.4.5.2"></script>
+
+
+  <script type="text/javascript" src="/js/helpers.js?v=0.4.5.2"></script>
+  <script type="text/javascript" src="/vendors/velocity/velocity.min.js"></script>
+<script type="text/javascript" src="/vendors/velocity/velocity.ui.min.js"></script>
+
+<script type="text/javascript" src="/js/motion.js?v=0.4.5.2" id="motion.global"></script>
+
+
+  <script type="text/javascript" src="/vendors/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  <script type="text/javascript" src="/vendors/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  
+<script type="text/javascript" src="/js/bootstrap.scrollspy.js?v=0.4.5.2" id="bootstrap.scrollspy.custom"></script>
+
+
+<script type="text/javascript" id="sidebar.toc.highlight">
+  $(document).ready(function () {
+    var tocSelector = '.post-toc';
+    var $tocSelector = $(tocSelector);
+    var activeCurrentSelector = '.active-current';
+
+    $tocSelector
+      .on('activate.bs.scrollspy', function () {
+        var $currentActiveElement = $(tocSelector + ' .active').last();
+
+        removeCurrentActiveClass();
+        $currentActiveElement.addClass('active-current');
+
+        $tocSelector[0].scrollTop = $currentActiveElement.position().top;
+      })
+      .on('clear.bs.scrollspy', function () {
+        removeCurrentActiveClass();
+      });
+
+    function removeCurrentActiveClass () {
+      $(tocSelector + ' ' + activeCurrentSelector)
+        .removeClass(activeCurrentSelector.substring(1));
+    }
+
+    function processTOC () {
+      getTOCMaxHeight();
+      toggleTOCOverflowIndicators();
+    }
+
+    function getTOCMaxHeight () {
+      var height = $('.sidebar').height() -
+                   $tocSelector.position().top -
+                   $('.post-toc-indicator-bottom').height();
+
+      $tocSelector.css('height', height);
+
+      return height;
+    }
+
+    function toggleTOCOverflowIndicators () {
+      tocOverflowIndicator(
+        '.post-toc-indicator-top',
+        $tocSelector.scrollTop() > 0 ? 'show' : 'hide'
+      );
+
+      tocOverflowIndicator(
+        '.post-toc-indicator-bottom',
+        $tocSelector.scrollTop() >= $tocSelector.find('ol').height() - $tocSelector.height() ? 'hide' : 'show'
+      )
+    }
+
+    $(document).on('sidebar.motion.complete', function () {
+      processTOC();
+    });
+
+    $('body').scrollspy({ target: tocSelector });
+    $(window).on('resize', function () {
+      if ( $('.sidebar').hasClass('sidebar-active') ) {
+        processTOC();
+      }
+    });
+
+    onScroll($tocSelector);
+
+    function onScroll (element) {
+      element.on('mousewheel DOMMouseScroll', function (event) {
+          var oe = event.originalEvent;
+          var delta = oe.wheelDelta || -oe.detail;
+
+          this.scrollTop += ( delta < 0 ? 1 : -1 ) * 30;
+          event.preventDefault();
+
+          toggleTOCOverflowIndicators();
+      });
+    }
+
+    function tocOverflowIndicator (indicator, action) {
+      var $indicator = $(indicator);
+      var opacity = action === 'show' ? 1 : 0;
+      $indicator.velocity ?
+        $indicator.velocity('stop').velocity({
+          opacity: opacity
+        }, { duration: 100 }) :
+        $indicator.stop().animate({
+          opacity: opacity
+        }, 100);
+    }
+
+  });
+</script>
+
+<script type="text/javascript" id="sidebar.nav">
+  $(document).ready(function () {
+    var html = $('html');
+    var TAB_ANIMATE_DURATION = 200;
+    var hasVelocity = $.isFunction(html.velocity);
+
+    $('.sidebar-nav li').on('click', function () {
+      var item = $(this);
+      var activeTabClassName = 'sidebar-nav-active';
+      var activePanelClassName = 'sidebar-panel-active';
+      if (item.hasClass(activeTabClassName)) {
+        return;
+      }
+
+      var currentTarget = $('.' + activePanelClassName);
+      var target = $('.' + item.data('target'));
+
+      hasVelocity ?
+        currentTarget.velocity('transition.slideUpOut', TAB_ANIMATE_DURATION, function () {
+          target
+            .velocity('stop')
+            .velocity('transition.slideDownIn', TAB_ANIMATE_DURATION)
+            .addClass(activePanelClassName);
+        }) :
+        currentTarget.animate({ opacity: 0 }, TAB_ANIMATE_DURATION, function () {
+          currentTarget.hide();
+          target
+            .stop()
+            .css({'opacity': 0, 'display': 'block'})
+            .animate({ opacity: 1 }, TAB_ANIMATE_DURATION, function () {
+              currentTarget.removeClass(activePanelClassName);
+              target.addClass(activePanelClassName);
+            });
+        });
+
+      item.siblings().removeClass(activeTabClassName);
+      item.addClass(activeTabClassName);
+    });
+
+    $('.post-toc a').on('click', function (e) {
+      e.preventDefault();
+      var targetSelector = escapeSelector(this.getAttribute('href'));
+      var offset = $(targetSelector).offset().top;
+      hasVelocity ?
+        html.velocity('stop').velocity('scroll', {
+          offset: offset  + 'px',
+          mobileHA: false
+        }) :
+        $('html, body').stop().animate({
+          scrollTop: offset
+        }, 500);
+    });
+
+    // Expand sidebar on post detail page by default, when post has a toc.
+    motionMiddleWares.sidebar = function () {
+      var $tocContent = $('.post-toc-content');
+      if (CONFIG.sidebar === 'post') {
+        if ($tocContent.length > 0 && $tocContent.html().trim().length > 0) {
+          displaySidebar();
+        }
+      }
+    };
+  });
+</script>
+
+
+
+  <script type="text/javascript" src="/js/bootstrap.js"></script>
+
+  
+  
+
+  
+  
+
+</body>
+</html>

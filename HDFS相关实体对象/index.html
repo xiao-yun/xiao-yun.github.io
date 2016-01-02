@@ -1,0 +1,893 @@
+<!doctype html>
+<html class="theme-next   use-motion ">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+  <link href="/vendors/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css"/>
+
+
+
+
+  <link href="//fonts.googleapis.com/css?family=Lato:300,400,700,400italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+
+
+
+<link href="/vendors/font-awesome/css/font-awesome.min.css?v=4.4.0" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=0.4.5.2" rel="stylesheet" type="text/css" />
+
+
+  <meta name="keywords" content="HDFS,Hadoop-1.2.1,Java," />
+
+
+
+
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=0.4.5.2" />
+
+
+
+
+
+
+<meta name="description" content="Hadoop版本:Hadoop-1.2.1参考：《Hadoop技术内幕-深入解析Hadoop Common和HDFS架构设计与实现原理》
+
+本文介绍HDFS中用到的常见实体类。  
+1 BlockBlock即HDFS中的一个区块，区块保存在本地文件中的文件名为”blk_${blockId}”，这里blockId为Block对象的成员属性blockId。Block实现了Writable和Compar">
+<meta property="og:type" content="article">
+<meta property="og:title" content="HDFS相关实体对象">
+<meta property="og:url" content="http://xiao-yun.github.io/HDFS相关实体对象/index.html">
+<meta property="og:site_name" content="xiaoyun">
+<meta property="og:description" content="Hadoop版本:Hadoop-1.2.1参考：《Hadoop技术内幕-深入解析Hadoop Common和HDFS架构设计与实现原理》
+
+本文介绍HDFS中用到的常见实体类。  
+1 BlockBlock即HDFS中的一个区块，区块保存在本地文件中的文件名为”blk_${blockId}”，这里blockId为Block对象的成员属性blockId。Block实现了Writable和Compar">
+<meta property="og:image" content="http://xiao-yun.github.io/../images/Block成员属性.png">
+<meta property="og:image" content="http://xiao-yun.github.io/../images/LocatedBlock成员属性.png">
+<meta property="og:image" content="http://xiao-yun.github.io/../images/LocatedBlocks成员属性.png">
+<meta property="og:image" content="http://xiao-yun.github.io/../images/BlockLocalPathInfo成员属性.png">
+<meta property="og:image" content="http://xiao-yun.github.io/../images/DatanodeID成员属性.png">
+<meta property="og:image" content="http://xiao-yun.github.io/../images/DatanodeInfo成员属性.png">
+<meta property="og:image" content="http://xiao-yun.github.io/../images/HdfsFileStatus成员属性.png">
+<meta property="og:image" content="http://xiao-yun.github.io/../images/DatanodeCommand.png">
+<meta property="og:updated_time" content="2016-01-01T13:38:52.024Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="HDFS相关实体对象">
+<meta name="twitter:description" content="Hadoop版本:Hadoop-1.2.1参考：《Hadoop技术内幕-深入解析Hadoop Common和HDFS架构设计与实现原理》
+
+本文介绍HDFS中用到的常见实体类。  
+1 BlockBlock即HDFS中的一个区块，区块保存在本地文件中的文件名为”blk_${blockId}”，这里blockId为Block对象的成员属性blockId。Block实现了Writable和Compar">
+
+
+
+<script type="text/javascript" id="hexo.configuration">
+  var CONFIG = {
+    scheme: 'Mist',
+    sidebar: 'hide',
+    motion: true
+  };
+</script>
+
+  <title> HDFS相关实体对象 | xiaoyun </title>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  <!--[if lte IE 8]>
+  <div style=' clear: both; height: 59px; padding:0 0 0 15px; position: relative;margin:0 auto;'>
+    <a href="http://windows.microsoft.com/en-US/internet-explorer/products/ie/home?ocid=ie6_countdown_bannercode">
+      <img src="http://7u2nvr.com1.z0.glb.clouddn.com/picouterie.jpg" border="0" height="42" width="820"
+           alt="You are using an outdated browser. For a faster, safer browsing experience, upgrade for free today or use other browser ,like chrome firefox safari."
+           style='margin-left:auto;margin-right:auto;display: block;'/>
+    </a>
+  </div>
+<![endif]-->
+  
+
+
+
+  <script type="text/javascript">
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "//hm.baidu.com/hm.js?caeb4129c91d1e6fb3d562d35fedef0d";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+  <div class="container one-column page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-meta ">
+  
+
+  <div class="custom-logo-site-title">
+    <a href="/"  class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <span class="site-title">xiaoyun</span>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+  <p class="site-subtitle"></p>
+</div>
+
+<div class="site-nav-toggle">
+  <button>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+  </button>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu ">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-home fa-fw"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives" rel="section">
+            
+              <i class="menu-item-icon fa fa-archive fa-fw"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories" rel="section">
+            
+              <i class="menu-item-icon fa fa-th fa-fw"></i> <br />
+            
+            分类
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+              <i class="menu-item-icon fa fa-tags fa-fw"></i> <br />
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about" rel="section">
+            
+              <i class="menu-item-icon fa fa-user fa-fw"></i> <br />
+            
+            关于
+          </a>
+        </li>
+      
+
+      
+      
+    </ul>
+  
+
+  
+</nav>
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div id="content" class="content">
+          
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                HDFS相关实体对象
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            发表于
+            <time itemprop="dateCreated" datetime="2016-01-01T21:38:52+08:00" content="2016-01-01">
+              2016-01-01
+            </time>
+          </span>
+
+          
+            <span class="post-category" >
+              &nbsp; | &nbsp; 分类于
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Hadoop-1-2-1/" itemprop="url" rel="index">
+                    <span itemprop="name">Hadoop-1.2.1</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Hadoop-1-2-1/HDFS/" itemprop="url" rel="index">
+                    <span itemprop="name">HDFS</span>
+                  </a>
+                </span>
+
+                
+                
+
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                &nbsp; | &nbsp;
+                <a href="/HDFS相关实体对象/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="HDFS相关实体对象/" itemprop="commentsCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+
+        </div>
+      </header>
+    
+
+
+    <div class="post-body">
+
+      
+      
+
+      
+        <span itemprop="articleBody"><p>Hadoop版本:<a href="https://archive.apache.org/dist/hadoop/core/hadoop-1.2.1/" target="_blank" rel="external">Hadoop-1.2.1</a><br>参考：《Hadoop技术内幕-深入解析Hadoop Common和HDFS架构设计与实现原理》</p>
+<hr>
+<p>本文介绍HDFS中用到的常见实体类。  </p>
+<h2 id="1_Block">1 Block</h2><p>Block即HDFS中的一个区块，区块保存在本地文件中的文件名为”blk_${blockId}”，这里blockId为Block对象的成员属性<code>blockId</code>。<br>Block实现了Writable和Comparable接口，静态代码段中注册到WritableFactories中<br><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">static</span> &#123;                                      <span class="comment">// register a ctor</span></span><br><span class="line">    WritableFactories.setFactory</span><br><span class="line">      (Block.<span class="keyword">class</span>, <span class="keyword">new</span> WritableFactory() &#123;</span><br><span class="line">         <span class="function"><span class="keyword">public</span> Writable <span class="title">newInstance</span><span class="params">()</span> </span>&#123; <span class="keyword">return</span> <span class="keyword">new</span> Block(); &#125;</span><br><span class="line">       &#125;);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>Block的成员属性如下:<br><img src="../images/Block成员属性.png" alt="Block成员属性">  </p>
+<ul>
+<li><code>GRANDFATHER_GENERATION_STAMP</code>，静态成员，为下一个数据块的时间戳</li>
+<li><code>blockId</code>，数据块唯一标识，数据块的ID，本地文件名为blk_blockId;</li>
+<li><code>numBytes</code>，数据块包含数据的大小；</li>
+<li><code>generationStamp</code>，数据块时间戳，每次对数据块改动后，都会修改；</li>
+</ul>
+<p>一个区块在本地文件中对应一个文件，文件名为blk_blockId。Block中方法比较简单，主要看Writable和Comparable接口的实现<br><figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">write</span>(<span class="params">DataOutput <span class="keyword">out</span></span>) throws IOException </span>&#123;</span><br><span class="line">    <span class="keyword">out</span>.writeLong(blockId);</span><br><span class="line">    <span class="keyword">out</span>.writeLong(numBytes);</span><br><span class="line">    <span class="keyword">out</span>.writeLong(generationStamp);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，序列化时，写blockId，numBytes，generationStamp。<br><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">int</span> <span class="title">compareTo</span><span class="params">(Block b)</span> </span>&#123;</span><br><span class="line">    <span class="comment">//Wildcard generationStamp is NOT ALLOWED here</span></span><br><span class="line">    validateGenerationStamp(<span class="keyword">this</span>.generationStamp);</span><br><span class="line">    validateGenerationStamp(b.generationStamp);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (blockId &lt; b.blockId) &#123;</span><br><span class="line">      <span class="keyword">return</span> -<span class="number">1</span>;</span><br><span class="line">    &#125; <span class="keyword">else</span> <span class="keyword">if</span> (blockId == b.blockId) &#123;</span><br><span class="line">      <span class="keyword">return</span> GenerationStamp.compare(generationStamp, b.generationStamp);<span class="comment">//long型之间的比较</span></span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">      <span class="keyword">return</span> <span class="number">1</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">validateGenerationStamp</span><span class="params">(<span class="keyword">long</span> generationstamp)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (generationstamp == GenerationStamp.WILDCARD_STAMP) &#123;<span class="comment">//WILDCARD_STAMP为1</span></span><br><span class="line">      <span class="keyword">throw</span> <span class="keyword">new</span> IllegalStateException(<span class="string">"generationStamp (="</span> + generationstamp + <span class="string">") == GenerationStamp.WILDCARD_STAMP"</span>);</span><br><span class="line">    &#125;    </span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">int</span> <span class="title">compare</span><span class="params">(<span class="keyword">long</span> x, <span class="keyword">long</span> y)</span> </span>&#123; <span class="keyword">return</span> x &lt; y? -<span class="number">1</span>: x == y? <span class="number">0</span>: <span class="number">1</span>; &#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，两个区块进行比较时，先看blockId，相等时比较generationStamp。  </p>
+<hr>
+<h2 id="2_BlockMetaDataInfo">2 BlockMetaDataInfo</h2><p>BlockMetaDataInfo继承Block，在原来Block的基础上增加了<code>lastScanTime</code><br><figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">public <span class="class"><span class="keyword">class</span> <span class="title">BlockMetaDataInfo</span> <span class="keyword"><span class="keyword">extends</span></span> <span class="title">Block</span></span></span><br></pre></td></tr></table></figure></p>
+<p>成员<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="keyword">long</span> lastScanTime;</span><br></pre></td></tr></table></figure></p>
+<p>静态代码段WritableFactories注册<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">static</span> <span class="keyword">final</span> WritableFactory FACTORY = <span class="keyword">new</span> WritableFactory() &#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="function">Writable <span class="title">newInstance</span><span class="params">()</span> </span>&#123; <span class="keyword">return</span> <span class="keyword">new</span> BlockMetaDataInfo(); &#125;</span><br><span class="line">&#125;;</span><br><span class="line"><span class="keyword">static</span> &#123;                                      <span class="comment">// register a ctor</span></span><br><span class="line">    WritableFactories.setFactory(BlockMetaDataInfo.class, FACTORY);</span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="title">BlockMetaDataInfo</span><span class="params">()</span> </span>&#123;&#125;</span><br></pre></td></tr></table></figure></p>
+<p>序列化<br><figure class="highlight ceylon"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">public <span class="keyword">void</span> write(DataOutput <span class="keyword">out</span>) <span class="annotation">throws</span> IOException &#123;</span><br><span class="line">    <span class="keyword">super</span>.write(<span class="keyword">out</span>);</span><br><span class="line">    <span class="keyword">out</span>.writeLong(lastScanTime);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<hr>
+<h2 id="3_BlockRecoveryInfo">3 BlockRecoveryInfo</h2><p>BlockRecoveryInfo管理了一个区块以及标识该区块是否是在启动时修复的，实现了Writable接口<br><figure class="highlight monkey"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">BlockRecoveryInfo</span> <span class="keyword">implements</span> <span class="title">Writable</span></span></span><br></pre></td></tr></table></figure></p>
+<p>成员<br><figure class="highlight oxygene"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="keyword">Block</span> <span class="keyword">block</span>;</span><br><span class="line"><span class="keyword">private</span> boolean wasRecoveredOnStartup;</span><br></pre></td></tr></table></figure></p>
+<p>序列化<br><figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">write</span>(<span class="params">DataOutput <span class="keyword">out</span></span>) throws IOException </span>&#123;</span><br><span class="line">    block.write(<span class="keyword">out</span>);</span><br><span class="line">    <span class="keyword">out</span>.writeBoolean(wasRecoveredOnStartup);    </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<hr>
+<h2 id="4_LocatedBlock">4 LocatedBlock</h2><p>LocatedBlock是确定了存储位置的区块，成员变量除了Block之外，还包括数据块在对应文件中的偏移量和所属的数据节点信息等。<br>LocatedBlock实现了Writable接口，没有像Block一样实现Comparable接口，同样的在静态代码段中注册WritableFactories中<br><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">static</span> &#123;                                      <span class="comment">// register a ctor</span></span><br><span class="line">    WritableFactories.setFactory</span><br><span class="line">      (LocatedBlock.<span class="keyword">class</span>, <span class="keyword">new</span> WritableFactory() &#123;</span><br><span class="line">         <span class="function"><span class="keyword">public</span> Writable <span class="title">newInstance</span><span class="params">()</span> </span>&#123; <span class="keyword">return</span> <span class="keyword">new</span> LocatedBlock(); &#125;</span><br><span class="line">       &#125;);</span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="title">LocatedBlock</span><span class="params">()</span> </span>&#123; <span class="keyword">this</span>(<span class="keyword">new</span> Block(), <span class="keyword">new</span> DatanodeInfo[<span class="number">0</span>], <span class="number">0L</span>, <span class="literal">false</span>); &#125;</span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="title">LocatedBlock</span><span class="params">(Block b, DatanodeInfo[] locs, <span class="keyword">long</span> startOffset, boolean corrupt)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">this</span>.b = b;</span><br><span class="line">    <span class="keyword">this</span>.offset = startOffset;</span><br><span class="line">    <span class="keyword">this</span>.corrupt = corrupt;</span><br><span class="line">    <span class="keyword">if</span> (locs==null) &#123;</span><br><span class="line">      <span class="keyword">this</span>.locs = <span class="keyword">new</span> DatanodeInfo[<span class="number">0</span>];</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">      <span class="keyword">this</span>.locs = locs;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>成员属性如下:<br><img src="../images/LocatedBlock成员属性.png" alt="LocatedBlock成员属性">  </p>
+<ul>
+<li><code>b</code>，对应的Block；</li>
+<li><code>offset</code>，对应Block在文件中的偏移量；</li>
+<li><code>locs</code>，区块所属DataNode的信息，为数组，因为含有多个备份，可能存在多个DataNode上，为DatanodeInfo对象；</li>
+<li><code>corrupt</code>，该Block是否损坏；</li>
+<li><code>blockToken</code>，区块的口令信息，安全相关；</li>
+</ul>
+<p>对应的序列化方法<br><figure class="highlight fortran"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> void <span class="built_in">write</span>(DataOutput <span class="type">out</span>) throws IOException &#123;</span><br><span class="line">    blockToken.<span class="built_in">write</span>(<span class="type">out</span>);</span><br><span class="line">    <span class="type">out</span>.writeBoolean(corrupt);</span><br><span class="line">    <span class="type">out</span>.writeLong(offset);</span><br><span class="line">    b.<span class="built_in">write</span>(<span class="type">out</span>);</span><br><span class="line">    <span class="type">out</span>.writeInt(locs.length);</span><br><span class="line">    for (<span class="built_in">int</span> i = <span class="number">0</span>; i &lt; locs.length; i++) &#123;</span><br><span class="line">      locs[i].<span class="built_in">write</span>(<span class="type">out</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<hr>
+<h2 id="5_LocatedBlocks">5 LocatedBlocks</h2><p>LocatedBlocks包含一个文件内的局部或全部区块信息，管理了一系列的LocatedBlock对象。<br>LocatedBlocks实现了Writable接口，静态代码段中注册WritableFactories<br><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">static</span> &#123;                                      <span class="comment">// register a ctor</span></span><br><span class="line">    WritableFactories.setFactory</span><br><span class="line">      (LocatedBlocks.<span class="keyword">class</span>, <span class="keyword">new</span> WritableFactory() &#123;</span><br><span class="line">         <span class="function"><span class="keyword">public</span> Writable <span class="title">newInstance</span><span class="params">()</span> </span>&#123; <span class="keyword">return</span> <span class="keyword">new</span> LocatedBlocks(); &#125;</span><br><span class="line">       &#125;);</span><br><span class="line">&#125;</span><br><span class="line">LocatedBlocks() &#123;</span><br><span class="line">    fileLength = <span class="number">0</span>;</span><br><span class="line">    blocks = null;</span><br><span class="line">    underConstruction = <span class="literal">false</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>成员属性如下<br><img src="../images/LocatedBlocks成员属性.png" alt="LocatedBlocks成员属性">  </p>
+<ul>
+<li><code>fileLength</code>，为这些区块所属文件的文件长度；</li>
+<li><code>blocks</code>，管理的LocatedBlock集合；</li>
+<li><code>underConstruction</code>，是否处于构建标识，当文件处于构建状态，此时客户端正在写文件，fileLength可能在后续过程中会发生变化；</li>
+</ul>
+<p>对应的序列化方法<br><figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">write</span>(<span class="params">DataOutput <span class="keyword">out</span></span>) throws IOException </span>&#123;</span><br><span class="line">    <span class="keyword">out</span>.writeLong(<span class="keyword">this</span>.fileLength);</span><br><span class="line">    <span class="keyword">out</span>.writeBoolean(underConstruction);</span><br><span class="line">    <span class="comment">// write located blocks</span></span><br><span class="line">    <span class="keyword">int</span> nrBlocks = locatedBlockCount();</span><br><span class="line">    <span class="keyword">out</span>.writeInt(nrBlocks);</span><br><span class="line">    <span class="keyword">if</span> (nrBlocks == <span class="number">0</span>) &#123;</span><br><span class="line">      <span class="keyword">return</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">for</span> (LocatedBlock blk : <span class="keyword">this</span>.blocks) &#123;</span><br><span class="line">      blk.write(<span class="keyword">out</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">int</span> <span class="title">locatedBlockCount</span>(<span class="params"></span>) </span>&#123; <span class="keyword">return</span> blocks == <span class="keyword">null</span> ? <span class="number">0</span> : blocks.size(); &#125;</span><br></pre></td></tr></table></figure></p>
+<hr>
+<h2 id="6_BlockLocalPathInfo">6 BlockLocalPathInfo</h2><p>BlockLocalPathInfo应用于ClientDatanodeProtocol接口中，用于HDFS读文件的数据节点本地读优化。当客户端发现它和它要读取的数据块正好位于同一台主机上时，它可以不通过数据节点读数据块，而是直接读取本地文件，以获取数据块的内容，大大降低了对应数据节点的负载。(参考技术内幕)<br>当客户端执行本地读优化时，需要通过<code>ClientDatanodeProtocol</code>获取数据块对应的本地文件，数据节点通过BlockLocalPathInfo返回本地文件的路径，保存在成员变量<code>localBlockPath</code>中，成员变量<code>localMetaPath</code>是数据块校验信息文件的路径，该文件保存了数据块的校验信息。客户端通过这两个路径，直接读取本地文件。(参考技术内幕)  </p>
+<p>BlockLocalPathInfo实现了Writable接口，在静态代码段中注册WritableFactories<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">static</span> <span class="keyword">final</span> WritableFactory FACTORY = <span class="keyword">new</span> WritableFactory() &#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="function">Writable <span class="title">newInstance</span><span class="params">()</span> </span>&#123; <span class="keyword">return</span> <span class="keyword">new</span> BlockLocalPathInfo(); &#125;</span><br><span class="line">&#125;;</span><br><span class="line"><span class="keyword">static</span> &#123;                                      <span class="comment">// register a ctor</span></span><br><span class="line">    WritableFactories.setFactory(BlockLocalPathInfo.class, FACTORY);</span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="title">BlockLocalPathInfo</span><span class="params">()</span> </span>&#123;&#125;</span><br></pre></td></tr></table></figure></p>
+<p>成员属性<br><img src="../images/BlockLocalPathInfo成员属性.png" alt="BlockLocalPathInfo成员属性">  </p>
+<ul>
+<li><code>block</code>，对应的区块</li>
+<li><code>localBlockPath</code>，区块的本地路径</li>
+<li><code>localMetaPath</code>，区块校验信息的本地路径</li>
+</ul>
+<p>序列化<br><figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">write</span>(<span class="params">DataOutput <span class="keyword">out</span></span>) throws IOException </span>&#123;</span><br><span class="line">    block.write(<span class="keyword">out</span>);</span><br><span class="line">    Text.writeString(<span class="keyword">out</span>, localBlockPath);</span><br><span class="line">    Text.writeString(<span class="keyword">out</span>, localMetaPath);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<hr>
+<h2 id="7_DatanodeID">7 DatanodeID</h2><p>DatanodeID标识了一个数据节点，实现了<code>WritableComparable</code>接口<br><figure class="highlight monkey"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">DatanodeID</span> <span class="keyword">implements</span> <span class="title">WritableComparable</span>&lt;<span class="title">DatanodeID</span>&gt;</span></span><br></pre></td></tr></table></figure></p>
+<p>成员属性如下:<br><img src="../images/DatanodeID成员属性.png" alt="DatanodeID成员属性">  </p>
+<ul>
+<li><p><code>EMPTY_ARRAY</code>，一个空的DatanodeID数组</p>
+  <figure class="highlight actionscript"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> DatanodeID[] EMPTY_ARRAY = &#123;&#125;;</span><br></pre></td></tr></table></figure>
+</li>
+<li><p><code>name</code>，DataNode的名字，可以为”IP:Port”或”HostName:Port”，这里的Port为数据传输端口</p>
+</li>
+<li><code>storageID</code>，数据节点的存储标识，当数据节点用不同的存储标识在名字节点上注册时，名字节点通过这个标识，了解到这是一个被重新使用的数据节点(参考技术内幕)</li>
+<li><code>infoPort</code>，数据节点www服务器的监听端口，通过该端口可以使用http/https协议访问数据节点</li>
+<li><code>ipcPort</code>，数据节点IPC服务器监听端口，即ClientDatanodeProtocol，InterDatanodeProtocol协议提供的服务</li>
+</ul>
+<p>序列化<br><figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">write</span>(<span class="params">DataOutput <span class="keyword">out</span></span>) throws IOException </span>&#123;</span><br><span class="line">    UTF8.writeString(<span class="keyword">out</span>, name);</span><br><span class="line">    UTF8.writeString(<span class="keyword">out</span>, storageID);</span><br><span class="line">    <span class="keyword">out</span>.writeShort(infoPort);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<hr>
+<h2 id="8_DatanodeRegistration">8 DatanodeRegistration</h2><p>DatanodeRegistration包含了NameNode标识和验证DataNode所需的所有DataNode信息，每次DataNode和NameNode通信时都会发送该对象给NameNode。<br>DatanodeRegistration继承DatanodeID实现了Writable接口。<br>成员如下:<br><figure class="highlight actionscript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> StorageInfo storageInfo;</span><br><span class="line"><span class="keyword">public</span> ExportedBlockKeys exportedKeys;</span><br></pre></td></tr></table></figure></p>
+<ul>
+<li><code>storageInfo</code>，包含存储系统信息</li>
+<li><code>exportedKeys</code>，安全相关<h3 id="8-1_StorageInfo">8.1 StorageInfo</h3>storageInfo包含了数据节点的存储系统信息，成员属性如下:<figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">int</span>   layoutVersion;  <span class="comment">//HDFS存储系统信息结构的版本号</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">int</span>   namespaceID;    <span class="comment">//存储系统的唯一标识符</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">long</span>  cTime;          <span class="comment">//存储系统信息的创建时间</span></span><br></pre></td></tr></table></figure>
+</li>
+</ul>
+<p>当数据节点注册时，名字节点根据StorageInfo包含的信息进行检查，保证当前注册的节点是HDFS的一个合法数据节点，而不是一个属于其他集群的将诶点，或者曾经属于集群，但未进行必要升级的节点，以保证存储系统的一致性。  </p>
+<p>DatanodeRegistration实现了Writable接口，在静态代码段中注册WritableFactories<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">static</span> &#123;                                      <span class="comment">// register a ctor</span></span><br><span class="line">    WritableFactories.setFactory</span><br><span class="line">      (DatanodeRegistration.class, <span class="keyword">new</span> WritableFactory() &#123;</span><br><span class="line">         <span class="keyword">public</span> <span class="function">Writable <span class="title">newInstance</span><span class="params">()</span> </span>&#123; <span class="keyword">return</span> <span class="keyword">new</span> DatanodeRegistration(); &#125;</span><br><span class="line">       &#125;);</span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="title">DatanodeRegistration</span><span class="params">()</span> </span>&#123; <span class="keyword">this</span>(<span class="string">""</span>); &#125;</span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="title">DatanodeRegistration</span><span class="params">(String nodeName)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">super</span>(nodeName);</span><br><span class="line">    <span class="keyword">this</span>.storageInfo = <span class="keyword">new</span> StorageInfo();</span><br><span class="line">    <span class="keyword">this</span>.exportedKeys = <span class="keyword">new</span> ExportedBlockKeys();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>序列化<br><figure class="highlight ceylon"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">public <span class="keyword">void</span> write(DataOutput <span class="keyword">out</span>) <span class="annotation">throws</span> IOException &#123;</span><br><span class="line">    <span class="keyword">super</span>.write(<span class="keyword">out</span>);</span><br><span class="line"></span><br><span class="line">    <span class="comment">//<span class="doctag">TODO:</span> move it to DatanodeID once HADOOP-2797 has been committed</span></span><br><span class="line">    <span class="keyword">out</span>.writeShort(ipcPort);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">out</span>.writeInt(storageInfo.getLayoutVersion());</span><br><span class="line">    <span class="keyword">out</span>.writeInt(storageInfo.getNamespaceID());</span><br><span class="line">    <span class="keyword">out</span>.writeLong(storageInfo.getCTime());</span><br><span class="line">    exportedKeys.write(<span class="keyword">out</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<hr>
+<h2 id="9_NamespaceInfo">9 NamespaceInfo</h2><p>NamespaceInfo继承StorageInfo实现了Writable接口，用于在数据节点向名字节点握手时versionRequest返回<br><figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">public <span class="class"><span class="keyword">class</span> <span class="title">NamespaceInfo</span> <span class="keyword"><span class="keyword">extends</span></span> <span class="title">StorageInfo</span> <span class="title">implements</span> <span class="title">Writable</span></span></span><br></pre></td></tr></table></figure></p>
+<p>除了StorageInfo中的成员外，还包含了<br><figure class="highlight armasm"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">String </span><span class="keyword">revision;</span><br><span class="line"></span><span class="keyword">String </span>version<span class="comment">;</span></span><br><span class="line"><span class="label">int</span> distributedUpgradeVersion<span class="comment">;</span></span><br></pre></td></tr></table></figure></p>
+<p>静态代码段中注册WritableFactories<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">static</span> &#123;                                      <span class="comment">// register a ctor</span></span><br><span class="line">    WritableFactories.setFactory</span><br><span class="line">      (NamespaceInfo.class, <span class="keyword">new</span> WritableFactory() &#123;</span><br><span class="line">         <span class="keyword">public</span> <span class="function">Writable <span class="title">newInstance</span><span class="params">()</span> </span>&#123; <span class="keyword">return</span> <span class="keyword">new</span> NamespaceInfo(); &#125;</span><br><span class="line">       &#125;);</span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="title">NamespaceInfo</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="keyword">super</span>();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>序列化<br><figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">write</span>(<span class="params">DataOutput <span class="keyword">out</span></span>) throws IOException </span>&#123;</span><br><span class="line">    UTF8.writeString(<span class="keyword">out</span>, getVersion());</span><br><span class="line">    UTF8.writeString(<span class="keyword">out</span>, getRevision());</span><br><span class="line">    <span class="keyword">out</span>.writeInt(getLayoutVersion());</span><br><span class="line">    <span class="keyword">out</span>.writeInt(getNamespaceID());</span><br><span class="line">    <span class="keyword">out</span>.writeLong(getCTime());</span><br><span class="line">    <span class="keyword">out</span>.writeInt(getDistributedUpgradeVersion());</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>以上为所属成员和父类成员</p>
+<hr>
+<h2 id="10_DatanodeInfo">10 DatanodeInfo</h2><p>DatanodeInfo继承DatanodeID实现了Node接口，添加了关于DataNode的很多状态信息。<br>Node接口实例为网络拓扑结构的一个节点表示，如果数据节点位于数据中心<code>dog</code>的机架<code>orange</code>中，则其网络位置的字符串表示形式为”/dog/orange”，而该数据节点的名字为”hostname:port”，由网络位置和数据节点名字确定该数据节点。<br>Node声明的方法有<br><figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">interface</span> <span class="title">Node</span> &#123;</span><br><span class="line">  <span class="comment">//返回该节点网络位置的字符串表示形式</span></span><br><span class="line">  <span class="function"><span class="keyword">public</span> String <span class="title">getNetworkLocation</span>(<span class="params"></span>)</span>;</span><br><span class="line">  <span class="comment">//设置该节点的网络位置</span></span><br><span class="line">  <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">setNetworkLocation</span>(<span class="params">String location</span>)</span>;</span><br><span class="line">  <span class="comment">//返回该节点的名字，如数据节点"hostname:port"</span></span><br><span class="line">  <span class="function"><span class="keyword">public</span> String <span class="title">getName</span>(<span class="params"></span>)</span>;</span><br><span class="line">  <span class="comment">//返回父节点</span></span><br><span class="line">  <span class="function"><span class="keyword">public</span> Node <span class="title">getParent</span>(<span class="params"></span>)</span>;</span><br><span class="line">  <span class="comment">//设置父节点</span></span><br><span class="line">  <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">setParent</span>(<span class="params">Node parent</span>)</span>;</span><br><span class="line">  <span class="comment">//返回节点在树中的层级，根节点为0，以此类推</span></span><br><span class="line">  <span class="function"><span class="keyword">public</span> <span class="keyword">int</span> <span class="title">getLevel</span>(<span class="params"></span>)</span>;</span><br><span class="line">  <span class="comment">//设置节点在树的层级</span></span><br><span class="line">  <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">setLevel</span>(<span class="params"><span class="keyword">int</span> i</span>)</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>DatanodeInfo的成员属性如下:<br><img src="../images/DatanodeInfo成员属性.png" alt="DatanodeInfo成员属性">  </p>
+<ul>
+<li><code>capacity</code>，容量</li>
+<li><code>dfsUsed</code>，已经使用容量</li>
+<li><code>remaining</code>，剩余容量</li>
+<li><code>lastUpdate</code>，状态更新时间</li>
+<li><code>xceiverCount</code>，流接口服务线程数</li>
+<li><code>location</code>，网络位置信息，缺省为<code>NetworkTopology.DEFAULT_RACK</code>(/default-rack)</li>
+<li><code>hostName</code>，主机名(IP:port或hostname:port)</li>
+<li><p><code>adminState</code>，管理员状态，可能为<code>正常</code>，<code>正在退役</code>，<code>已经退役</code>三种</p>
+  <figure class="highlight crystal"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">public <span class="class"><span class="keyword">enum</span> <span class="title">AdminStates</span> &#123;<span class="title">NORMAL</span>, <span class="title">DECOMMISSION_INPROGRESS</span>, <span class="title">DECOMMISSIONED</span>;</span> &#125;</span><br></pre></td></tr></table></figure>
+</li>
+<li><p><code>level</code>，在集群树中的层级</p>
+</li>
+<li><code>parent</code>，集群中父节点</li>
+</ul>
+<p>静态代码段中注册WritableFactories<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">static</span> &#123;                                      <span class="comment">// register a ctor</span></span><br><span class="line">    WritableFactories.setFactory</span><br><span class="line">      (DatanodeInfo.class, <span class="keyword">new</span> WritableFactory() &#123;</span><br><span class="line">         <span class="keyword">public</span> <span class="function">Writable <span class="title">newInstance</span><span class="params">()</span> </span>&#123; <span class="keyword">return</span> <span class="keyword">new</span> DatanodeInfo(); &#125;</span><br><span class="line">       &#125;);</span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="title">DatanodeInfo</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="keyword">super</span>();</span><br><span class="line">    adminState = <span class="keyword">null</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>序列化<br><figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">write</span>(<span class="params">DataOutput <span class="keyword">out</span></span>) throws IOException </span>&#123;</span><br><span class="line">    super.write(<span class="keyword">out</span>);</span><br><span class="line"></span><br><span class="line">    <span class="comment">//<span class="doctag">TODO:</span> move it to DatanodeID once DatanodeID is not stored in FSImage</span></span><br><span class="line">    <span class="keyword">out</span>.writeShort(ipcPort);</span><br><span class="line">    <span class="keyword">out</span>.writeLong(capacity);</span><br><span class="line">    <span class="keyword">out</span>.writeLong(dfsUsed);</span><br><span class="line">    <span class="keyword">out</span>.writeLong(remaining);</span><br><span class="line">    <span class="keyword">out</span>.writeLong(lastUpdate);</span><br><span class="line">    <span class="keyword">out</span>.writeInt(xceiverCount);</span><br><span class="line">    Text.writeString(<span class="keyword">out</span>, location);</span><br><span class="line">    Text.writeString(<span class="keyword">out</span>, hostName == <span class="keyword">null</span>? <span class="string">""</span>: hostName);</span><br><span class="line">    WritableUtils.writeEnum(<span class="keyword">out</span>, getAdminState());</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<hr>
+<h2 id="11_HdfsFileStatus">11 HdfsFileStatus</h2><p>HdfsFileStatus是HDFS中文件状态的实现，实现了Writable接口，成员属性如下:<br><img src="../images/HdfsFileStatus成员属性.png" alt="HdfsFileStatus成员属性">  </p>
+<ul>
+<li><code>path</code>，文件路径的UTF8编码形式</li>
+<li><code>EMPTY_NAME</code>，静态成员，空名字<br>其他和FileStatus一样</li>
+</ul>
+<p>静态代码段中注册WritableFactories<br><figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">static</span> &#123;                                      <span class="comment">// register a ctor</span></span><br><span class="line">    WritableFactories.setFactory</span><br><span class="line">      (HdfsFileStatus.class, <span class="keyword">new</span> WritableFactory() &#123;</span><br><span class="line">         <span class="function"><span class="keyword">public</span> Writable <span class="title">newInstance</span>(<span class="params"></span>) </span>&#123; <span class="keyword">return</span> <span class="keyword">new</span> HdfsFileStatus(); &#125;</span><br><span class="line">       &#125;);</span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="title">HdfsFileStatus</span>(<span class="params"></span>) </span>&#123; <span class="keyword">this</span>(<span class="number">0</span>, <span class="keyword">false</span>, <span class="number">0</span>, <span class="number">0</span>, <span class="number">0</span>, <span class="number">0</span>, <span class="keyword">null</span>, <span class="keyword">null</span>, <span class="keyword">null</span>, <span class="keyword">null</span>); &#125;</span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="title">HdfsFileStatus</span>(<span class="params"><span class="keyword">long</span> length, boolean isdir, <span class="keyword">int</span> block_replication,</span><br><span class="line">                    <span class="keyword">long</span> blocksize, <span class="keyword">long</span> modification_time, <span class="keyword">long</span> access_time,</span><br><span class="line">                    FsPermission permission, String owner, String <span class="keyword">group</span>, <span class="keyword">byte</span>[] path</span>) </span>&#123;</span><br><span class="line">    <span class="keyword">this</span>.length = length;</span><br><span class="line">    <span class="keyword">this</span>.isdir = isdir;</span><br><span class="line">    <span class="keyword">this</span>.block_replication = (<span class="keyword">short</span>)block_replication;</span><br><span class="line">    <span class="keyword">this</span>.blocksize = blocksize;</span><br><span class="line">    <span class="keyword">this</span>.modification_time = modification_time;</span><br><span class="line">    <span class="keyword">this</span>.access_time = access_time;</span><br><span class="line">    <span class="keyword">this</span>.permission = (permission == <span class="keyword">null</span>) ? </span><br><span class="line">                      FsPermission.getDefault() : permission;</span><br><span class="line">    <span class="keyword">this</span>.owner = (owner == <span class="keyword">null</span>) ? <span class="string">""</span> : owner;</span><br><span class="line">    <span class="keyword">this</span>.<span class="keyword">group</span> = (<span class="keyword">group</span> == <span class="keyword">null</span>) ? <span class="string">""</span> : <span class="keyword">group</span>;</span><br><span class="line">    <span class="keyword">this</span>.path = path;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>序列化<br><figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">write</span>(<span class="params">DataOutput <span class="keyword">out</span></span>) throws IOException </span>&#123;</span><br><span class="line">    <span class="keyword">out</span>.writeInt(path.length);</span><br><span class="line">    <span class="keyword">out</span>.write(path);</span><br><span class="line">    <span class="keyword">out</span>.writeLong(length);</span><br><span class="line">    <span class="keyword">out</span>.writeBoolean(isdir);</span><br><span class="line">    <span class="keyword">out</span>.writeShort(block_replication);</span><br><span class="line">    <span class="keyword">out</span>.writeLong(blocksize);</span><br><span class="line">    <span class="keyword">out</span>.writeLong(modification_time);</span><br><span class="line">    <span class="keyword">out</span>.writeLong(access_time);</span><br><span class="line">    permission.write(<span class="keyword">out</span>);</span><br><span class="line">    Text.writeString(<span class="keyword">out</span>, owner);</span><br><span class="line">    Text.writeString(<span class="keyword">out</span>, <span class="keyword">group</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<hr>
+<h2 id="12_DirectoryListing">12 DirectoryListing</h2><p>DirectoryListing维护了目录下的局部文件状态信息，看它的成员属性<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> HdfsFileStatus[] partialListing;<span class="comment">//文件状态集合</span></span><br><span class="line"><span class="keyword">private</span> <span class="keyword">int</span> remainingEntries;<span class="comment">//目录下还剩多少项</span></span><br></pre></td></tr></table></figure></p>
+<p>如上，简单的维护了一组文件状态信息。<br>DirectoryListing实现Writable接口，在静态代码段中注册WritableFactories<br><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">static</span> &#123;                                      <span class="comment">// register a ctor</span></span><br><span class="line">WritableFactories.setFactory</span><br><span class="line">  (DirectoryListing.<span class="keyword">class</span>, <span class="keyword">new</span> WritableFactory() &#123;</span><br><span class="line">     <span class="function"><span class="keyword">public</span> Writable <span class="title">newInstance</span><span class="params">()</span> </span>&#123; <span class="keyword">return</span> <span class="keyword">new</span> DirectoryListing(); &#125;</span><br><span class="line">   &#125;);</span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="title">DirectoryListing</span><span class="params">()</span> </span>&#123;&#125;</span><br></pre></td></tr></table></figure></p>
+<p>序列化<br><figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">@<span class="function">Override</span><br><span class="line">  <span class="keyword">public</span> <span class="keyword">void</span> <span class="title">write</span>(<span class="params">DataOutput <span class="keyword">out</span></span>) throws IOException </span>&#123;</span><br><span class="line">    <span class="keyword">out</span>.writeInt(partialListing.length);</span><br><span class="line">    <span class="keyword">for</span> (HdfsFileStatus fileStatus : partialListing) &#123;</span><br><span class="line">      fileStatus.write(<span class="keyword">out</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">out</span>.writeInt(remainingEntries);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<hr>
+<h2 id="13_DatanodeCommand(技术内幕)">13 DatanodeCommand(技术内幕)</h2><p>NameNode发送给DataNode的命令，在DataNode对NameNode的心跳返回等方法中获得，然后执行相应命令。<br>成员<br><figure class="highlight fortran"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="built_in">int</span> <span class="keyword">action</span>;</span><br></pre></td></tr></table></figure></p>
+<p>执行的命令，支持的命令有<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">final</span> <span class="keyword">static</span> <span class="keyword">int</span> DNA_UNKNOWN = <span class="number">0</span>;    <span class="comment">//未定义</span></span><br><span class="line"><span class="comment">//数据块复制，当系统中某数据块的副本数小于设置值时，名字节点会通知某一个拥有该数据块的数据节点将数据块复制到其他数据节点</span></span><br><span class="line"><span class="keyword">final</span> <span class="keyword">static</span> <span class="keyword">int</span> DNA_TRANSFER = <span class="number">1</span>;   </span><br><span class="line"><span class="keyword">final</span> <span class="keyword">static</span> <span class="keyword">int</span> DNA_INVALIDATE = <span class="number">2</span>; <span class="comment">//数据块删除，删除多余的数据块</span></span><br><span class="line"><span class="keyword">final</span> <span class="keyword">static</span> <span class="keyword">int</span> DNA_SHUTDOWN = <span class="number">3</span>;   <span class="comment">//关闭数据节点</span></span><br><span class="line"><span class="keyword">final</span> <span class="keyword">static</span> <span class="keyword">int</span> DNA_REGISTER = <span class="number">4</span>;   <span class="comment">//数据节点重新注册</span></span><br><span class="line"><span class="keyword">final</span> <span class="keyword">static</span> <span class="keyword">int</span> DNA_FINALIZE = <span class="number">5</span>;   <span class="comment">//提交上一次上级</span></span><br><span class="line"><span class="comment">//请求数据块恢复，客户端在写数据过程中异常退出时，数据节点上同一数据块的不同副本数可能处于不一致的状态，名字节点选择一个主数据节点，协调其他数据节点将副本恢复到一致的状态。HDFS在数据恢复过程中采取了将各个数据块恢复到它们中的最小长度的策略。</span></span><br><span class="line"><span class="keyword">final</span> <span class="keyword">static</span> <span class="keyword">int</span> DNA_RECOVERBLOCK = <span class="number">6</span>;  </span><br><span class="line"><span class="keyword">final</span> <span class="keyword">static</span> <span class="keyword">int</span> DNA_ACCESSKEYUPDATE = <span class="number">7</span>;  <span class="comment">//安全相关</span></span><br><span class="line"><span class="keyword">final</span> <span class="keyword">static</span> <span class="keyword">int</span> DNA_BALANCERBANDWIDTHUPDATE = <span class="number">8</span>; <span class="comment">//更新平衡器可用带宽</span></span><br></pre></td></tr></table></figure></p>
+<p>对应的类如下<br><img src="../images/DatanodeCommand.png" alt="DatanodeCommand">  </p>
+<ul>
+<li><p><code>BalancerBandwidthCommand</code>，继承DatanodeCommand，设置数据节点均衡器可用的最大带宽，对应的命令编号为DNA_BALANCERBANDWIDTHUPDATE(8)。新的带宽值为成员bandwidth，单位为bytes/s</p>
+  <figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">final</span> <span class="keyword">static</span> <span class="keyword">int</span> BBC_VERSION = <span class="number">1</span>;</span><br><span class="line"><span class="keyword">private</span> <span class="keyword">final</span> <span class="keyword">static</span> <span class="keyword">long</span> BBC_DEFAULTBANDWIDTH = <span class="number">0</span>L;</span><br><span class="line"><span class="keyword">private</span> <span class="keyword">long</span> bandwidth;</span><br><span class="line"><span class="keyword">private</span> <span class="keyword">int</span> version = BBC_VERSION;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="title">BalancerBandwidthCommand</span><span class="params">(<span class="keyword">long</span> bandwidth)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">super</span>(DatanodeProtocol.DNA_BALANCERBANDWIDTHUPDATE);<span class="comment">//命令编号DNA_BALANCERBANDWIDTHUPDATE</span></span><br><span class="line">    <span class="keyword">this</span>.bandwidth = bandwidth;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>  静态代码段注册和序列化略。  </p>
+</li>
+<li><p><code>Finalize</code>，DatanodeCommand内部类，继承DatanodeCommand</p>
+  <figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">static <span class="class"><span class="keyword">class</span> <span class="title">Finalize</span> <span class="keyword"><span class="keyword">extends</span></span> <span class="title">DatanodeCommand</span> &#123;</span></span><br><span class="line">    <span class="keyword">private</span> <span class="type">Finalize</span>() &#123;<span class="keyword">super</span>(<span class="type">DatanodeProtocol</span>.<span class="type">DNA_FINALIZE</span>);&#125;<span class="comment">//命令编号DNA_FINALIZE</span></span><br><span class="line">    public void readFields(<span class="type">DataInput</span> in) &#123;&#125;</span><br><span class="line">    public void write(<span class="type">DataOutput</span> out) &#123;&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>  静态注册略。</p>
+</li>
+<li><code>UpgradeCommand</code>，用于启动升级，命令编号为<code>DNA_UNKNOWN</code>，由于数据节点在处理这条命令时，不会处于一般的正常工作状态，所以通过子类而不是命令编号来区分命令。  </li>
+<li><code>KeyUpdateCommand</code>，对应命令编号为<code>DNA_ACCESSKEYUPDATE</code>，安全相关。</li>
+<li><p><code>BlockCommand</code>，对应的命令编号有<code>DNA_TRANSFER</code>,<code>DNA_INVALIDATE</code>，<code>DNA_RECOVERBLOCK</code>，与数据块操作有关，继承DatanodeCommand的同时提供以下成员</p>
+  <figure class="highlight scss"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="value">Block</span> blocks<span class="attr_selector">[]</span>;</span><br><span class="line">DatanodeInfo targets<span class="attr_selector">[]</span><span class="attr_selector">[]</span>;</span><br></pre></td></tr></table></figure>
+<p>  如上，blocks为要操作(删除或复制等)的区块，targets为区块对应的数据节点信息。<br>  具体静态代码段中的注册和序列化略。  </p>
+</li>
+<li><code>Register</code>，DatanodeCommand的内部类，对应的命令编号为<code>DNA_REGISTER</code>。</li>
+<li>命令编号<code>DNA_SHUTDOWN</code>已经废弃不用，如果名字节点需要让数据节点停止服务，名字节点通过抛出异常<code>DisallowedDatanodeException</code>来通知数据节点，而不是通过某个命令编号为<code>DNA_SHUTDOWN</code>的DatanodeCommand子类来下发这个命令。  </li>
+</ul>
+</span>
+      
+    </div>
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/HDFS/" rel="tag">#HDFS</a>
+          
+            <a href="/tags/Hadoop-1-2-1/" rel="tag">#Hadoop-1.2.1</a>
+          
+            <a href="/tags/Java/" rel="tag">#Java</a>
+          
+        </div>
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/HDFS VersionedProtocol/" rel="next" title="HDFS节点的VersionedProtocol实现">
+                <i class="fa fa-chevron-left"></i> HDFS节点的VersionedProtocol实现
+              </a>
+            
+          </div>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/HDFS流接口/" rel="prev" title="HDFS节点的流式接口访问">
+                HDFS节点的流式接口访问 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </article>
+
+
+
+    <div class="post-spread">
+      
+        <!-- JiaThis Button BEGIN -->
+<div class="jiathis_style">
+  <a class="jiathis_button_tsina"></a>
+  <a class="jiathis_button_tqq"></a>
+  <a class="jiathis_button_weixin"></a>
+  <a class="jiathis_button_cqq"></a>
+  <a class="jiathis_button_douban"></a>
+  <a class="jiathis_button_renren"></a>
+  <a class="jiathis_button_qzone"></a>
+  <a class="jiathis_button_kaixin001"></a>
+  <a class="jiathis_button_copy"></a>
+  <a href="http://www.jiathis.com/share" class="jiathis jiathis_txt jiathis_separator jtico jtico_jiathis" target="_blank"></a>
+  <a class="jiathis_counter_style"></a>
+</div>
+<script type="text/javascript" >
+  var jiathis_config={
+    hideMore:false
+  }
+</script>
+<script type="text/javascript" src="http://v3.jiathis.com/code/jia.js" charset="utf-8"></script>
+<!-- JiaThis Button END -->
+
+      
+    </div>
+  </div>
+
+
+        </div>
+
+        
+
+
+        
+  <div class="comments" id="comments">
+    
+      <div class="ds-thread" data-thread-key="HDFS相关实体对象/"
+           data-title="HDFS相关实体对象" data-url="http://xiao-yun.github.io/HDFS相关实体对象/">
+      </div>
+    
+  </div>
+
+
+      </div>
+
+      
+        
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap" >
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel ">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+          <img class="site-author-image" src="/images/hero.jpg" alt="xiaoyun" itemprop="image"/>
+          <p class="site-author-name" itemprop="name">xiaoyun</p>
+        </div>
+        <p class="site-description motion-element" itemprop="description">学习笔记，网上资源摘要等</p>
+        <nav class="site-state motion-element">
+          <div class="site-state-item site-state-posts">
+            <a href="/archives">
+              <span class="site-state-item-count">29</span>
+              <span class="site-state-item-name">日志</span>
+            </a>
+          </div>
+
+          <div class="site-state-item site-state-categories">
+            <a href="/categories">
+              <span class="site-state-item-count">24</span>
+              <span class="site-state-item-name">分类</span>
+              </a>
+          </div>
+
+          <div class="site-state-item site-state-tags">
+            <a href="/tags">
+              <span class="site-state-item-count">14</span>
+              <span class="site-state-item-name">标签</span>
+              </a>
+          </div>
+
+        </nav>
+
+        
+
+        <div class="links-of-author motion-element">
+          
+            
+              <span class="links-of-author-item">
+                <a href="https://github.com/xiao-yun" target="_blank">
+                  
+                    <i class="fa fa-globe"></i> github
+                  
+                </a>
+              </span>
+            
+          
+        </div>
+
+        
+        
+
+        <div class="links-of-author motion-element">
+          
+        </div>
+
+      </section>
+
+      
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc-indicator-top post-toc-indicator">
+            <i class="fa fa-angle-double-up"></i>
+          </div>
+          <div class="post-toc">
+            
+              
+            
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#1_Block"><span class="nav-number">1.</span> <span class="nav-text">1 Block</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2_BlockMetaDataInfo"><span class="nav-number">2.</span> <span class="nav-text">2 BlockMetaDataInfo</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3_BlockRecoveryInfo"><span class="nav-number">3.</span> <span class="nav-text">3 BlockRecoveryInfo</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4_LocatedBlock"><span class="nav-number">4.</span> <span class="nav-text">4 LocatedBlock</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#5_LocatedBlocks"><span class="nav-number">5.</span> <span class="nav-text">5 LocatedBlocks</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#6_BlockLocalPathInfo"><span class="nav-number">6.</span> <span class="nav-text">6 BlockLocalPathInfo</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#7_DatanodeID"><span class="nav-number">7.</span> <span class="nav-text">7 DatanodeID</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#8_DatanodeRegistration"><span class="nav-number">8.</span> <span class="nav-text">8 DatanodeRegistration</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#8-1_StorageInfo"><span class="nav-number">8.1.</span> <span class="nav-text">8.1 StorageInfo</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#9_NamespaceInfo"><span class="nav-number">9.</span> <span class="nav-text">9 NamespaceInfo</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#10_DatanodeInfo"><span class="nav-number">10.</span> <span class="nav-text">10 DatanodeInfo</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#11_HdfsFileStatus"><span class="nav-number">11.</span> <span class="nav-text">11 HdfsFileStatus</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#12_DirectoryListing"><span class="nav-number">12.</span> <span class="nav-text">12 DirectoryListing</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#13_DatanodeCommand(技术内幕)"><span class="nav-number">13.</span> <span class="nav-text">13 DatanodeCommand(技术内幕)</span></a></li></ol></div>
+            
+          </div>
+          <div class="post-toc-indicator-bottom post-toc-indicator">
+            <i class="fa fa-angle-double-down"></i>
+          </div>
+        </section>
+      
+
+    </div>
+  </aside>
+
+
+      
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright" >
+  
+  &copy; 
+  <span itemprop="copyrightYear">2016</span>
+  <span class="with-love">
+    <i class="icon-next-heart fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">xiaoyun</span>
+</div>
+
+<div class="powered-by">
+  由 <a class="theme-link" href="http://hexo.io">Hexo</a> 强力驱动
+</div>
+
+<div class="theme-info">
+  主题 -
+  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
+    NexT.Mist
+  </a>
+</div>
+
+
+
+      </div>
+    </footer>
+
+    <div class="back-to-top"></div>
+  </div>
+
+  <script type="text/javascript" src="/vendors/jquery/index.js?v=2.1.3"></script>
+
+  
+  
+
+  
+    
+
+  
+    
+  
+
+  <script type="text/javascript">
+    var duoshuoQuery = {short_name:"xiaoyuncom"};
+    (function() {
+      var ds = document.createElement('script');
+      ds.type = 'text/javascript';ds.async = true;
+      ds.id = 'duoshuo-script';
+      ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+      ds.charset = 'UTF-8';
+      (document.getElementsByTagName('head')[0]
+      || document.getElementsByTagName('body')[0]).appendChild(ds);
+    })();
+  </script>
+    
+     
+
+
+    
+  
+
+  
+  <script type="text/javascript" src="/vendors/fancybox/source/jquery.fancybox.pack.js"></script>
+  <script type="text/javascript" src="/js/fancy-box.js?v=0.4.5.2"></script>
+
+
+  <script type="text/javascript" src="/js/helpers.js?v=0.4.5.2"></script>
+  <script type="text/javascript" src="/vendors/velocity/velocity.min.js"></script>
+<script type="text/javascript" src="/vendors/velocity/velocity.ui.min.js"></script>
+
+<script type="text/javascript" src="/js/motion.js?v=0.4.5.2" id="motion.global"></script>
+
+
+  <script type="text/javascript" src="/vendors/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  <script type="text/javascript" src="/vendors/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  
+<script type="text/javascript" src="/js/bootstrap.scrollspy.js?v=0.4.5.2" id="bootstrap.scrollspy.custom"></script>
+
+
+<script type="text/javascript" id="sidebar.toc.highlight">
+  $(document).ready(function () {
+    var tocSelector = '.post-toc';
+    var $tocSelector = $(tocSelector);
+    var activeCurrentSelector = '.active-current';
+
+    $tocSelector
+      .on('activate.bs.scrollspy', function () {
+        var $currentActiveElement = $(tocSelector + ' .active').last();
+
+        removeCurrentActiveClass();
+        $currentActiveElement.addClass('active-current');
+
+        $tocSelector[0].scrollTop = $currentActiveElement.position().top;
+      })
+      .on('clear.bs.scrollspy', function () {
+        removeCurrentActiveClass();
+      });
+
+    function removeCurrentActiveClass () {
+      $(tocSelector + ' ' + activeCurrentSelector)
+        .removeClass(activeCurrentSelector.substring(1));
+    }
+
+    function processTOC () {
+      getTOCMaxHeight();
+      toggleTOCOverflowIndicators();
+    }
+
+    function getTOCMaxHeight () {
+      var height = $('.sidebar').height() -
+                   $tocSelector.position().top -
+                   $('.post-toc-indicator-bottom').height();
+
+      $tocSelector.css('height', height);
+
+      return height;
+    }
+
+    function toggleTOCOverflowIndicators () {
+      tocOverflowIndicator(
+        '.post-toc-indicator-top',
+        $tocSelector.scrollTop() > 0 ? 'show' : 'hide'
+      );
+
+      tocOverflowIndicator(
+        '.post-toc-indicator-bottom',
+        $tocSelector.scrollTop() >= $tocSelector.find('ol').height() - $tocSelector.height() ? 'hide' : 'show'
+      )
+    }
+
+    $(document).on('sidebar.motion.complete', function () {
+      processTOC();
+    });
+
+    $('body').scrollspy({ target: tocSelector });
+    $(window).on('resize', function () {
+      if ( $('.sidebar').hasClass('sidebar-active') ) {
+        processTOC();
+      }
+    });
+
+    onScroll($tocSelector);
+
+    function onScroll (element) {
+      element.on('mousewheel DOMMouseScroll', function (event) {
+          var oe = event.originalEvent;
+          var delta = oe.wheelDelta || -oe.detail;
+
+          this.scrollTop += ( delta < 0 ? 1 : -1 ) * 30;
+          event.preventDefault();
+
+          toggleTOCOverflowIndicators();
+      });
+    }
+
+    function tocOverflowIndicator (indicator, action) {
+      var $indicator = $(indicator);
+      var opacity = action === 'show' ? 1 : 0;
+      $indicator.velocity ?
+        $indicator.velocity('stop').velocity({
+          opacity: opacity
+        }, { duration: 100 }) :
+        $indicator.stop().animate({
+          opacity: opacity
+        }, 100);
+    }
+
+  });
+</script>
+
+<script type="text/javascript" id="sidebar.nav">
+  $(document).ready(function () {
+    var html = $('html');
+    var TAB_ANIMATE_DURATION = 200;
+    var hasVelocity = $.isFunction(html.velocity);
+
+    $('.sidebar-nav li').on('click', function () {
+      var item = $(this);
+      var activeTabClassName = 'sidebar-nav-active';
+      var activePanelClassName = 'sidebar-panel-active';
+      if (item.hasClass(activeTabClassName)) {
+        return;
+      }
+
+      var currentTarget = $('.' + activePanelClassName);
+      var target = $('.' + item.data('target'));
+
+      hasVelocity ?
+        currentTarget.velocity('transition.slideUpOut', TAB_ANIMATE_DURATION, function () {
+          target
+            .velocity('stop')
+            .velocity('transition.slideDownIn', TAB_ANIMATE_DURATION)
+            .addClass(activePanelClassName);
+        }) :
+        currentTarget.animate({ opacity: 0 }, TAB_ANIMATE_DURATION, function () {
+          currentTarget.hide();
+          target
+            .stop()
+            .css({'opacity': 0, 'display': 'block'})
+            .animate({ opacity: 1 }, TAB_ANIMATE_DURATION, function () {
+              currentTarget.removeClass(activePanelClassName);
+              target.addClass(activePanelClassName);
+            });
+        });
+
+      item.siblings().removeClass(activeTabClassName);
+      item.addClass(activeTabClassName);
+    });
+
+    $('.post-toc a').on('click', function (e) {
+      e.preventDefault();
+      var targetSelector = escapeSelector(this.getAttribute('href'));
+      var offset = $(targetSelector).offset().top;
+      hasVelocity ?
+        html.velocity('stop').velocity('scroll', {
+          offset: offset  + 'px',
+          mobileHA: false
+        }) :
+        $('html, body').stop().animate({
+          scrollTop: offset
+        }, 500);
+    });
+
+    // Expand sidebar on post detail page by default, when post has a toc.
+    motionMiddleWares.sidebar = function () {
+      var $tocContent = $('.post-toc-content');
+      if (CONFIG.sidebar === 'post') {
+        if ($tocContent.length > 0 && $tocContent.html().trim().length > 0) {
+          displaySidebar();
+        }
+      }
+    };
+  });
+</script>
+
+
+
+  <script type="text/javascript" src="/js/bootstrap.js"></script>
+
+  
+  
+
+  
+  
+
+</body>
+</html>

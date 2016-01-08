@@ -35,7 +35,7 @@
 <link href="/css/main.css?v=0.4.5.2" rel="stylesheet" type="text/css" />
 
 
-  <meta name="keywords" content="Hadoop-0.20,RaidNode," />
+  <meta name="keywords" content="Hadoop-0.20,Java,RaidNode,RaidNode源码阅读,源码阅读," />
 
 
 
@@ -53,20 +53,23 @@
 
 <meta name="description" content="Hadoop版本:hadoop-20-master
 
-ConfigManager主要成员12345678910111213public static final long RELOAD_WAIT = 5 * 1000;private long lastReloadAttempt; // Last time we tried to reload the config fileprivate long">
+
+ConfigManager主要成员12345678910111213public static final long RELOAD_WAIT = 5 * 1000;private long lastReloadAttempt; // Last time we tried to reload the config fileprivate lon">
 <meta property="og:type" content="article">
 <meta property="og:title" content="RaidNode源码阅读---辅助类">
 <meta property="og:url" content="http://xiao-yun.github.io/辅助类/index.html">
 <meta property="og:site_name" content="xiaoyun">
 <meta property="og:description" content="Hadoop版本:hadoop-20-master
 
-ConfigManager主要成员12345678910111213public static final long RELOAD_WAIT = 5 * 1000;private long lastReloadAttempt; // Last time we tried to reload the config fileprivate long">
-<meta property="og:updated_time" content="2015-12-12T09:23:47.376Z">
+
+ConfigManager主要成员12345678910111213public static final long RELOAD_WAIT = 5 * 1000;private long lastReloadAttempt; // Last time we tried to reload the config fileprivate lon">
+<meta property="og:updated_time" content="2016-01-08T06:45:06.378Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="RaidNode源码阅读---辅助类">
 <meta name="twitter:description" content="Hadoop版本:hadoop-20-master
 
-ConfigManager主要成员12345678910111213public static final long RELOAD_WAIT = 5 * 1000;private long lastReloadAttempt; // Last time we tried to reload the config fileprivate long">
+
+ConfigManager主要成员12345678910111213public static final long RELOAD_WAIT = 5 * 1000;private long lastReloadAttempt; // Last time we tried to reload the config fileprivate lon">
 
 
 
@@ -237,8 +240,8 @@ ConfigManager主要成员12345678910111213public static final long RELOAD_WAIT =
         <div class="post-meta">
           <span class="post-time">
             发表于
-            <time itemprop="dateCreated" datetime="2015-12-12T17:23:47+08:00" content="2015-12-12">
-              2015-12-12
+            <time itemprop="dateCreated" datetime="2016-01-08T14:45:06+08:00" content="2016-01-08">
+              2016-01-08
             </time>
           </span>
 
@@ -247,7 +250,19 @@ ConfigManager主要成员12345678910111213public static final long RELOAD_WAIT =
               &nbsp; | &nbsp; 分类于
               
                 <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
-                  <a href="/categories/Hadoop-0-20/" itemprop="url" rel="index">
+                  <a href="/categories/Java/" itemprop="url" rel="index">
+                    <span itemprop="name">Java</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Java/Hadoop-0-20/" itemprop="url" rel="index">
                     <span itemprop="name">Hadoop-0.20</span>
                   </a>
                 </span>
@@ -259,7 +274,7 @@ ConfigManager主要成员12345678910111213public static final long RELOAD_WAIT =
 
               
                 <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
-                  <a href="/categories/Hadoop-0-20/RaidNode/" itemprop="url" rel="index">
+                  <a href="/categories/Java/Hadoop-0-20/RaidNode/" itemprop="url" rel="index">
                     <span itemprop="name">RaidNode</span>
                   </a>
                 </span>
@@ -271,7 +286,7 @@ ConfigManager主要成员12345678910111213public static final long RELOAD_WAIT =
 
               
                 <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
-                  <a href="/categories/Hadoop-0-20/RaidNode/源码阅读/" itemprop="url" rel="index">
+                  <a href="/categories/Java/Hadoop-0-20/RaidNode/源码阅读/" itemprop="url" rel="index">
                     <span itemprop="name">源码阅读</span>
                   </a>
                 </span>
@@ -283,7 +298,7 @@ ConfigManager主要成员12345678910111213public static final long RELOAD_WAIT =
 
               
                 <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
-                  <a href="/categories/Hadoop-0-20/RaidNode/源码阅读/RaidNode源码阅读/" itemprop="url" rel="index">
+                  <a href="/categories/Java/Hadoop-0-20/RaidNode/源码阅读/RaidNode源码阅读/" itemprop="url" rel="index">
                     <span itemprop="name">RaidNode源码阅读</span>
                   </a>
                 </span>
@@ -322,6 +337,7 @@ ConfigManager主要成员12345678910111213public static final long RELOAD_WAIT =
         <span itemprop="articleBody"><blockquote>
 <p>Hadoop版本:<a href="https://github.com/facebookarchive/hadoop-20" title="facebook hadoop" target="_blank" rel="external">hadoop-20-master</a></p>
 </blockquote>
+<hr>
 <h1 id="ConfigManager">ConfigManager</h1><h2 id="主要成员">主要成员</h2><pre><code><span class="comment"><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="keyword">long</span> RELOAD_WAIT = <span class="number">5</span> * <span class="number">1000</span>;</span><br><span class="line"><span class="keyword">private</span> <span class="keyword">long</span> lastReloadAttempt; <span class="comment">// Last time we tried to reload the config file</span></span><br><span class="line"><span class="keyword">private</span> <span class="keyword">long</span> lastSuccessfulReload; <span class="comment">// Last time we successfully reloaded config</span></span><br><span class="line"><span class="keyword">private</span> <span class="keyword">boolean</span> lastReloadAttemptFailed = <span class="keyword">false</span>;</span><br><span class="line"><span class="keyword">private</span> <span class="keyword">long</span> reloadInterval = RELOAD_INTERVAL;</span><br><span class="line"><span class="keyword">private</span> <span class="keyword">long</span> periodicity; <span class="comment">// time between runs of all policies</span></span><br><span class="line"><span class="keyword">private</span> <span class="keyword">long</span> harPartfileSize;</span><br><span class="line"><span class="keyword">private</span> <span class="keyword">int</span> maxJobsPerPolicy; <span class="comment">// Max no. of jobs running simultaneously for a job.</span></span><br><span class="line"><span class="keyword">private</span> <span class="keyword">int</span> maxFilesPerJob; <span class="comment">// Max no. of files raided by a job.</span></span><br><span class="line"><span class="keyword">private</span> <span class="keyword">int</span> maxBlocksPerDirRaidJob; <span class="comment">// Max no. of blocks raided by a dir-raid job</span></span><br><span class="line"><span class="comment">// Reload the configuration</span></span><br><span class="line"><span class="keyword">private</span> <span class="keyword">boolean</span> doReload;</span><br><span class="line"><span class="keyword">private</span> Thread reloadThread;</span><br></pre></td></tr></table></figure></span>
 </code></pre><h2 id="raid_policy文件">raid policy文件</h2><p>raid policy文件的加载,主要方法:<code>reloadConfigs()</code>重新加载policy文件.<br>policy文件为<code>configFileName</code>成员属性.</p>
 <p>加载结果存入成员属性allPolicies中:<br><figure class="highlight pf"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">Collection<span class="variable">&lt;PolicyInfo&gt;</span> <span class="literal">all</span>Policies = new ArrayList<span class="variable">&lt;PolicyInfo&gt;</span>();</span><br><span class="line"><span class="built_in">set</span>AllPolicies(<span class="literal">all</span>);</span><br></pre></td></tr></table></figure></p>
@@ -380,8 +396,8 @@ ConfigManager主要成员12345678910111213public static final long RELOAD_WAIT =
 <p>可见,policy的id可以配置为具体的ErasureCode实现类,如果不是实现类则通过<code>erasure_code</code>配置.</p>
 <hr>
 <h1 id="Encoder">Encoder</h1><p>编码过程中,一个<code>EncodingCandidate</code>对应一个Encoder,负责具体编码过程.<br>这里,主要成员通过构造函数说明,构造函数如下:<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line">Encoder(Configuration conf, Codec codec) &#123;</span><br><span class="line">    <span class="keyword">this</span>.conf = conf;</span><br><span class="line">    <span class="comment">//Encoder和Decoder的parallelism共用配置raid.encoder.parallelism</span></span><br><span class="line">    <span class="keyword">this</span>.parallelism = conf.getInt(<span class="string">"raid.encoder.parallelism"</span>,DEFAULT_PARALLELISM);</span><br><span class="line">    <span class="keyword">this</span>.codec = codec;</span><br><span class="line">    <span class="keyword">this</span>.code = codec.createErasureCode(conf);</span><br><span class="line">    <span class="keyword">this</span>.rand = <span class="keyword">new</span> Random();</span><br><span class="line">    <span class="keyword">this</span>.maxBufSize = conf.getInt(ENCODING_MAX_BUFFER_SIZE_KEY,</span><br><span class="line">        DEFAULT_MAX_BUFFER_SIZE);</span><br><span class="line">    <span class="keyword">this</span>.bufSize = conf.getInt(<span class="string">"raid.encoder.bufsize"</span>, maxBufSize);</span><br><span class="line">    <span class="keyword">this</span>.writeBufs = <span class="keyword">new</span> <span class="keyword">byte</span>[codec.parityLength][];</span><br><span class="line">    <span class="keyword">this</span>.checksumStore = RaidNode.createChecksumStore(conf, <span class="keyword">false</span>);</span><br><span class="line">    <span class="keyword">this</span>.requiredChecksumStore = conf.getBoolean(</span><br><span class="line">        RaidNode.RAID_CHECKSUM_STORE_REQUIRED_KEY,</span><br><span class="line">        <span class="keyword">false</span>);</span><br><span class="line">    <span class="keyword">if</span> (codec.isDirRaid) &#123;</span><br><span class="line">      <span class="comment">// only need by directory raid</span></span><br><span class="line">      <span class="keyword">this</span>.stripeStore = RaidNode.createStripeStore(conf, <span class="keyword">false</span>, <span class="keyword">null</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">this</span>.retryCountPartialEncoding = conf.getInt(RETRY_COUNT_PARTIAL_ENCODING_KEY,</span><br><span class="line">        DEFAULT_RETRY_COUNT_PARTIAL_ENCODING);</span><br><span class="line">    allocateBuffers();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
-<p><code>parallelism</code>为编码器读取源数据的并行度,在之后可以看到这个是为了读取stripe个源文件输入流而启动的线程数.<br>即假设进行(10,4)rs编码,一次编码过程有10个源区块,默认开启4个线程一次读取这10个区块数据至一个输入缓冲区中,<br>每次读取长度固定,一个线程读完一个区块固定长度的缓冲区后,读取下一个没有读取的区块,详细分析见ParallelStreamReader.  </p>
-<p><code>code</code>为擦除码,为codec的配置,具体见Codec部分.<br><code>bufSize</code>即为上面说的线程一次读取的字节长度,默认1MB.<br><code>writeBufs</code>为编码结果输出缓冲,有parityLength个缓冲区,每个缓冲区大小为bufSize,与线程每次读取长度对应,即每次编码bufSize,输出到<br>该缓冲区中.<br><code>checksumStore</code>可选项,需配置<code>hdfs.raid.checksum.store.required</code>为true.<br><code>stripeStore</code>可选项,当policy中存在目录Raid时必须配置.<br><code>retryCountPartialEncoding</code>局部编码过程失败后的重试次数.配置项<code>raid.encoder.retry.count.partial.encoding</code>.</p>
+<p><code>parallelism</code>为编码器读取源数据的并行度,在之后可以看到这个是为了读取stripe个源文件输入流而启动的线程数.<br>即假设进行(10,4)rs编码,一次编码过程有10个源区块,默认开启4个线程一次读取这10个区块数据至一个输入缓冲区中,每次读取长度固定,一个线程读完一个区块固定长度的缓冲区后,读取下一个没有读取的区块,详细分析见ParallelStreamReader.  </p>
+<p><code>code</code>为擦除码,为codec的配置,具体见Codec部分.<br><code>bufSize</code>即为上面说的线程一次读取的字节长度,默认1MB.<br><code>writeBufs</code>为编码结果输出缓冲,有parityLength个缓冲区,每个缓冲区大小为bufSize,与线程每次读取长度对应,即每次编码bufSize,输出到该缓冲区中.<br><code>checksumStore</code>可选项,需配置<code>hdfs.raid.checksum.store.required</code>为true.<br><code>stripeStore</code>可选项,当policy中存在目录Raid时必须配置.<br><code>retryCountPartialEncoding</code>局部编码过程失败后的重试次数.配置项<code>raid.encoder.retry.count.partial.encoding</code>.</p>
 <hr>
 <h1 id="PolicyInfo">PolicyInfo</h1><figure class="highlight lasso"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> Path srcPath;            <span class="comment">// the specified src path  </span></span><br><span class="line"><span class="keyword">private</span> Path fileListPath;       <span class="comment">// this path to the file containing list of files.  </span></span><br><span class="line"><span class="keyword">private</span> <span class="built_in">String</span> policyName;       <span class="comment">// name of policy  </span></span><br><span class="line"><span class="keyword">private</span> <span class="built_in">String</span> codecId;          <span class="comment">// the codec used  </span></span><br><span class="line"><span class="keyword">private</span> <span class="built_in">boolean</span> shouldRaid;      <span class="comment">// Should we raid files or not.  </span></span><br><span class="line"><span class="keyword">private</span> <span class="built_in">String</span> description;      <span class="comment">// A verbose description of this policy  </span></span><br><span class="line"><span class="keyword">private</span> Configuration conf;      <span class="comment">// Hadoop configuration  </span></span><br><span class="line"><span class="keyword">private</span> Properties properties;   <span class="comment">// Policy-dependent properties</span></span><br></pre></td></tr></table></figure>
 <hr>
@@ -401,7 +417,7 @@ ConfigManager主要成员12345678910111213public static final long RELOAD_WAIT =
 <p>以上对应为校验文件区块的校验和存储至ChecksumStore,若允许的话ParallelStreamReader在读取输入流时也可将源区块的校验和更新至ChecksumStore。<br><code>putIfAbsentChecksum</code>更新区块对应的校验和。<br><figure class="highlight gradle"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">Long</span> putIfAbsentChecksum(Block blk, <span class="keyword">Long</span> newChecksum)</span><br><span class="line">  <span class="keyword">throws</span> IOException &#123;</span><br><span class="line">    <span class="keyword">Long</span> oldChecksum = putIfAbsent(blk, newChecksum);</span><br><span class="line">    <span class="keyword">if</span> (oldChecksum!= <span class="keyword">null</span> &amp;&amp; !oldChecksum.equals(newChecksum)) &#123;</span><br><span class="line">      <span class="keyword">throw</span> <span class="keyword">new</span> IOException(<span class="string">"Block "</span> + blk.toString()</span><br><span class="line">        + <span class="string">" has different checksums "</span> + oldChecksum + <span class="string">"(old) and "</span> +</span><br><span class="line">          newChecksum+ <span class="string">"(new)"</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> oldChecksum;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
 <p><code>putIfAbsent</code>更新区块对应校验和，抽象方法，对于LocalChecksumStore实现来说<br><figure class="highlight gradle"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">@Override</span><br><span class="line"><span class="keyword">public</span> <span class="keyword">Long</span> putIfAbsent(Block blk, <span class="keyword">Long</span> newChecksum) <span class="keyword">throws</span> IOException &#123;</span><br><span class="line">    <span class="keyword">Long</span> oldChecksum = store.putIfAbsent(blk.toString(), newChecksum);</span><br><span class="line">    <span class="keyword">if</span> (oldChecksum == <span class="keyword">null</span>) &#123;</span><br><span class="line">      LOG.info(<span class="string">"Put "</span> + blk + <span class="string">" -&gt; "</span> + newChecksum);</span><br><span class="line">      <span class="keyword">File</span> newFile = getFile(blk, newChecksum);</span><br><span class="line">      newFile.createNewFile();</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> oldChecksum;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
 <p>更新后，在本地目录创建相应的文件，如ChecksumStore文件描述一样。</p>
-<p>因此，每次更新校验和时会在本地目录创建相应文件，这样新建ChecksumStore时，会读取本地目录的文件，使得新创建的ChecksumStore中区块和校验和<br>对应关系更新。</p>
+<p>因此，每次更新校验和时会在本地目录创建相应文件，这样新建ChecksumStore时，会读取本地目录的文件，使得新创建的ChecksumStore中区块和校验和对应关系更新。</p>
 <hr>
 <h1 id="StripeStore">StripeStore</h1><p>对于目录Raid必须配置.</p>
 <h2 id="LocalStripeStore">LocalStripeStore</h2><p>LocalStripeStore信息存储在<code>hdfs.raid.local.stripe.dir</code>目录下  </p>
@@ -412,7 +428,7 @@ ConfigManager主要成员12345678910111213public static final long RELOAD_WAIT =
   <figure class="highlight lasso"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> ConcurrentHashMap&lt;<span class="built_in">String</span>, LocalStripeInfo&gt; blockToStripeStore = <span class="literal">new</span> ConcurrentHashMap&lt;<span class="built_in">String</span>, LocalStripeInfo&gt;();</span><br><span class="line"><span class="keyword">public</span> ConcurrentHashMap&lt;<span class="built_in">List</span>&lt;Block&gt;, Long&gt; stripeSet = <span class="literal">new</span> ConcurrentHashMap&lt;<span class="built_in">List</span>&lt;Block&gt;, Long&gt;();</span><br></pre></td></tr></table></figure>
 <p>  <code>blockToStripeStore</code>存储了区块和对应的<code>StripeInfo</code>,<code>LocalStripeInfo</code>为LocalStripeStore对应StripeInfo的子类.<br>  StripeInfo存储了一个stripe的基本信息,包括codec,源区块和校验区块:</p>
   <figure class="highlight oxygene"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> Codec codec;</span><br><span class="line"><span class="keyword">public</span> <span class="keyword">Block</span> <span class="keyword">block</span>;</span><br><span class="line"><span class="keyword">public</span> List&lt;<span class="keyword">Block</span>&gt; parityBlocks;</span><br><span class="line"><span class="keyword">public</span> List&lt;<span class="keyword">Block</span>&gt; srcBlocks;</span><br></pre></td></tr></table></figure>
-<p>  若StripeStore存在,则可以通过blockToStripeStore获取一个block的对应stripe信息,从而可以进行相应的解码操作,在损坏区块的修复过程中便可以<br>  看到通过StripeStore进行修复的情况.</p>
+<p>  若StripeStore存在,则可以通过blockToStripeStore获取一个block的对应stripe信息,从而可以进行相应的解码操作,在损坏区块的修复过程中便可以看到通过StripeStore进行修复的情况.</p>
 <p>  <code>stripeSet</code>存储可所有stripe的校验区块,键对应为一个stripe的校验区块列表,值固定为1.</p>
 <h3 id="创建-1">创建</h3><p>创建时初始化</p>
 <figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> initialize(Configuration conf, <span class="keyword">boolean</span> createStore,FileSystem fs) <span class="keyword">throws</span> IOException</span><br></pre></td></tr></table></figure>
@@ -421,7 +437,7 @@ ConfigManager主要成员12345678910111213public static final long RELOAD_WAIT =
 <p>初始化时读取配置,创建本地存储目录,读取本地目录下的文件<br>一个本地文件生成一个LocalStripeStore,文件名格式以及文件内容可见上<code>存储方式</code>的说明:<br><code>return new LocalStripeInfo(codec, blk, parityBlocks, srcBlocks);</code><br>codec是文件名中前部分,blk为后部分,parityBlocks为codec文件内容对应前parityLength个blk对应区块,srcBlocks为剩余区块;</p>
 <p>然后存入相应数据结构:<br><figure class="highlight nix"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">LocalStripeInfo <span class="variable">oldSi =</span> blockToStripeStore.put(si.getKey(), si);</span><br><span class="line"><span class="keyword">if</span> (oldSi != <span class="constant">null</span>) &#123;</span><br><span class="line"><span class="built_in">throw</span> new IOException(<span class="string">"There are two stripes for the same key: "</span> +</span><br><span class="line">  si.getKey() + <span class="string">"\n old: "</span> +oldSi.<span class="built_in">toString</span>() + <span class="string">"\n new: "</span> +</span><br><span class="line">  si.<span class="built_in">toString</span>());</span><br><span class="line">&#125;</span><br><span class="line">stripeSet.put(si.parityBlocks, <span class="number">1</span>L);</span><br></pre></td></tr></table></figure></p>
 <p>si.getKey()即为文件名.</p>
-<h3 id="保存-1">保存</h3><p>编码过程中，通过<code>writeToStripeStore</code>保存已编码的stripe信息至StripeStore中，同时会在本地目录中创建相应的文件，并写文件内容，如前描述的<br>本地文件记录方式一样。具体保存见源代码。</p>
+<h3 id="保存-1">保存</h3><p>编码过程中，通过<code>writeToStripeStore</code>保存已编码的stripe信息至StripeStore中，同时会在本地目录中创建相应的文件，并写文件内容，如前描述的本地文件记录方式一样。具体保存见源代码。</p>
 <hr>
 <h1 id="BlockIntegrityMonitor">BlockIntegrityMonitor</h1><p>负责损坏区块和丢失区块的修复.  </p>
 <h2 id="主要线程">主要线程</h2><figure class="highlight actionscript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">Daemon blockFixerThread = <span class="literal">null</span>;</span><br><span class="line">Daemon blockCopierThread = <span class="literal">null</span>;</span><br><span class="line">Daemon corruptFileCounterThread = <span class="literal">null</span>;</span><br></pre></td></tr></table></figure>
@@ -470,7 +486,13 @@ ConfigManager主要成员12345678910111213public static final long RELOAD_WAIT =
           
             <a href="/tags/Hadoop-0-20/" rel="tag">#Hadoop-0.20</a>
           
+            <a href="/tags/Java/" rel="tag">#Java</a>
+          
             <a href="/tags/RaidNode/" rel="tag">#RaidNode</a>
+          
+            <a href="/tags/RaidNode源码阅读/" rel="tag">#RaidNode源码阅读</a>
+          
+            <a href="/tags/源码阅读/" rel="tag">#源码阅读</a>
           
         </div>
       
@@ -479,16 +501,16 @@ ConfigManager主要成员12345678910111213public static final long RELOAD_WAIT =
         <div class="post-nav">
           <div class="post-nav-next post-nav-item">
             
-              <a href="/ParallelStreamReader/" rel="next" title="RaidNode源码阅读---辅助类之ParallelStreamReader">
-                <i class="fa fa-chevron-left"></i> RaidNode源码阅读---辅助类之ParallelStreamReader
+              <a href="/缓冲区/" rel="next" title="Java NIO---缓冲区">
+                <i class="fa fa-chevron-left"></i> Java NIO---缓冲区
               </a>
             
           </div>
 
           <div class="post-nav-prev post-nav-item">
             
-              <a href="/raidFiles/" rel="prev" title="RaidNode源码阅读---RaidNode编码过程下篇编码操作(LocalRaidNode)">
-                RaidNode源码阅读---RaidNode编码过程下篇编码操作(LocalRaidNode) <i class="fa fa-chevron-right"></i>
+              <a href="/配置相关RaidNode/" rel="prev" title="Hadoop配置相关---RaidNode">
+                Hadoop配置相关---RaidNode <i class="fa fa-chevron-right"></i>
               </a>
             
           </div>
@@ -584,21 +606,21 @@ ConfigManager主要成员12345678910111213public static final long RELOAD_WAIT =
         <nav class="site-state motion-element">
           <div class="site-state-item site-state-posts">
             <a href="/archives">
-              <span class="site-state-item-count">29</span>
+              <span class="site-state-item-count">34</span>
               <span class="site-state-item-name">日志</span>
             </a>
           </div>
 
           <div class="site-state-item site-state-categories">
             <a href="/categories">
-              <span class="site-state-item-count">24</span>
+              <span class="site-state-item-count">49</span>
               <span class="site-state-item-name">分类</span>
               </a>
           </div>
 
           <div class="site-state-item site-state-tags">
             <a href="/tags">
-              <span class="site-state-item-count">14</span>
+              <span class="site-state-item-count">25</span>
               <span class="site-state-item-name">标签</span>
               </a>
           </div>

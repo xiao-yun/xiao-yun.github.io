@@ -1,0 +1,862 @@
+<!doctype html>
+<html class="theme-next   use-motion ">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+  <link href="/vendors/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css"/>
+
+
+
+
+  <link href="//fonts.googleapis.com/css?family=Lato:300,400,700,400italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+
+
+
+<link href="/vendors/font-awesome/css/font-awesome.min.css?v=4.4.0" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=0.4.5.2" rel="stylesheet" type="text/css" />
+
+
+  <meta name="keywords" content="DataNode,DataNode源码阅读,HDFS,Hadoop-1.2.1,Java,源码阅读," />
+
+
+
+
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=0.4.5.2" />
+
+
+
+
+
+
+<meta name="description" content="Hadoop版本:Hadoop-1.2.1参考：《Hadoop技术内幕-深入解析Hadoop Common和HDFS架构设计与实现原理》  
+
+本文接DataNode实现源码分析—流接口实现上篇分析DataNode流接口中除写操作外的剩余4中流接口操作:读数据块，数据块替换，数据块拷贝，读数据块校验信息。  
+
+1. 读数据块如上篇分析，读数据块由readBlock负责12345678910111">
+<meta property="og:type" content="article">
+<meta property="og:title" content="DataNode实现源码分析---流接口实现上篇">
+<meta property="og:url" content="http://xiao-yun.github.io/DataNode流接口实现下篇/index.html">
+<meta property="og:site_name" content="xiaoyun">
+<meta property="og:description" content="Hadoop版本:Hadoop-1.2.1参考：《Hadoop技术内幕-深入解析Hadoop Common和HDFS架构设计与实现原理》  
+
+本文接DataNode实现源码分析—流接口实现上篇分析DataNode流接口中除写操作外的剩余4中流接口操作:读数据块，数据块替换，数据块拷贝，读数据块校验信息。  
+
+1. 读数据块如上篇分析，读数据块由readBlock负责12345678910111">
+<meta property="og:image" content="http://xiao-yun.github.io/../images/普通方式和零拷贝.png">
+<meta property="og:updated_time" content="2016-01-08T06:45:06.306Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="DataNode实现源码分析---流接口实现上篇">
+<meta name="twitter:description" content="Hadoop版本:Hadoop-1.2.1参考：《Hadoop技术内幕-深入解析Hadoop Common和HDFS架构设计与实现原理》  
+
+本文接DataNode实现源码分析—流接口实现上篇分析DataNode流接口中除写操作外的剩余4中流接口操作:读数据块，数据块替换，数据块拷贝，读数据块校验信息。  
+
+1. 读数据块如上篇分析，读数据块由readBlock负责12345678910111">
+
+
+
+<script type="text/javascript" id="hexo.configuration">
+  var CONFIG = {
+    scheme: 'Mist',
+    sidebar: 'hide',
+    motion: true
+  };
+</script>
+
+  <title> DataNode实现源码分析---流接口实现上篇 | xiaoyun </title>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  <!--[if lte IE 8]>
+  <div style=' clear: both; height: 59px; padding:0 0 0 15px; position: relative;margin:0 auto;'>
+    <a href="http://windows.microsoft.com/en-US/internet-explorer/products/ie/home?ocid=ie6_countdown_bannercode">
+      <img src="http://7u2nvr.com1.z0.glb.clouddn.com/picouterie.jpg" border="0" height="42" width="820"
+           alt="You are using an outdated browser. For a faster, safer browsing experience, upgrade for free today or use other browser ,like chrome firefox safari."
+           style='margin-left:auto;margin-right:auto;display: block;'/>
+    </a>
+  </div>
+<![endif]-->
+  
+
+
+
+  <script type="text/javascript">
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "//hm.baidu.com/hm.js?caeb4129c91d1e6fb3d562d35fedef0d";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+  <div class="container one-column page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-meta ">
+  
+
+  <div class="custom-logo-site-title">
+    <a href="/"  class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <span class="site-title">xiaoyun</span>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+  <p class="site-subtitle"></p>
+</div>
+
+<div class="site-nav-toggle">
+  <button>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+  </button>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu ">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-home fa-fw"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives" rel="section">
+            
+              <i class="menu-item-icon fa fa-archive fa-fw"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories" rel="section">
+            
+              <i class="menu-item-icon fa fa-th fa-fw"></i> <br />
+            
+            分类
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+              <i class="menu-item-icon fa fa-tags fa-fw"></i> <br />
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about" rel="section">
+            
+              <i class="menu-item-icon fa fa-user fa-fw"></i> <br />
+            
+            关于
+          </a>
+        </li>
+      
+
+      
+      
+    </ul>
+  
+
+  
+</nav>
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div id="content" class="content">
+          
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                DataNode实现源码分析---流接口实现上篇
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            发表于
+            <time itemprop="dateCreated" datetime="2016-01-08T14:45:06+08:00" content="2016-01-08">
+              2016-01-08
+            </time>
+          </span>
+
+          
+            <span class="post-category" >
+              &nbsp; | &nbsp; 分类于
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Java/" itemprop="url" rel="index">
+                    <span itemprop="name">Java</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Java/Hadoop-1-2-1/" itemprop="url" rel="index">
+                    <span itemprop="name">Hadoop-1.2.1</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Java/Hadoop-1-2-1/HDFS/" itemprop="url" rel="index">
+                    <span itemprop="name">HDFS</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Java/Hadoop-1-2-1/HDFS/DataNode/" itemprop="url" rel="index">
+                    <span itemprop="name">DataNode</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Java/Hadoop-1-2-1/HDFS/DataNode/源码阅读/" itemprop="url" rel="index">
+                    <span itemprop="name">源码阅读</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Java/Hadoop-1-2-1/HDFS/DataNode/源码阅读/DataNode源码阅读/" itemprop="url" rel="index">
+                    <span itemprop="name">DataNode源码阅读</span>
+                  </a>
+                </span>
+
+                
+                
+
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                &nbsp; | &nbsp;
+                <a href="/DataNode流接口实现下篇/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="DataNode流接口实现下篇/" itemprop="commentsCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+
+        </div>
+      </header>
+    
+
+
+    <div class="post-body">
+
+      
+      
+
+      
+        <span itemprop="articleBody"><p>Hadoop版本:<a href="https://archive.apache.org/dist/hadoop/core/hadoop-1.2.1/" target="_blank" rel="external">Hadoop-1.2.1</a><br>参考：《Hadoop技术内幕-深入解析Hadoop Common和HDFS架构设计与实现原理》  </p>
+<hr>
+<p>本文接<a href="../DataNode流接口实现上篇">DataNode实现源码分析—流接口实现上篇</a>分析DataNode流接口中除写操作外的剩余4中流接口操作:读数据块，数据块替换，数据块拷贝，读数据块校验信息。  </p>
+<hr>
+<h2 id="1-_读数据块">1. 读数据块</h2><p>如上篇分析，读数据块由readBlock负责<br><figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">readBlock</span>(<span class="params">DataInputStream <span class="keyword">in</span></span>) throws IOException </span>&#123;</span><br><span class="line">    <span class="keyword">long</span> blockId = <span class="keyword">in</span>.readLong();<span class="comment">//读取blockId          </span></span><br><span class="line">    Block block = <span class="keyword">new</span> Block( blockId, <span class="number">0</span> , <span class="keyword">in</span>.readLong());<span class="comment">//读取generationStamp并创建Block对象</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">long</span> startOffset = <span class="keyword">in</span>.readLong();<span class="comment">//开始偏移量</span></span><br><span class="line">    <span class="keyword">long</span> length = <span class="keyword">in</span>.readLong();<span class="comment">//要读取的数据长度</span></span><br><span class="line">    String clientName = Text.readString(<span class="keyword">in</span>);<span class="comment">//客户端信息</span></span><br><span class="line">    Token&lt;BlockTokenIdentifier&gt; accessToken = <span class="keyword">new</span> Token&lt;BlockTokenIdentifier&gt;();</span><br><span class="line">    accessToken.readFields(<span class="keyword">in</span>);<span class="comment">//口令</span></span><br><span class="line">    OutputStream baseStream = NetUtils.getOutputStream(s, datanode.socketWriteTimeout);</span><br><span class="line">    DataOutputStream <span class="keyword">out</span> = <span class="keyword">new</span> DataOutputStream(<span class="keyword">new</span> BufferedOutputStream(baseStream, SMALL_BUFFER_SIZE));</span><br><span class="line">    </span><br><span class="line">    ...<span class="comment">//安全相关，开启了区块口令时会进行验证，验证失败发送OP_STATUS_ERROR_ACCESS_TOKEN响应</span></span><br><span class="line">    <span class="comment">// send the block</span></span><br><span class="line">    BlockSender blockSender = <span class="keyword">null</span>;</span><br><span class="line">    final String clientTraceFmt =</span><br><span class="line">      clientName.length() &gt; <span class="number">0</span> &amp;&amp; ClientTraceLog.isInfoEnabled()</span><br><span class="line">        ? String.format(DN_CLIENTTRACE_FORMAT, localAddress, remoteAddress,<span class="string">"%d"</span>, <span class="string">"HDFS_READ"</span>,</span><br><span class="line">            clientName, <span class="string">"%d"</span>, datanode.dnRegistration.getStorageID(), block, <span class="string">"%d"</span>)</span><br><span class="line">        : datanode.dnRegistration + <span class="string">" Served "</span> + block + <span class="string">" to "</span> + s.getInetAddress();</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">      <span class="keyword">try</span> &#123;</span><br><span class="line">        blockSender = <span class="keyword">new</span> BlockSender(block, startOffset, length,</span><br><span class="line">            <span class="keyword">true</span>, <span class="keyword">true</span>, <span class="keyword">false</span>, datanode, clientTraceFmt);</span><br><span class="line">      &#125; <span class="keyword">catch</span>(IOException e) &#123;</span><br><span class="line">        <span class="keyword">out</span>.writeShort(DataTransferProtocol.OP_STATUS_ERROR);</span><br><span class="line">        <span class="keyword">throw</span> e;</span><br><span class="line">      &#125;</span><br><span class="line"></span><br><span class="line">      <span class="keyword">out</span>.writeShort(DataTransferProtocol.OP_STATUS_SUCCESS); <span class="comment">// send op status</span></span><br><span class="line">      <span class="keyword">long</span> read = blockSender.sendBlock(<span class="keyword">out</span>, baseStream, <span class="keyword">null</span>); <span class="comment">// send data</span></span><br><span class="line"></span><br><span class="line">      <span class="keyword">if</span> (blockSender.isBlockReadFully()) &#123;<span class="comment">//发送完整个区块，等待Client的确认</span></span><br><span class="line">        <span class="comment">// See if client verification succeeded. </span></span><br><span class="line">        <span class="comment">// This is an optional response from client.</span></span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">          <span class="keyword">if</span> (<span class="keyword">in</span>.readShort() == DataTransferProtocol.OP_STATUS_CHECKSUM_OK  &amp;&amp; </span><br><span class="line">              datanode.blockScanner != <span class="keyword">null</span>) &#123;</span><br><span class="line">            datanode.blockScanner.verifiedByClient(block);</span><br><span class="line">          &#125;</span><br><span class="line">        &#125; <span class="keyword">catch</span> (IOException ignored) &#123;&#125;</span><br><span class="line">      &#125;</span><br><span class="line">      ...<span class="comment">//统计和异常处理等</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，按照<a href="../HDFS流接口">HDFS流接口</a>中的数据读取请求帧格式读取相应的信息，包括读取blockId，generationStamp构建Block对象，要读取数据在区块偏移量startOffset，读取的数据长度length，以及客户端信息和口令等。<br>对于数据读取请求，我们需要发送请求的数据，为此通过Socket构建相应的输出流，数据发送通过<code>BlockSender</code>的<code>sendBlock</code>，要构建相应的BlockSender对象。<br>如果发送的是整个区块，因为Client会对接收到的数据进行验证，则可以等待Client的确认，当接收到<code>OP_STATUS_CHECKSUM_OK</code>确认数据，表明Client数据接收完成，且经过校验无误，这样该区块由Client验证过了，可以添加到区块扫描器中，标记为Client验证无误，无需再次扫描，如上<code>verifiedByClient</code>  </p>
+<h3 id="1-1_BlockSender">1.1 BlockSender</h3><p>BlockSender构造<br><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br></pre></td><td class="code"><pre><span class="line">BlockSender(Block block, <span class="keyword">long</span> startOffset, <span class="keyword">long</span> length,</span><br><span class="line">              boolean corruptChecksumOk, boolean chunkOffsetOK,boolean verifyChecksum,</span><br><span class="line">              DataNode datanode, String clientTraceFmt) throws IOException &#123;</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">      <span class="keyword">this</span>.block = block;</span><br><span class="line">      <span class="keyword">this</span>.chunkOffsetOK = chunkOffsetOK;</span><br><span class="line">      <span class="keyword">this</span>.corruptChecksumOk = corruptChecksumOk;</span><br><span class="line">      <span class="keyword">this</span>.verifyChecksum = verifyChecksum;</span><br><span class="line">      <span class="keyword">this</span>.blockLength = datanode.data.getVisibleLength(block);</span><br><span class="line">      <span class="keyword">this</span>.transferToAllowed = datanode.transferToAllowed;<span class="comment">//是否使用"零拷贝"传输</span></span><br><span class="line">      <span class="keyword">this</span>.clientTraceFmt = clientTraceFmt;</span><br><span class="line">      <span class="keyword">this</span>.readaheadLength = datanode.getReadaheadLength();</span><br><span class="line">      <span class="keyword">this</span>.readaheadPool = datanode.readaheadPool;</span><br><span class="line">      <span class="keyword">this</span>.shouldDropCacheBehindRead = datanode.shouldDropCacheBehindReads();</span><br><span class="line">      </span><br><span class="line">      <span class="comment">//如果存在对应的校验数据文件，读取头部信息，如版本，校验类型，校验块大小</span></span><br><span class="line">      <span class="keyword">if</span> ( !corruptChecksumOk || datanode.data.metaFileExists(block) ) &#123;</span><br><span class="line">        checksumIn = <span class="keyword">new</span> DataInputStream(</span><br><span class="line">                <span class="keyword">new</span> BufferedInputStream(datanode.data.getMetaDataInputStream(block),BUFFER_SIZE));</span><br><span class="line"></span><br><span class="line">        <span class="comment">// read and handle the common header here. For now just a version</span></span><br><span class="line">       BlockMetadataHeader header = BlockMetadataHeader.readHeader(checksumIn);</span><br><span class="line">       <span class="keyword">short</span> version = header.getVersion();</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> (version != FSDataset.METADATA_VERSION) &#123;</span><br><span class="line">          LOG.warn(<span class="string">"Wrong version ("</span> + version + <span class="string">") for metadata file for "</span> + block + <span class="string">" ignoring ..."</span>);</span><br><span class="line">        &#125;</span><br><span class="line">        checksum = header.getChecksum();</span><br><span class="line">      &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        checksum = DataChecksum.newDataChecksum(DataChecksum.CHECKSUM_NULL, <span class="number">16</span> * <span class="number">1024</span>);</span><br><span class="line">      &#125;</span><br><span class="line"></span><br><span class="line">      <span class="comment">//如果校验块非常大，可能不是一个正确的校验文件     </span></span><br><span class="line">      bytesPerChecksum = checksum.getBytesPerChecksum();</span><br><span class="line">      <span class="keyword">if</span> (bytesPerChecksum &gt; <span class="number">10</span>*<span class="number">1024</span>*<span class="number">1024</span> &amp;&amp; bytesPerChecksum &gt; blockLength)&#123;</span><br><span class="line">        checksum = DataChecksum.newDataChecksum(checksum.getChecksumType(),</span><br><span class="line">                                   Math.max((<span class="keyword">int</span>)blockLength, <span class="number">10</span>*<span class="number">1024</span>*<span class="number">1024</span>));</span><br><span class="line">        bytesPerChecksum = checksum.getBytesPerChecksum();        </span><br><span class="line">      &#125;</span><br><span class="line">      checksumSize = checksum.getChecksumSize();</span><br><span class="line"></span><br><span class="line">      <span class="keyword">if</span> (length &lt; <span class="number">0</span>) &#123;<span class="comment">//请求长度为负数，则请求为整个区块数据</span></span><br><span class="line">        length = blockLength;</span><br><span class="line">      &#125;</span><br><span class="line">      endOffset = blockLength;</span><br><span class="line">      ...<span class="comment">//参数检查</span></span><br><span class="line">      </span><br><span class="line">      offset = (startOffset - (startOffset % bytesPerChecksum));<span class="comment">//开始偏移量调整，调整到所属校验块开始位置</span></span><br><span class="line">      <span class="keyword">if</span> (length &gt;= <span class="number">0</span>) &#123;</span><br><span class="line">        <span class="comment">// Make sure endOffset points to end of a checksumed chunk.</span></span><br><span class="line">        <span class="keyword">long</span> tmpLen = startOffset + length;</span><br><span class="line">        <span class="keyword">if</span> (tmpLen % bytesPerChecksum != <span class="number">0</span>) &#123;</span><br><span class="line">          tmpLen += (bytesPerChecksum - tmpLen % bytesPerChecksum);<span class="comment">//结束偏移量调整，调整到所属校验块结束位置</span></span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">if</span> (tmpLen &lt; endOffset) &#123;</span><br><span class="line">          endOffset = tmpLen;</span><br><span class="line">        &#125;</span><br><span class="line">      &#125;</span><br><span class="line"></span><br><span class="line">      <span class="keyword">if</span> (offset &gt; <span class="number">0</span>) &#123;</span><br><span class="line">        <span class="keyword">long</span> checksumSkip = (offset / bytesPerChecksum) * checksumSize;</span><br><span class="line">        <span class="keyword">if</span> (checksumSkip &gt; <span class="number">0</span>) &#123;</span><br><span class="line">          IOUtils.skipFully(checksumIn, checksumSkip);<span class="comment">//校验文件输入流定位到正确的开始位置</span></span><br><span class="line">        &#125;</span><br><span class="line">      &#125;</span><br><span class="line">      seqno = <span class="number">0</span>;</span><br><span class="line"></span><br><span class="line">      <span class="comment">//获取区块文件输入流并定位到正确的开始位置</span></span><br><span class="line">      blockIn = datanode.data.getBlockInputStream(block, offset);</span><br><span class="line">      <span class="keyword">if</span> (blockIn instanceof FileInputStream) &#123;</span><br><span class="line">        blockInFd = ((FileInputStream) blockIn).getFD();</span><br><span class="line">      &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        blockInFd = null;</span><br><span class="line">      &#125;</span><br><span class="line">      memoizedBlock = <span class="keyword">new</span> MemoizedBlock(blockIn, blockLength, datanode.data, block);</span><br><span class="line">    &#125; <span class="keyword">catch</span> (IOException ioe) &#123;</span><br><span class="line">      IOUtils.closeStream(<span class="keyword">this</span>);</span><br><span class="line">      IOUtils.closeStream(blockIn);</span><br><span class="line">      <span class="keyword">throw</span> ioe;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>传入的参数中<code>chunkOffsetOK</code>表示请求的数据可以在块的任意偏移处，这时在写响应头时会发送实际的开始偏移量<br>如上，初始化各成员，这里要注意的有一下成员</p>
+<ul>
+<li><code>offset</code>和<code>endOffset</code>，请求的偏移量和长度可能对应的不是整的数据块，即请求的开始偏移量可能在某一数据块偏移量不为0的位置，或者请求偏移量加长度得到的结束偏移量不是在某一数据块的结束位置，如果我们直接把请求的这段区间发送过去，Client计算校验和依据的数据块和DataNode的数据块不一致，这样会验证错误。<br>因此当开始偏移量不在数据块开始偏移处时，我们需要调整到开始偏移处，结束偏移量不在数据块结束偏移处时，同样要调整到结束偏移处。这样请求的数据和实际发送的数据略有不同，这样是为了验证数据。  </li>
+<li><code>checksumIn</code>和<code>blockIn</code>，校验文件输入流和区块文件输入流，要定位到对应的开始偏移处。  </li>
+<li><code>transferToAllowed</code>，决定在传输时是否使用”零拷贝”传输，”零拷贝”将在后面介绍，依据数据节点中的配置，默认情况下会使用。  </li>
+<li><code>memoizedBlock</code>，用于监测在写数据的过程中本地区块是否改变</li>
+</ul>
+<p>构造BlockSender后，区块文件输入流和校验文件输入流已经定位到开始位置，通过<code>sendBlock</code>发送区块，sendBlock时如果要对发送带宽进行控制，需要指定一个节流器</p>
+<h3 id="1-2_BlockSender-sendBlock">1.2 BlockSender.sendBlock</h3><figure class="highlight d"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">long</span> sendBlock(DataOutputStream <span class="keyword">out</span>, OutputStream baseStream, DataTransferThrottler throttler) throws IOException &#123;</span><br><span class="line">    ...</span><br><span class="line">    <span class="keyword">final</span> <span class="built_in">long</span> startTime = ClientTraceLog.isInfoEnabled() ? System.nanoTime() : <span class="number">0</span>; </span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">      <span class="keyword">try</span> &#123;</span><br><span class="line">        <span class="comment">//写响应头，校验类型，校验块大小，可选的实际开始偏移量</span></span><br><span class="line">        checksum.writeHeader(<span class="keyword">out</span>);</span><br><span class="line">        <span class="keyword">if</span> (chunkOffsetOK ) &#123;</span><br><span class="line">          <span class="keyword">out</span>.writeLong( offset );</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">out</span>.flush();</span><br><span class="line">      &#125; <span class="keyword">catch</span> (IOException e) &#123; <span class="comment">//socket error</span></span><br><span class="line">        <span class="keyword">throw</span> ioeToSocketException(e);</span><br><span class="line">      &#125;</span><br><span class="line">      </span><br><span class="line">      <span class="keyword">int</span> maxChunksPerPacket;</span><br><span class="line">      <span class="keyword">int</span> pktSize = DataNode.PKT_HEADER_LEN + SIZE_OF_INTEGER;</span><br><span class="line">      </span><br><span class="line">      <span class="keyword">if</span> (transferToAllowed &amp;&amp; !verifyChecksum &amp;&amp; </span><br><span class="line">          baseStream instanceof SocketOutputStream &amp;&amp; </span><br><span class="line">          blockIn instanceof FileInputStream) &#123;</span><br><span class="line">        <span class="comment">//如果不需要验证校验和，且允许"零拷贝"传输，则一个包最大可以有64KB(零拷贝)</span></span><br><span class="line">        FileChannel fileChannel = ((FileInputStream)blockIn).getChannel();</span><br><span class="line">        blockInPosition = fileChannel.position();</span><br><span class="line">        streamForSendChunks = baseStream;</span><br><span class="line">        maxChunksPerPacket = (Math.max(BUFFER_SIZE, MIN_BUFFER_WITH_TRANSFERTO)</span><br><span class="line">                              + bytesPerChecksum - <span class="number">1</span>)/bytesPerChecksum;</span><br><span class="line">        pktSize += (bytesPerChecksum + checksumSize) * maxChunksPerPacket;</span><br><span class="line">      &#125; <span class="keyword">else</span> &#123;<span class="comment">//不使用零拷贝传输，一个包最大4KB</span></span><br><span class="line">        maxChunksPerPacket = Math.max(<span class="number">1</span>,(BUFFER_SIZE + bytesPerChecksum - <span class="number">1</span>)/bytesPerChecksum);</span><br><span class="line">        pktSize += (bytesPerChecksum + checksumSize) * maxChunksPerPacket;</span><br><span class="line">      &#125;</span><br><span class="line"></span><br><span class="line">      ByteBuffer pktBuf = ByteBuffer.allocate(pktSize);<span class="comment">//分配最大包大小的缓冲区</span></span><br><span class="line"></span><br><span class="line">      <span class="keyword">while</span> (endOffset &gt; offset) &#123;<span class="comment">//循环发送</span></span><br><span class="line">        manageOsCache();</span><br><span class="line">        <span class="built_in">long</span> len = sendChunks(pktBuf, maxChunksPerPacket, streamForSendChunks);</span><br><span class="line">        offset += len;</span><br><span class="line">        totalRead += len + ((len + bytesPerChecksum - <span class="number">1</span>)/bytesPerChecksum*checksumSize);</span><br><span class="line">        seqno++;</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="keyword">try</span> &#123;</span><br><span class="line">        <span class="keyword">out</span>.writeInt(<span class="number">0</span>); <span class="comment">//数据发送完，发送一个4个字节的0标识   </span></span><br><span class="line">        <span class="keyword">out</span>.flush();</span><br><span class="line">      &#125; <span class="keyword">catch</span> (IOException e) &#123; <span class="comment">//socket error</span></span><br><span class="line">        <span class="keyword">throw</span> ioeToSocketException(e);</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">catch</span> (RuntimeException e) &#123;</span><br><span class="line">      LOG.error(<span class="string">"unexpected exception sending block"</span>, e);</span><br><span class="line">      </span><br><span class="line">      <span class="keyword">throw</span> <span class="keyword">new</span> IOException(<span class="string">"unexpected runtime exception"</span>, e);</span><br><span class="line">    &#125; </span><br><span class="line">    <span class="keyword">finally</span> &#123;</span><br><span class="line">      <span class="keyword">if</span> (clientTraceFmt != <span class="literal">null</span>) &#123;</span><br><span class="line">        <span class="keyword">final</span> <span class="built_in">long</span> endTime = System.nanoTime();</span><br><span class="line">        ClientTraceLog.info(String.format(clientTraceFmt, totalRead, initialOffset, endTime - startTime));</span><br><span class="line">      &#125;</span><br><span class="line">      close();<span class="comment">//关闭输入流</span></span><br><span class="line">    &#125;</span><br><span class="line">    blockReadFully = (initialOffset == <span class="number">0</span> &amp;&amp; offset &gt;= blockLength);<span class="comment">//是否是整个区块的发送</span></span><br><span class="line">    <span class="keyword">return</span> totalRead;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>如<a href="../HDFS流接口">HDFS流接口</a>中响应格式的描述，会先写响应头，包括校验类型，校验块大小，以及可能的实际开始偏移量。<br>然后根据是否使用”零拷贝”传输来分配一个包的缓冲区，先介绍”零拷贝”传输。  </p>
+<h3 id="1-3_零拷贝传输(技术内幕P292-P293)">1.3 零拷贝传输(技术内幕P292-P293)</h3><p>客户端读取数据块数据时，对于普通的方式，应用通过Linux内核读取文件数据，这些数据需要跨越内核，拷贝到实现为Java应用的数据节点中，然后数据节点再次将数据推送回内核，通过Linux内核写往套接字，这里应用程序只是充当了一个中介角色完全可以避免。因此消除不必要的数据拷贝，内核直接将数据从磁盘文件拷贝到套接字，无需通过应用程序，将大大地提高应用程序的性能，而且还减少了内核与用户模式的上下文切换，这种方式称为”零拷贝”。Java中通过<code>java.nio.channels.FileChannel</code>中的transferTo方法，在Linux(和UNIX)系统上支持零拷贝I/O操作，直接将字节从它被调用的通道上传输到另外一个可写字节通道上，数据无需经过应用程序。<br>普通方式和零拷贝方式对比如下<br><img src="../images/普通方式和零拷贝.png" alt="普通方式和零拷贝">  </p>
+<ul>
+<li>左边为普通的发送方式，通过输入流，数据节点将磁盘中的数据读入到用户缓存区。如上需要先将数据从磁盘中读入内核缓冲区(1)，然后从内核缓冲区拷贝到用户缓冲区(2)，这样一次读操作，需要引发一次从用户模式到内核模式，和一次内核模式到用户模式的上下文切换。另外，上述步骤1发生在外设(磁盘)和内存间，一般由直接内存存取DMA执行，步骤2的数据拷贝发生在内存中，由CPU执行。调用结束后，数据节点会将数据通过SocketOutputStream的write方法发送往客户端。<br>write调用再次引发从用户模式到内核模式的上下文切换，数据被再次放到内核缓冲区中，和步骤2一样，由CPU执行，不过这次的内核缓冲区和第一次从磁盘中读数据时使用的内核缓冲区不同，它与目标套接字相关联。write返回时，触发第四次上下文切换，系统再次从内核模式切换到用户模式，同时第四次数据拷贝，即内核缓冲区的数据拷贝到网卡拷贝，会独立地，异步地发生(由DMA引擎执行，所以是一个独立于CPU，和CPU异步的数据拷贝)，最终网卡上的数据被发送到客户端。<br>如上，第2次和第3次数据拷贝其实是多余的，应用程序只是缓存数据并将数据传回到套接字，没有其他作用，数据可以直接从读取缓冲区传输到套接字缓冲区。  </li>
+<li>右侧为使用零拷贝的情景，分两种情况。右上方描述了需要一次内存拷贝的情形，DMA引擎将文件内容拷贝到一个读取缓冲区，然后由内核将数据拷贝到与输出套接字关联的内核缓冲区，对比普通的方式，上下文切换从4次减少到了2次，数据拷贝的次数从4次减少到了3次(只有一次涉及CPU)。<br>如果底层网络接口卡支持收集操作，可以进一步减少内核的数据拷贝，实现右下角的描述符传递方式。  </li>
+<li>支持收集操作的网络接口，不要求待传输的数据连续存储，数据可以分散存储在不同的位置上。从文件中读出的数据根本不需要拷贝到Socket缓冲区中，而只是需要将缓冲区描述符(缓冲区中建立的与数据包相关结构)传递到网络协议栈中，然后通过DMA收集拷贝功能将所有的数据结合成一个网络数据包，发送到网络上。<br>描述符传递方式也就是Linux众所周知的零拷贝技术，这种方法不但减少了因读写操作带来的多次上下文切换开销，同时也减少了处理过程中需要的数据副本个数，而且CPU和传输的数据没有关联，不需要参与到数据拷贝的过程中去。  </li>
+</ul>
+<p>Java通过<code>FileChannel.transferTo</code>方法实现零拷贝传输<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">abstract</span> <span class="function"><span class="keyword">long</span> <span class="title">transferTo</span><span class="params">(<span class="keyword">long</span> position, <span class="keyword">long</span> count, WritableByteChannel <span class="keyword">target</span>)</span> <span class="keyword">throws</span> IOException</span>;</span><br></pre></td></tr></table></figure></p>
+<p>读取文件通道给定位置(position)处开始的count个字节，将其写到通道target中。</p>
+<p>如上关于普通方式和零拷贝方式的比较，零拷贝方式传输效率要比普通方式高，因此默认情况下，使用零拷贝传输时，一个包最大可达64KB，此时BlockSender成员<code>blockInPosition</code>保存通道读取数据开始位置，而普通的拷贝最大4KB。根据是否使用零拷贝传输来分配不同大小的缓冲区空间。<br>分配缓冲区后，最终由<code>sendChunks</code>发送一个数据包</p>
+<h3 id="1-4_BlockSender-sendChunks">1.4 BlockSender.sendChunks</h3><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">int</span> <span class="title">sendChunks</span><span class="params">(ByteBuffer pkt, <span class="keyword">int</span> maxChunks, OutputStream out)</span> throws IOException </span>&#123;</span><br><span class="line">    <span class="keyword">int</span> len = (<span class="keyword">int</span>) Math.min(endOffset - offset,(((<span class="keyword">long</span>) bytesPerChecksum) * ((<span class="keyword">long</span>) maxChunks)));</span><br><span class="line">    <span class="keyword">if</span> (len &gt; bytesPerChecksum &amp;&amp; len % bytesPerChecksum != <span class="number">0</span>) &#123;</span><br><span class="line">      len -= len % bytesPerChecksum;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> (len == <span class="number">0</span>) &#123;</span><br><span class="line">      <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">int</span> numChunks = (len + bytesPerChecksum - <span class="number">1</span>)/bytesPerChecksum;</span><br><span class="line">    <span class="keyword">int</span> packetLen = len + numChunks*checksumSize + <span class="number">4</span>;</span><br><span class="line">    pkt.clear();</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// write packet header</span></span><br><span class="line">    pkt.putInt(packetLen);</span><br><span class="line">    pkt.putLong(offset);</span><br><span class="line">    pkt.putLong(seqno);</span><br><span class="line">    pkt.put((byte)((offset + len &gt;= endOffset) ? <span class="number">1</span> : <span class="number">0</span>));</span><br><span class="line">    pkt.putInt(len);</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">int</span> checksumOff = pkt.position();</span><br><span class="line">    <span class="keyword">int</span> checksumLen = numChunks * checksumSize;</span><br><span class="line">    byte[] buf = pkt.<span class="built_in">array</span>();</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">if</span> (checksumSize &gt; <span class="number">0</span> &amp;&amp; checksumIn != null) &#123;</span><br><span class="line">      <span class="keyword">try</span> &#123;</span><br><span class="line">        checksumIn.readFully(buf, checksumOff, checksumLen);</span><br><span class="line">      &#125;<span class="comment">//异常处理</span></span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">int</span> dataOff = checksumOff + checksumLen;</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">if</span> (blockInPosition &lt; <span class="number">0</span>) &#123;<span class="comment">//blockInPosition没有设置，不使用"零拷贝"传输</span></span><br><span class="line">      IOUtils.readFully(blockIn, buf, dataOff, len);</span><br><span class="line">      <span class="keyword">if</span> (verifyChecksum) &#123;<span class="comment">//需要验证校验和，验证校验和</span></span><br><span class="line">        <span class="keyword">int</span> dOff = dataOff;</span><br><span class="line">        <span class="keyword">int</span> cOff = checksumOff;</span><br><span class="line">        <span class="keyword">int</span> dLeft = len;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">for</span> (<span class="keyword">int</span> i=<span class="number">0</span>; i&lt;numChunks; i++) &#123;</span><br><span class="line">          checksum.reset();</span><br><span class="line">          <span class="keyword">int</span> dLen = Math.min(dLeft, bytesPerChecksum);</span><br><span class="line">          checksum.update(buf, dOff, dLen);</span><br><span class="line">          <span class="keyword">if</span> (!checksum.compare(buf, cOff)) &#123;</span><br><span class="line">            <span class="keyword">throw</span> <span class="keyword">new</span> ChecksumException(<span class="string">"Checksum failed at "</span> + </span><br><span class="line">                                        (offset + len - dLeft), len);</span><br><span class="line">          &#125;</span><br><span class="line">          dLeft -= dLen;</span><br><span class="line">          dOff += dLen;</span><br><span class="line">          cOff += checksumSize;</span><br><span class="line">        &#125;</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="keyword">if</span> (memoizedBlock.hasBlockChanged(len)) &#123;<span class="comment">//如果在我们写操作过程中，该区块变化了，重新更新校验信息</span></span><br><span class="line">        ChecksumUtil.updateChunkChecksum(</span><br><span class="line">          buf, checksumOff, dataOff, len, checksum</span><br><span class="line">        );</span><br><span class="line">      &#125;</span><br><span class="line">      </span><br><span class="line">      <span class="keyword">try</span> &#123;</span><br><span class="line">        out.write(buf, <span class="number">0</span>, dataOff + len);<span class="comment">//写出到Socket输出流</span></span><br><span class="line">      &#125; <span class="keyword">catch</span> (IOException e) &#123;</span><br><span class="line">        <span class="keyword">throw</span> ioeToSocketException(e);</span><br><span class="line">      &#125;</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;<span class="comment">//使用"零拷贝"传输</span></span><br><span class="line">      <span class="keyword">try</span> &#123;</span><br><span class="line">        SocketOutputStream sockOut = (SocketOutputStream) out;</span><br><span class="line">        FileChannel fileChannel = ((FileInputStream) blockIn).getChannel();</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> (memoizedBlock.hasBlockChanged(len)) &#123;</span><br><span class="line">          fileChannel.position(blockInPosition);</span><br><span class="line">          IOUtils.readFileChannelFully(</span><br><span class="line">            fileChannel,</span><br><span class="line">            buf,</span><br><span class="line">            dataOff,</span><br><span class="line">            len</span><br><span class="line">          );</span><br><span class="line">          </span><br><span class="line">          ChecksumUtil.updateChunkChecksum(</span><br><span class="line">            buf, checksumOff, dataOff, len, checksum</span><br><span class="line">          );          </span><br><span class="line">          sockOut.write(buf, <span class="number">0</span>, dataOff + len);</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">          <span class="comment">//写包头和校验信息部分</span></span><br><span class="line">          sockOut.write(buf, <span class="number">0</span>, dataOff);</span><br><span class="line">          <span class="comment">//数据部分通过"零拷贝"传输</span></span><br><span class="line">          sockOut.transferToFully(fileChannel, blockInPosition, len);</span><br><span class="line">        &#125;</span><br><span class="line">        blockInPosition += len;</span><br><span class="line">      &#125; <span class="keyword">catch</span> (IOException e) &#123;</span><br><span class="line">        <span class="keyword">throw</span> ioeToSocketException(e);</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> (throttler != null) &#123;</span><br><span class="line">      throttler.throttle(packetLen);<span class="comment">//写了packetLen数据，通过节流器决定是否等待</span></span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> len;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>写数据的顺序与<a href="../HDFS流接口">HDFS流接口</a>中数据包的帧格式一致。<br>由于构造BlockSender时已经将两个输入流定位到开始偏移量了。需要考虑使用”零拷贝”的情况，不过不管是否使用零拷贝传输，校验信息都会从文件中读取到缓冲区，然后从缓冲区发送到输出流中。而区块数据如果使用零拷贝传输，则通过通道的<code>transferTo</code>方法将文件数据拷贝到Socket输出缓冲中(如上代码中transferToFully循环使用transferTo传输数据)，否则拷贝文件数据到缓冲区，然后发送到输出缓冲区。<br>注意的是，如果在操作过程中，区块改变了要更新校验信息，同时如果能够使用”零拷贝”传输，但是区块改变了则改成使用普通的拷贝方式。<br>发送一个数据包后，通过节流器判断是否超出了带宽限制，超出时休眠指定时间。  </p>
+<h3 id="1-5_节流器DataTransferThrottler">1.5 节流器DataTransferThrottler</h3><p>节流器DataTransferThrottler成员如下<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="keyword">long</span> period;          <span class="comment">//带宽计算周期</span></span><br><span class="line"><span class="keyword">private</span> <span class="keyword">long</span> periodExtension; <span class="comment">//带宽计算最大周期</span></span><br><span class="line"><span class="keyword">private</span> <span class="keyword">long</span> bytesPerPeriod; <span class="comment">//周期内可以发送的最大字节数</span></span><br><span class="line"><span class="keyword">private</span> <span class="keyword">long</span> curPeriodStart; <span class="comment">//当前周期开始时间</span></span><br><span class="line"><span class="keyword">private</span> <span class="keyword">long</span> curReserve;     <span class="comment">//当前周期剩余可发送字节数</span></span><br><span class="line"><span class="keyword">private</span> <span class="keyword">long</span> bytesAlreadyUsed;<span class="comment">//已经发送的字节数</span></span><br></pre></td></tr></table></figure></p>
+<p>throttle方法如下<br><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> synchronized <span class="keyword">void</span> <span class="title">throttle</span><span class="params">(<span class="keyword">long</span> numOfBytes)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> ( numOfBytes &lt;= <span class="number">0</span> ) &#123;</span><br><span class="line">      <span class="keyword">return</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    curReserve -= numOfBytes;</span><br><span class="line">    bytesAlreadyUsed += numOfBytes;</span><br><span class="line">    <span class="keyword">while</span> (curReserve &lt;= <span class="number">0</span>) &#123;<span class="comment">//没有剩余可发送字节</span></span><br><span class="line">      <span class="keyword">long</span> now = System.currentTimeMillis();</span><br><span class="line">      <span class="keyword">long</span> curPeriodEnd = curPeriodStart + period;</span><br><span class="line">      <span class="keyword">if</span> ( now &lt; curPeriodEnd ) &#123;<span class="comment">//当前周期还未结束，等待结束</span></span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">          wait( curPeriodEnd - now );</span><br><span class="line">        &#125; <span class="keyword">catch</span> (InterruptedException ignored) &#123;&#125;</span><br><span class="line">      &#125; <span class="keyword">else</span> <span class="keyword">if</span> ( now &lt;  (curPeriodStart + periodExtension)) &#123;<span class="comment">//到达下一周期，更新开始时间增加可发送字节数</span></span><br><span class="line">        curPeriodStart = curPeriodEnd;</span><br><span class="line">        curReserve += bytesPerPeriod;</span><br><span class="line">      &#125; <span class="keyword">else</span> &#123;<span class="comment">//节流器可能很久没工作了，重新开始</span></span><br><span class="line">        curPeriodStart = now;</span><br><span class="line">        curReserve = bytesPerPeriod - bytesAlreadyUsed;</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    bytesAlreadyUsed -= numOfBytes;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，节流器只有在还有可发送字节时，直接返回让应用继续发送。如果没有剩余可发送字节，且当期周期还未结束则休眠等待结束，直到下一个周期增加一个周期可发送字节数，继续判断是否可以继续发送，如果节流器长时间没工作重新设置周期开始时间，重启节流器。  </p>
+<hr>
+<h2 id="2-_数据块替换">2. 数据块替换</h2><p>数据块由<code>replaceBlock</code>负责，首先按照区块替换请求帧格式读取请求数据，区块替换请求帧格式见<a href="../HDFS流接口">HDFS流接口</a><br><figure class="highlight oxygene"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">long blockId = <span class="keyword">in</span>.readLong();<span class="comment">//区块ID</span></span><br><span class="line"><span class="keyword">Block</span> <span class="keyword">block</span> = <span class="keyword">new</span> <span class="keyword">Block</span>(blockId, dataXceiverServer.estimateBlockSize,<span class="keyword">in</span>.readLong());<span class="comment">//generationStamp</span></span><br><span class="line">String sourceID = Text.readString(<span class="keyword">in</span>); <span class="comment">//数据源存储标识</span></span><br><span class="line">DatanodeInfo proxySource = <span class="keyword">new</span> DatanodeInfo(); </span><br><span class="line">proxySource.readFields(<span class="keyword">in</span>);<span class="comment">//源数据节点</span></span><br><span class="line">Token&lt;BlockTokenIdentifier&gt; accessToken = <span class="keyword">new</span> Token&lt;BlockTokenIdentifier&gt;();</span><br><span class="line">accessToken.readFields(<span class="keyword">in</span>);<span class="comment">//访问令牌</span></span><br></pre></td></tr></table></figure></p>
+<p>然后根据当前DataNode的宽带均衡器的情况决定是否能够进行接下来的接收区块操作<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (!dataXceiverServer.balanceThrottler.acquire()) &#123; <span class="comment">// not able to start</span></span><br><span class="line">  LOG.warn(<span class="string">"Not able to receive block "</span> + blockId + <span class="string">" from "</span> </span><br><span class="line">      + s.getRemoteSocketAddress() + <span class="string">" because threads quota is exceeded."</span>);</span><br><span class="line">  <span class="comment">//带宽超限，发送OP_STATUS_ERROR状态</span></span><br><span class="line">  sendResponse(s, (<span class="keyword">short</span>)DataTransferProtocol.OP_STATUS_ERROR, datanode.socketWriteTimeout);</span><br><span class="line">  <span class="keyword">return</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，首先判断是否能够执行替换操作，是否能够执行替换操作由宽带均衡器决定。    </p>
+<h3 id="2-1_宽带均衡器BlockBalanceThrottler">2.1 宽带均衡器BlockBalanceThrottler</h3><p>宽带均衡器BlockBalanceThrottler继承DataTransferThrottler，即读数据部分的节流器，节流器提供了指定时间内能够发送数据大小的管理功能，而宽带均衡器在此基础上增加了能够并发执行区块移动操作的线程数管理功能，区块移动包括区块替换操作，区块拷贝操作(本质都是拷贝)等<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="keyword">int</span> numThreads;</span><br><span class="line"><span class="function"><span class="keyword">private</span> <span class="title">BlockBalanceThrottler</span><span class="params">(<span class="keyword">long</span> bandwidth)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">super</span>(bandwidth);</span><br><span class="line">    LOG.info(<span class="string">"Balancing bandwith is "</span>+ bandwidth + <span class="string">" bytes/s"</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>通过acquire来获取一个执行区块移动的资源<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">synchronized</span> <span class="function"><span class="keyword">boolean</span> <span class="title">acquire</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (numThreads &gt;= Balancer.MAX_NUM_CONCURRENT_MOVES) &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">false</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    numThreads++;</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">true</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，最大能够同时执行区块移动操作的数目为5，当区块移动操作完成时，通过release释放所占资源<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">synchronized</span> <span class="function"><span class="keyword">void</span> <span class="title">release</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    numThreads--;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如果能够执行替换操作，通过向原来请求替换操作的数据节点发送区块拷贝请求，拷贝请求替换操作数据节点上的区块到本数据节点，<br><figure class="highlight dns"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">final String proxyAddrString = proxySource.getName(connectToDnViaHostname)<span class="comment">;//源数据节点地址</span></span><br><span class="line">InetSocketAddress proxyAddr = NetUtils.createSocketAddr(proxyAddrString)<span class="comment">;</span></span><br><span class="line">proxySock = datanode.newSocket()<span class="comment">;//创建新的Socket</span></span><br><span class="line">LOG.debug("Connecting to " + proxyAddrString)<span class="comment">;</span></span><br><span class="line">NetUtils.connect(proxySock, proxyAddr, datanode.socketTimeout)<span class="comment">;//连接到请求替换操作的数据节点</span></span><br><span class="line">proxySock.setSoTimeout(datanode.socketTimeout)<span class="comment">;</span></span><br><span class="line">OutputStream baseStream = NetUtils.getOutputStream(proxySock, datanode.socketWriteTimeout)<span class="comment">;//Socket输出流</span></span><br><span class="line">proxyOut = new DataOutputStream(new BufferedOutputStream(baseStream, SMALL_BUFFER_SIZE))<span class="comment">;</span></span><br><span class="line"></span><br><span class="line">//发送数据复制请求</span><br><span class="line">proxyOut.writeShort(DataTransferProtocol.DATA_TRANSFER_VERSION)<span class="comment">;</span></span><br><span class="line">proxyOut.writeByte(DataTransferProtocol.OP_COPY_BLOCK)<span class="comment">; // op code</span></span><br><span class="line">proxyOut.writeLong(block.getBlockId())<span class="comment">; // block id</span></span><br><span class="line">proxyOut.writeLong(block.getGenerationStamp())<span class="comment">; // block id</span></span><br><span class="line">accessToken.write(proxyOut)<span class="comment">;</span></span><br><span class="line">proxyOut.flush()<span class="comment">;</span></span><br></pre></td></tr></table></figure></p>
+<p>如上，创建新的Socket连接到请求替换的数据节点，然后发送数据复制请求，发送完后接收请求状态<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">proxyReply = <span class="keyword">new</span> DataInputStream(<span class="keyword">new</span> BufferedInputStream(NetUtils.getInputStream(proxySock), BUFFER_SIZE));</span><br><span class="line"><span class="keyword">short</span> status = proxyReply.readShort();</span><br><span class="line"><span class="keyword">if</span> (status != DataTransferProtocol.OP_STATUS_SUCCESS) &#123;</span><br><span class="line">    <span class="keyword">if</span> (status == DataTransferProtocol.OP_STATUS_ERROR_ACCESS_TOKEN) &#123;</span><br><span class="line">      <span class="keyword">throw</span> <span class="keyword">new</span> IOException(<span class="string">"Copy "</span> + block + <span class="string">" from "</span> + proxySock.getRemoteSocketAddress()</span><br><span class="line">          + <span class="string">" failed due to access token error"</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">throw</span> <span class="keyword">new</span> IOException(<span class="string">"Copy "</span> + block + <span class="string">" from "</span> + proxySock.getRemoteSocketAddress() + <span class="string">" failed"</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>请求替换的数据节点不能执行复制操作时(对端也有资源限制)，抛出异常替换失败，否则构建BlockReceiver接收到来的区块数据<br><figure class="highlight nix"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="variable">blockReceiver =</span> new BlockReceiver(block, proxyReply, proxySock.getRemoteSocketAddress().<span class="built_in">toString</span>(),</span><br><span class="line">          proxySock.getLocalSocketAddress().<span class="built_in">toString</span>(), <span class="constant">false</span>, <span class="string">""</span>, <span class="constant">null</span>, datanode);</span><br><span class="line">blockReceiver.receiveBlock(<span class="constant">null</span>, <span class="constant">null</span>, <span class="constant">null</span>, <span class="constant">null</span>, dataXceiverServer.balanceThrottler, -<span class="number">1</span>);</span><br><span class="line">datanode.notifyNamenodeReceivedBlock(block, sourceID);</span><br></pre></td></tr></table></figure></p>
+<p>如上，创建BlockReceiver对象，其中ClientName为空，通过receiveBlock接收区块数据时，前四个参数都为null，对应为mirrOut，mirrIn，replyOut，mirrAddr，因为不需要往下游节点写数据，不需要从下游节点接收ACK，不需要往源数据节点发送ACK。因为ClientName为空，也不会创建PacketResponder线程。<br>通过receiveBlock接收完数据后，已经提交到存储目录的区块文件中。而在创建BlockReceiver对象时，传入的isRecovery参数为false，即不是修复操作，这样如果本DataNode中存在该区块，实际上是不允许将发送过来数据替换原有数据的(参见BlockReceiver创建时通过DataNode FSDataset的writeToBlock中的逻辑)，这与传统的文件替换有出入。  </p>
+<p>接收完数据后，通过notifyNamenodeReceivedBlock通知NameNode接收到新区块(放入DataNode的receivedBlockList队列中，在offerService通知NameNode)，因为不是Client写操作，没有PacketResponder线程。  </p>
+<p>最终会释放带宽均衡器的资源<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">finally</span> &#123;</span><br><span class="line">  <span class="comment">// receive the last byte that indicates the proxy released its thread resource</span></span><br><span class="line">  <span class="keyword">if</span> (opStatus == DataTransferProtocol.OP_STATUS_SUCCESS) &#123;</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">      proxyReply.readChar();</span><br><span class="line">    &#125; <span class="keyword">catch</span> (IOException ignored) &#123;</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="comment">// now release the thread resource</span></span><br><span class="line">  dataXceiverServer.balanceThrottler.release();</span><br><span class="line">  <span class="comment">// send response back</span></span><br><span class="line">  <span class="keyword">try</span> &#123;</span><br><span class="line">    sendResponse(s, opStatus, datanode.socketWriteTimeout);</span><br><span class="line">  &#125; <span class="keyword">catch</span> (IOException ioe) &#123;</span><br><span class="line">    LOG.warn(<span class="string">"Error writing reply back to "</span> + s.getRemoteSocketAddress());</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="comment">//关闭流</span></span><br><span class="line">  IOUtils.closeStream(proxyOut);</span><br><span class="line">  IOUtils.closeStream(blockReceiver);</span><br><span class="line">  IOUtils.closeStream(proxyReply);</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">synchronized</span> <span class="function"><span class="keyword">void</span> <span class="title">release</span><span class="params">()</span> </span>&#123; numThreads--; &#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，数据读取并处理完后再读取一个字节，表明对端的发送线程资源释放(对端拷贝操作同样的通过宽带均衡器管理，同时执行区块移动的线程不能超过5个)，然后释放本数据节点线程资源，标识区块移动操作完成，这些还是数据块拷贝对应的流程。最后向源DataNode发送状态响应，通知替换操作的执行状态，最终关闭打开的流。  </p>
+<hr>
+<h2 id="3-_数据块拷贝">3. 数据块拷贝</h2><p>数据块拷贝由<code>copyBlock</code>负责，同样的先按照数据块拷贝请求帧格式读取拷贝请求，拷贝请求帧格式见<a href="../HDFS流接口">HDFS流接口</a><br><figure class="highlight oxygene"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">long blockId = <span class="keyword">in</span>.readLong(); <span class="comment">//拷贝的ID</span></span><br><span class="line"><span class="keyword">Block</span> <span class="keyword">block</span> = <span class="keyword">new</span> <span class="keyword">Block</span>(blockId, <span class="number">0</span>, <span class="keyword">in</span>.readLong());<span class="comment">//generationStamp</span></span><br><span class="line">Token&lt;BlockTokenIdentifier&gt; accessToken = <span class="keyword">new</span> Token&lt;BlockTokenIdentifier&gt;();</span><br><span class="line">accessToken.readFields(<span class="keyword">in</span>);<span class="comment">//访问令牌</span></span><br></pre></td></tr></table></figure></p>
+<p>然后与数据块替换操作类似，检查当前数据节点执行数据块移动操作的线程数是否超出限制<br><figure class="highlight autoit"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (!dataXceiverServer.balanceThrottler.acquire()) &#123; // <span class="literal">not</span> able <span class="keyword">to</span> start</span><br><span class="line">  <span class="built_in">LOG</span>.info(<span class="string">"Not able to copy block "</span> + blockId + <span class="string">" to "</span> </span><br><span class="line">      + s.getRemoteSocketAddress() + <span class="string">" because threads quota is exceeded"</span>)<span class="comment">;</span></span><br><span class="line">  sendResponse(s, (short)DataTransferProtocol.OP_STATUS_ERROR, datanode.socketWriteTimeout)<span class="comment">;</span></span><br><span class="line">  <span class="keyword">return</span><span class="comment">;</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如果不能执行拷贝操作，则发送状态OP_STATUS_ERROR，否则发送状态OP_STATUS_SUCCESS，然后构造BlockSender发送数据<br><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">blockSender = <span class="keyword">new</span> BlockSender(block, <span class="number">0</span>, -<span class="number">1</span>, <span class="literal">false</span>, <span class="literal">false</span>, <span class="literal">false</span>, datanode);</span><br><span class="line">OutputStream baseStream = NetUtils.getOutputStream(s, datanode.socketWriteTimeout);</span><br><span class="line">reply = <span class="keyword">new</span> DataOutputStream(<span class="keyword">new</span> BufferedOutputStream(baseStream, SMALL_BUFFER_SIZE));</span><br><span class="line">reply.writeShort((<span class="keyword">short</span>)DataTransferProtocol.OP_STATUS_SUCCESS);<span class="comment">//能够执行拷贝，发送OP_STATUS_SUCCESS</span></span><br><span class="line"><span class="keyword">long</span> read = blockSender.sendBlock(reply, baseStream, dataXceiverServer.balanceThrottler);<span class="comment">//发送区块数据</span></span><br></pre></td></tr></table></figure></p>
+<p>如上，构造BlockSender时，开始偏移量startOffset为0，长度length-1则为整个区块长度，corruptChecksumOk为false，chunkOffsetOK为false不允许发送区块的局部数据，响应头中可选偏移量不存在，verifyChecksum为false发送时不需要验证区块的校验和。  </p>
+<p>最终释放宽带均衡器管理的线程资源，如果发送没出错，继续发送一个结束符<code>d</code>给对端通知本端资源清理完成，然后关闭打开的流<br><figure class="highlight actionscript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">finally</span> &#123;</span><br><span class="line">  dataXceiverServer.balanceThrottler.release();</span><br><span class="line">  <span class="keyword">if</span> (isOpSuccess) &#123;</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">      <span class="comment">// send one last byte to indicate that the resource is cleaned.</span></span><br><span class="line">      reply.writeChar(<span class="string">'d'</span>);</span><br><span class="line">    &#125; <span class="keyword">catch</span> (IOException ignored) &#123;</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">  IOUtils.closeStream(reply);</span><br><span class="line">  IOUtils.closeStream(blockSender);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<hr>
+<h2 id="4-_读数据块校验信息">4. 读数据块校验信息</h2><p>读数据块校验信息由<code>getBlockChecksum</code>负责，同样的先根据请求帧格式读取请求数据，校验信息请求帧格式见<a href="../HDFS流接口">HDFS流接口</a><br><figure class="highlight oxygene"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">final</span> <span class="keyword">Block</span> <span class="keyword">block</span> = <span class="keyword">new</span> <span class="keyword">Block</span>(<span class="keyword">in</span>.readLong(), <span class="number">0</span> , <span class="keyword">in</span>.readLong());</span><br><span class="line">Token&lt;BlockTokenIdentifier&gt; accessToken = <span class="keyword">new</span> Token&lt;BlockTokenIdentifier&gt;();</span><br><span class="line">accessToken.readFields(<span class="keyword">in</span>);</span><br></pre></td></tr></table></figure></p>
+<p>然后构造输出流，构造校验文件输入流<br><figure class="highlight oxygene"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">DataOutputStream <span class="keyword">out</span> = <span class="keyword">new</span> DataOutputStream(NetUtils.getOutputStream(s, datanode.socketWriteTimeout));</span><br><span class="line"><span class="keyword">final</span> MetaDataInputStream metadataIn = datanode.data.getMetaDataInputStream(<span class="keyword">block</span>);</span><br><span class="line"><span class="keyword">final</span> DataInputStream checksumIn = <span class="keyword">new</span> DataInputStream(<span class="keyword">new</span> BufferedInputStream(metadataIn, BUFFER_SIZE));</span><br></pre></td></tr></table></figure></p>
+<p>校验文件输入流MetaDataInputStream只是在文件流的基础上增加了校验文件长度属性<br><figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">public <span class="type">MetaDataInputStream</span> getMetaDataInputStream(<span class="type">Block</span> b) <span class="keyword">throws</span> <span class="type">IOException</span> &#123;</span><br><span class="line">    <span class="type">File</span> checksumFile = getMetaFile( b );<span class="comment">//通过FSDataset获得校验文件</span></span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">new</span> <span class="type">MetaDataInputStream</span>(<span class="keyword">new</span> <span class="type">FileInputStream</span>(checksumFile), checksumFile.length()); </span><br><span class="line">&#125;</span><br><span class="line">static <span class="class"><span class="keyword">class</span> <span class="title">MetaDataInputStream</span> <span class="keyword"><span class="keyword">extends</span></span> <span class="title">FilterInputStream</span> &#123;</span></span><br><span class="line">    <span class="type">MetaDataInputStream</span>(<span class="type">InputStream</span> stream, long len) &#123;</span><br><span class="line">      <span class="keyword">super</span>(stream);</span><br><span class="line">      length = len;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">private</span> long length;</span><br><span class="line">    public long getLength() &#123; <span class="keyword">return</span> length; &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>然后读取校验文件头，获得数据块大小，区块数据块数目等信息，并计算校验文件的MD5摘要，发送，最终关闭打开的流<br><figure class="highlight d"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">try</span> &#123;</span><br><span class="line">  <span class="keyword">final</span> BlockMetadataHeader header = BlockMetadataHeader.readHeader(checksumIn);</span><br><span class="line">  <span class="keyword">final</span> DataChecksum checksum = header.getChecksum(); </span><br><span class="line">  <span class="keyword">final</span> <span class="keyword">int</span> bytesPerCRC = checksum.getBytesPerChecksum();</span><br><span class="line">  <span class="comment">//MetaDataInputStream中读取文件长度，减去头部大小得到区块的数据块数目</span></span><br><span class="line">  <span class="keyword">final</span> <span class="built_in">long</span> crcPerBlock = (metadataIn.getLength() - BlockMetadataHeader.getHeaderSize())/checksum.getChecksumSize();</span><br><span class="line">  <span class="comment">//计算MD5摘要</span></span><br><span class="line">  <span class="keyword">final</span> MD5Hash md5 = MD5Hash.digest(checksumIn);</span><br><span class="line">  <span class="keyword">if</span> (LOG.isDebugEnabled()) &#123;</span><br><span class="line">    LOG.<span class="keyword">debug</span>(<span class="string">"block="</span> + block + <span class="string">", bytesPerCRC="</span> + bytesPerCRC</span><br><span class="line">        + <span class="string">", crcPerBlock="</span> + crcPerBlock + <span class="string">", md5="</span> + md5);</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="comment">//发送应答数据</span></span><br><span class="line">  <span class="keyword">out</span>.writeShort(DataTransferProtocol.OP_STATUS_SUCCESS);</span><br><span class="line">  <span class="keyword">out</span>.writeInt(bytesPerCRC);</span><br><span class="line">  <span class="keyword">out</span>.writeLong(crcPerBlock);</span><br><span class="line">  md5.write(<span class="keyword">out</span>);</span><br><span class="line">  <span class="keyword">out</span>.flush();</span><br><span class="line">&#125; <span class="keyword">finally</span> &#123;<span class="comment">//关闭流</span></span><br><span class="line">  IOUtils.closeStream(<span class="keyword">out</span>);</span><br><span class="line">  IOUtils.closeStream(checksumIn);</span><br><span class="line">  IOUtils.closeStream(metadataIn);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+</span>
+      
+    </div>
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/DataNode/" rel="tag">#DataNode</a>
+          
+            <a href="/tags/DataNode源码阅读/" rel="tag">#DataNode源码阅读</a>
+          
+            <a href="/tags/HDFS/" rel="tag">#HDFS</a>
+          
+            <a href="/tags/Hadoop-1-2-1/" rel="tag">#Hadoop-1.2.1</a>
+          
+            <a href="/tags/Java/" rel="tag">#Java</a>
+          
+            <a href="/tags/源码阅读/" rel="tag">#源码阅读</a>
+          
+        </div>
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/DataNode流接口实现上篇/" rel="next" title="DataNode实现源码分析---流接口实现上篇">
+                <i class="fa fa-chevron-left"></i> DataNode实现源码分析---流接口实现上篇
+              </a>
+            
+          </div>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/DataNode启动/" rel="prev" title="DataNode实现源码分析---DataNode启动">
+                DataNode实现源码分析---DataNode启动 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </article>
+
+
+
+    <div class="post-spread">
+      
+        <!-- JiaThis Button BEGIN -->
+<div class="jiathis_style">
+  <a class="jiathis_button_tsina"></a>
+  <a class="jiathis_button_tqq"></a>
+  <a class="jiathis_button_weixin"></a>
+  <a class="jiathis_button_cqq"></a>
+  <a class="jiathis_button_douban"></a>
+  <a class="jiathis_button_renren"></a>
+  <a class="jiathis_button_qzone"></a>
+  <a class="jiathis_button_kaixin001"></a>
+  <a class="jiathis_button_copy"></a>
+  <a href="http://www.jiathis.com/share" class="jiathis jiathis_txt jiathis_separator jtico jtico_jiathis" target="_blank"></a>
+  <a class="jiathis_counter_style"></a>
+</div>
+<script type="text/javascript" >
+  var jiathis_config={
+    hideMore:false
+  }
+</script>
+<script type="text/javascript" src="http://v3.jiathis.com/code/jia.js" charset="utf-8"></script>
+<!-- JiaThis Button END -->
+
+      
+    </div>
+  </div>
+
+
+        </div>
+
+        
+
+
+        
+  <div class="comments" id="comments">
+    
+      <div class="ds-thread" data-thread-key="DataNode流接口实现下篇/"
+           data-title="DataNode实现源码分析---流接口实现上篇" data-url="http://xiao-yun.github.io/DataNode流接口实现下篇/">
+      </div>
+    
+  </div>
+
+
+      </div>
+
+      
+        
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap" >
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel ">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+          <img class="site-author-image" src="/images/hero.jpg" alt="xiaoyun" itemprop="image"/>
+          <p class="site-author-name" itemprop="name">xiaoyun</p>
+        </div>
+        <p class="site-description motion-element" itemprop="description">学习笔记，网上资源摘要等</p>
+        <nav class="site-state motion-element">
+          <div class="site-state-item site-state-posts">
+            <a href="/archives">
+              <span class="site-state-item-count">34</span>
+              <span class="site-state-item-name">日志</span>
+            </a>
+          </div>
+
+          <div class="site-state-item site-state-categories">
+            <a href="/categories">
+              <span class="site-state-item-count">49</span>
+              <span class="site-state-item-name">分类</span>
+              </a>
+          </div>
+
+          <div class="site-state-item site-state-tags">
+            <a href="/tags">
+              <span class="site-state-item-count">25</span>
+              <span class="site-state-item-name">标签</span>
+              </a>
+          </div>
+
+        </nav>
+
+        
+
+        <div class="links-of-author motion-element">
+          
+            
+              <span class="links-of-author-item">
+                <a href="https://github.com/xiao-yun" target="_blank">
+                  
+                    <i class="fa fa-globe"></i> github
+                  
+                </a>
+              </span>
+            
+          
+        </div>
+
+        
+        
+
+        <div class="links-of-author motion-element">
+          
+        </div>
+
+      </section>
+
+      
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc-indicator-top post-toc-indicator">
+            <i class="fa fa-angle-double-up"></i>
+          </div>
+          <div class="post-toc">
+            
+              
+            
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-_读数据块"><span class="nav-number">1.</span> <span class="nav-text">1. 读数据块</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-1_BlockSender"><span class="nav-number">1.1.</span> <span class="nav-text">1.1 BlockSender</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-2_BlockSender-sendBlock"><span class="nav-number">1.2.</span> <span class="nav-text">1.2 BlockSender.sendBlock</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-3_零拷贝传输(技术内幕P292-P293)"><span class="nav-number">1.3.</span> <span class="nav-text">1.3 零拷贝传输(技术内幕P292-P293)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-4_BlockSender-sendChunks"><span class="nav-number">1.4.</span> <span class="nav-text">1.4 BlockSender.sendChunks</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-5_节流器DataTransferThrottler"><span class="nav-number">1.5.</span> <span class="nav-text">1.5 节流器DataTransferThrottler</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-_数据块替换"><span class="nav-number">2.</span> <span class="nav-text">2. 数据块替换</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1_宽带均衡器BlockBalanceThrottler"><span class="nav-number">2.1.</span> <span class="nav-text">2.1 宽带均衡器BlockBalanceThrottler</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-_数据块拷贝"><span class="nav-number">3.</span> <span class="nav-text">3. 数据块拷贝</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-_读数据块校验信息"><span class="nav-number">4.</span> <span class="nav-text">4. 读数据块校验信息</span></a></li></ol></div>
+            
+          </div>
+          <div class="post-toc-indicator-bottom post-toc-indicator">
+            <i class="fa fa-angle-double-down"></i>
+          </div>
+        </section>
+      
+
+    </div>
+  </aside>
+
+
+      
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright" >
+  
+  &copy; 
+  <span itemprop="copyrightYear">2016</span>
+  <span class="with-love">
+    <i class="icon-next-heart fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">xiaoyun</span>
+</div>
+
+<div class="powered-by">
+  由 <a class="theme-link" href="http://hexo.io">Hexo</a> 强力驱动
+</div>
+
+<div class="theme-info">
+  主题 -
+  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
+    NexT.Mist
+  </a>
+</div>
+
+
+
+      </div>
+    </footer>
+
+    <div class="back-to-top"></div>
+  </div>
+
+  <script type="text/javascript" src="/vendors/jquery/index.js?v=2.1.3"></script>
+
+  
+  
+
+  
+    
+
+  
+    
+  
+
+  <script type="text/javascript">
+    var duoshuoQuery = {short_name:"xiaoyuncom"};
+    (function() {
+      var ds = document.createElement('script');
+      ds.type = 'text/javascript';ds.async = true;
+      ds.id = 'duoshuo-script';
+      ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+      ds.charset = 'UTF-8';
+      (document.getElementsByTagName('head')[0]
+      || document.getElementsByTagName('body')[0]).appendChild(ds);
+    })();
+  </script>
+    
+     
+
+
+    
+  
+
+  
+  <script type="text/javascript" src="/vendors/fancybox/source/jquery.fancybox.pack.js"></script>
+  <script type="text/javascript" src="/js/fancy-box.js?v=0.4.5.2"></script>
+
+
+  <script type="text/javascript" src="/js/helpers.js?v=0.4.5.2"></script>
+  <script type="text/javascript" src="/vendors/velocity/velocity.min.js"></script>
+<script type="text/javascript" src="/vendors/velocity/velocity.ui.min.js"></script>
+
+<script type="text/javascript" src="/js/motion.js?v=0.4.5.2" id="motion.global"></script>
+
+
+  <script type="text/javascript" src="/vendors/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  <script type="text/javascript" src="/vendors/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  
+<script type="text/javascript" src="/js/bootstrap.scrollspy.js?v=0.4.5.2" id="bootstrap.scrollspy.custom"></script>
+
+
+<script type="text/javascript" id="sidebar.toc.highlight">
+  $(document).ready(function () {
+    var tocSelector = '.post-toc';
+    var $tocSelector = $(tocSelector);
+    var activeCurrentSelector = '.active-current';
+
+    $tocSelector
+      .on('activate.bs.scrollspy', function () {
+        var $currentActiveElement = $(tocSelector + ' .active').last();
+
+        removeCurrentActiveClass();
+        $currentActiveElement.addClass('active-current');
+
+        $tocSelector[0].scrollTop = $currentActiveElement.position().top;
+      })
+      .on('clear.bs.scrollspy', function () {
+        removeCurrentActiveClass();
+      });
+
+    function removeCurrentActiveClass () {
+      $(tocSelector + ' ' + activeCurrentSelector)
+        .removeClass(activeCurrentSelector.substring(1));
+    }
+
+    function processTOC () {
+      getTOCMaxHeight();
+      toggleTOCOverflowIndicators();
+    }
+
+    function getTOCMaxHeight () {
+      var height = $('.sidebar').height() -
+                   $tocSelector.position().top -
+                   $('.post-toc-indicator-bottom').height();
+
+      $tocSelector.css('height', height);
+
+      return height;
+    }
+
+    function toggleTOCOverflowIndicators () {
+      tocOverflowIndicator(
+        '.post-toc-indicator-top',
+        $tocSelector.scrollTop() > 0 ? 'show' : 'hide'
+      );
+
+      tocOverflowIndicator(
+        '.post-toc-indicator-bottom',
+        $tocSelector.scrollTop() >= $tocSelector.find('ol').height() - $tocSelector.height() ? 'hide' : 'show'
+      )
+    }
+
+    $(document).on('sidebar.motion.complete', function () {
+      processTOC();
+    });
+
+    $('body').scrollspy({ target: tocSelector });
+    $(window).on('resize', function () {
+      if ( $('.sidebar').hasClass('sidebar-active') ) {
+        processTOC();
+      }
+    });
+
+    onScroll($tocSelector);
+
+    function onScroll (element) {
+      element.on('mousewheel DOMMouseScroll', function (event) {
+          var oe = event.originalEvent;
+          var delta = oe.wheelDelta || -oe.detail;
+
+          this.scrollTop += ( delta < 0 ? 1 : -1 ) * 30;
+          event.preventDefault();
+
+          toggleTOCOverflowIndicators();
+      });
+    }
+
+    function tocOverflowIndicator (indicator, action) {
+      var $indicator = $(indicator);
+      var opacity = action === 'show' ? 1 : 0;
+      $indicator.velocity ?
+        $indicator.velocity('stop').velocity({
+          opacity: opacity
+        }, { duration: 100 }) :
+        $indicator.stop().animate({
+          opacity: opacity
+        }, 100);
+    }
+
+  });
+</script>
+
+<script type="text/javascript" id="sidebar.nav">
+  $(document).ready(function () {
+    var html = $('html');
+    var TAB_ANIMATE_DURATION = 200;
+    var hasVelocity = $.isFunction(html.velocity);
+
+    $('.sidebar-nav li').on('click', function () {
+      var item = $(this);
+      var activeTabClassName = 'sidebar-nav-active';
+      var activePanelClassName = 'sidebar-panel-active';
+      if (item.hasClass(activeTabClassName)) {
+        return;
+      }
+
+      var currentTarget = $('.' + activePanelClassName);
+      var target = $('.' + item.data('target'));
+
+      hasVelocity ?
+        currentTarget.velocity('transition.slideUpOut', TAB_ANIMATE_DURATION, function () {
+          target
+            .velocity('stop')
+            .velocity('transition.slideDownIn', TAB_ANIMATE_DURATION)
+            .addClass(activePanelClassName);
+        }) :
+        currentTarget.animate({ opacity: 0 }, TAB_ANIMATE_DURATION, function () {
+          currentTarget.hide();
+          target
+            .stop()
+            .css({'opacity': 0, 'display': 'block'})
+            .animate({ opacity: 1 }, TAB_ANIMATE_DURATION, function () {
+              currentTarget.removeClass(activePanelClassName);
+              target.addClass(activePanelClassName);
+            });
+        });
+
+      item.siblings().removeClass(activeTabClassName);
+      item.addClass(activeTabClassName);
+    });
+
+    $('.post-toc a').on('click', function (e) {
+      e.preventDefault();
+      var targetSelector = escapeSelector(this.getAttribute('href'));
+      var offset = $(targetSelector).offset().top;
+      hasVelocity ?
+        html.velocity('stop').velocity('scroll', {
+          offset: offset  + 'px',
+          mobileHA: false
+        }) :
+        $('html, body').stop().animate({
+          scrollTop: offset
+        }, 500);
+    });
+
+    // Expand sidebar on post detail page by default, when post has a toc.
+    motionMiddleWares.sidebar = function () {
+      var $tocContent = $('.post-toc-content');
+      if (CONFIG.sidebar === 'post') {
+        if ($tocContent.length > 0 && $tocContent.html().trim().length > 0) {
+          displaySidebar();
+        }
+      }
+    };
+  });
+</script>
+
+
+
+  <script type="text/javascript" src="/js/bootstrap.js"></script>
+
+  
+  
+
+  
+  
+
+</body>
+</html>

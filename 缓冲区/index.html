@@ -35,7 +35,7 @@
 <link href="/css/main.css?v=0.4.5.2" rel="stylesheet" type="text/css" />
 
 
-  <meta name="keywords" content="Hadoop,Java流," />
+  <meta name="keywords" content="Java,Java基础," />
 
 
 
@@ -59,7 +59,7 @@ Buffer(java.nio)成员12345// Invariants: mark &amp;lt;= position &amp;lt;= limi
 <meta property="og:site_name" content="xiaoyun">
 <meta property="og:description" content="先看ByteBuffer的父类Buffer
 Buffer(java.nio)成员12345// Invariants: mark &amp;lt;= position &amp;lt;= limit &amp;lt;= capacityprivate int mark = -1;//若设置，则reset时postion变为markprivate int position = 0;//下一个可读写的位置private in">
-<meta property="og:updated_time" content="2015-12-18T02:34:47.376Z">
+<meta property="og:updated_time" content="2016-01-08T06:45:06.378Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="Java NIO---缓冲区">
 <meta name="twitter:description" content="先看ByteBuffer的父类Buffer
@@ -234,8 +234,8 @@ Buffer(java.nio)成员12345// Invariants: mark &amp;lt;= position &amp;lt;= limi
         <div class="post-meta">
           <span class="post-time">
             发表于
-            <time itemprop="dateCreated" datetime="2015-12-18T10:34:47+08:00" content="2015-12-18">
-              2015-12-18
+            <time itemprop="dateCreated" datetime="2016-01-08T14:45:06+08:00" content="2016-01-08">
+              2016-01-08
             </time>
           </span>
 
@@ -256,8 +256,8 @@ Buffer(java.nio)成员12345// Invariants: mark &amp;lt;= position &amp;lt;= limi
 
               
                 <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
-                  <a href="/categories/Java/Hadoop/" itemprop="url" rel="index">
-                    <span itemprop="name">Hadoop</span>
+                  <a href="/categories/Java/Java基础/" itemprop="url" rel="index">
+                    <span itemprop="name">Java基础</span>
                   </a>
                 </span>
 
@@ -294,7 +294,7 @@ Buffer(java.nio)成员12345// Invariants: mark &amp;lt;= position &amp;lt;= limi
       
         <span itemprop="articleBody"><p>先看<code>ByteBuffer</code>的父类<code>Buffer</code></p>
 <h2 id="Buffer(java-nio)">Buffer(java.nio)</h2><h3 id="成员">成员</h3><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Invariants: mark &lt;= position &lt;= limit &lt;= capacity</span></span><br><span class="line"><span class="keyword">private</span> <span class="keyword">int</span> mark = -<span class="number">1</span>;<span class="comment">//若设置，则reset时postion变为mark</span></span><br><span class="line"><span class="keyword">private</span> <span class="keyword">int</span> position = <span class="number">0</span>;<span class="comment">//下一个可读写的位置</span></span><br><span class="line"><span class="keyword">private</span> <span class="keyword">int</span> limit;<span class="comment">//第一个不能读写的位置</span></span><br><span class="line"><span class="keyword">private</span> <span class="keyword">int</span> capacity;<span class="comment">//该Buffer包含元素的数量</span></span><br></pre></td></tr></table></figure>
-<p>该类的每个子类定义了两种类型的读(get)和写(put)操作，相对的和绝对的。<br>相对的读写从当前position开始，然后相应的增加position的值。相对读超出limit值时，抛出<code>BufferUnderflowException</code>异常，而相对写超出limit时，<br>抛出<code>BufferOverflowException</code>异常。<br>绝对的读写直接在输入参数中指定要读写的位置，且不改变position的值，超出limit时抛出<code>IndexOutOfBoundsException</code>异常。<br>另外，通过Channel(NIO另一个特性)进行读写时，总是相对position操作。  </p>
+<p>该类的每个子类定义了两种类型的读(get)和写(put)操作，相对的和绝对的。<br>相对的读写从当前position开始，然后相应的增加position的值。相对读超出limit值时，抛出<code>BufferUnderflowException</code>异常，而相对写超出limit时，抛出<code>BufferOverflowException</code>异常。<br>绝对的读写直接在输入参数中指定要读写的位置，且不改变position的值，超出limit时抛出<code>IndexOutOfBoundsException</code>异常。<br>另外，通过Channel(NIO另一个特性)进行读写时，总是相对position操作。  </p>
 <h3 id="主要方法">主要方法</h3><h4 id="位置读取相关">位置读取相关</h4><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">final</span> <span class="function"><span class="keyword">int</span> <span class="title">capacity</span><span class="params">()</span> </span>&#123; <span class="keyword">return</span> capacity; &#125;<span class="comment">//获取容量</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">final</span> <span class="function"><span class="keyword">int</span> <span class="title">position</span><span class="params">()</span> </span>&#123; <span class="keyword">return</span> position; &#125;<span class="comment">//获取下一个读取位置</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">final</span> <span class="function">Buffer <span class="title">position</span><span class="params">(<span class="keyword">int</span> newPosition)</span> </span>&#123;<span class="comment">//设置下一个读取位置</span></span><br><span class="line">    <span class="keyword">if</span> ((newPosition &gt; limit) || (newPosition &lt; <span class="number">0</span>))</span><br><span class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> IllegalArgumentException();</span><br><span class="line">    position = newPosition;</span><br><span class="line">    <span class="keyword">if</span> (mark &gt; position) mark = -<span class="number">1</span>;<span class="comment">//position小于mark时，重置mark为未定义</span></span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">this</span>;</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">public</span> <span class="keyword">final</span> <span class="function"><span class="keyword">int</span> <span class="title">limit</span><span class="params">()</span> </span>&#123; <span class="keyword">return</span> limit; &#125;<span class="comment">//获取limit</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">final</span> <span class="function">Buffer <span class="title">limit</span><span class="params">(<span class="keyword">int</span> newLimit)</span> </span>&#123;<span class="comment">//设置limit</span></span><br><span class="line">    <span class="keyword">if</span> ((newLimit &gt; capacity) || (newLimit &lt; <span class="number">0</span>))</span><br><span class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> IllegalArgumentException();</span><br><span class="line">    limit = newLimit;</span><br><span class="line">    <span class="keyword">if</span> (position &gt; limit) position = limit;<span class="comment">//position&gt;limit，重置position为limit</span></span><br><span class="line">    <span class="keyword">if</span> (mark &gt; limit) mark = -<span class="number">1</span>;<span class="comment">//mark大于limit的，重置mark为未定义</span></span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">this</span>;</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">public</span> <span class="keyword">final</span> <span class="function">Buffer <span class="title">mark</span><span class="params">()</span> </span>&#123;<span class="comment">//标记当前位置</span></span><br><span class="line">    mark = position;</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">this</span>;</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">public</span> <span class="keyword">final</span> <span class="function">Buffer <span class="title">reset</span><span class="params">()</span> </span>&#123;<span class="comment">//重置position到mark标记处</span></span><br><span class="line">    <span class="keyword">int</span> m = mark;</span><br><span class="line">    <span class="keyword">if</span> (m &lt; <span class="number">0</span>)</span><br><span class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> InvalidMarkException();</span><br><span class="line">    position = m;</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">this</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 <h4 id="缓冲区读写设置相关">缓冲区读写设置相关</h4><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> final Buffer <span class="title">clear</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    position = <span class="number">0</span>;</span><br><span class="line">    limit = capacity;</span><br><span class="line">    mark = -<span class="number">1</span>;</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">this</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 <p>清除缓冲区，position置0，limit置capacity，mark未定义。为put操作或者从通道中读做准备，缓冲区内的数据不清除。<br><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> final Buffer <span class="title">flip</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    limit = position;</span><br><span class="line">    position = <span class="number">0</span>;</span><br><span class="line">    mark = -<span class="number">1</span>;</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">this</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
@@ -302,7 +302,7 @@ Buffer(java.nio)成员12345// Invariants: mark &amp;lt;= position &amp;lt;= limi
 <p>position置0，mark未定义。为一系列的get操作或向通道中写做准备，重复get缓冲区中的数据。  </p>
 <h4 id="缓冲区属性相关">缓冲区属性相关</h4><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">abstract</span> <span class="function"><span class="keyword">boolean</span> <span class="title">isReadOnly</span><span class="params">()</span></span>;</span><br></pre></td></tr></table></figure>
 <p>一个Buffer可以为只读的，抽象方法，子类做相应实现。　　<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">abstract</span> <span class="function"><span class="keyword">boolean</span> <span class="title">hasArray</span><span class="params">()</span></span>;<span class="comment">//抽象方法，底层实现</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">abstract</span> <span class="function">Object <span class="title">array</span><span class="params">()</span></span>;</span><br><span class="line"><span class="keyword">public</span> <span class="keyword">abstract</span> <span class="function"><span class="keyword">int</span> <span class="title">arrayOffset</span><span class="params">()</span></span>;</span><br></pre></td></tr></table></figure></p>
-<p>Buffer底层可以有可访问数组支持，即数组存储实际的数据，<code>hasArray</code>返回true时支持,这时array方法返回底层的数组，arrayOffset返回数组中第一个元素<br>的偏移量。　　<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">abstract</span> <span class="function"><span class="keyword">boolean</span> <span class="title">isDirect</span><span class="params">()</span></span>;</span><br></pre></td></tr></table></figure></p>
+<p>Buffer底层可以有可访问数组支持，即数组存储实际的数据，<code>hasArray</code>返回true时支持,这时array方法返回底层的数组，arrayOffset返回数组中第一个元素的偏移量。　　<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">abstract</span> <span class="function"><span class="keyword">boolean</span> <span class="title">isDirect</span><span class="params">()</span></span>;</span><br></pre></td></tr></table></figure></p>
 <p>返回true时，表明缓冲区分配的时直接内存，而不是虚拟机中的堆内存。</p>
 <h2 id="ByteBuffer">ByteBuffer</h2><figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">public <span class="keyword">abstract</span> <span class="class"><span class="keyword">class</span> <span class="title">ByteBuffer</span> <span class="keyword"><span class="keyword">extends</span></span> <span class="title">Buffer</span> <span class="title">implements</span> <span class="title">Comparable&lt;ByteBuffer&gt;</span></span></span><br></pre></td></tr></table></figure>
 <p>可比较的字节缓冲。该类实现了6种操作:</p>
@@ -315,8 +315,8 @@ Buffer(java.nio)成员12345// Invariants: mark &amp;lt;= position &amp;lt;= limi
 <li>compacting,duplicating,slicing一个字节缓冲区　　</li>
 </ul>
 <p>字节缓冲区可以通过分配创建，也可以通过wrap一个已存在的字节数组创建(这种情况下，改变任意一个另一个的内容将会改变)  </p>
-<p>缓冲区可分为直接缓冲区或非直接缓冲区。对于直接字节缓冲区来说，Java虚拟机将尽可能执行本地I/O操作，这将减少相应的拷贝操作。　　<br>直接缓冲区可以通过<code>allocateDirect</code>方法完成分配，一般来说，直接缓冲区的分配和释放相对于非直接缓冲区代价更大。直接缓冲位于Java虚拟机堆内存<br>管理之外，对一个应用的内存占用影响不明显，因此推荐直接缓冲主要用在大的，长时间存活的面向底层操作系统的I/O操作的缓冲区。通常仅仅在分配直接<br>缓冲能够对程序性能有显著增益的场合下。直接缓冲也可以通过将一个文件直接映射到内存中。　　<br>缓冲区是否是直接缓冲，通过<code>isDirect</code>方法表现。</p>
-<p>该类定义了很多对于除了boolean之外其他所有本原类型的读写方法，本原值可以根据当前的字节序转换为连续的字节(或将连续的字节转换为本原值)。当前<br>字节序可以通过order方法获取或修改，字节序为ByteOrder类，默认为ByteOrder.BIG_ENDIAN。可以通过getFloat,putFloat等方法或者将本字节缓冲<br>通过asFloatBuffer转换为一个FloatBuffer的view缓冲进行操作。　　</p>
+<p>缓冲区可分为直接缓冲区或非直接缓冲区。对于直接字节缓冲区来说，Java虚拟机将尽可能执行本地I/O操作，这将减少相应的拷贝操作。　　<br>直接缓冲区可以通过<code>allocateDirect</code>方法完成分配，一般来说，直接缓冲区的分配和释放相对于非直接缓冲区代价更大。直接缓冲位于Java虚拟机堆内存管理之外，对一个应用的内存占用影响不明显，因此推荐直接缓冲主要用在大的，长时间存活的面向底层操作系统的I/O操作的缓冲区。通常仅仅在分配直接缓冲能够对程序性能有显著增益的场合下。直接缓冲也可以通过将一个文件直接映射到内存中。　　<br>缓冲区是否是直接缓冲，通过<code>isDirect</code>方法表现。</p>
+<p>该类定义了很多对于除了boolean之外其他所有本原类型的读写方法，本原值可以根据当前的字节序转换为连续的字节(或将连续的字节转换为本原值)。当前字节序可以通过order方法获取或修改，字节序为ByteOrder类，默认为ByteOrder.BIG_ENDIAN。可以通过getFloat,putFloat等方法或者将本字节缓冲通过asFloatBuffer转换为一个FloatBuffer的view缓冲进行操作。　　</p>
 <h3 id="本类成员">本类成员</h3><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">final</span> <span class="keyword">byte</span>[] hb;                  <span class="comment">// Non-null only for heap buffers</span></span><br><span class="line"><span class="keyword">final</span> <span class="keyword">int</span> offset;</span><br><span class="line"><span class="keyword">boolean</span> isReadOnly;                 <span class="comment">// Valid only for heap buffers</span></span><br><span class="line"><span class="keyword">boolean</span> bigEndian  = <span class="keyword">true</span>;          <span class="comment">// package-private</span></span><br><span class="line"><span class="keyword">boolean</span> nativeByteOrder = (Bits.byteOrder() == ByteOrder.BIG_ENDIAN);<span class="comment">// package-private</span></span><br></pre></td></tr></table></figure>
 <p>还有继承自Buffer的成员。</p>
 <h3 id="主要方法-1">主要方法</h3><h4 id="分配">分配</h4><ul>
@@ -325,19 +325,19 @@ Buffer(java.nio)成员12345// Invariants: mark &amp;lt;= position &amp;lt;= limi
 </li>
 <li><p>wrap</p>
   <figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> ByteBuffer <span class="title">wrap</span><span class="params">(byte[] <span class="built_in">array</span>, <span class="keyword">int</span> offset, <span class="keyword">int</span> length)</span></span>&#123;</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">new</span> HeapByteBuffer(<span class="built_in">array</span>, offset, length);</span><br><span class="line">    &#125; <span class="keyword">catch</span> (IllegalArgumentException x) &#123;</span><br><span class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> IndexOutOfBoundsException();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;<span class="comment">//通过存在的字节数组分配Java虚拟机堆内存缓冲</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> ByteBuffer <span class="title">wrap</span><span class="params">(byte[] <span class="built_in">array</span>)</span> </span>&#123; <span class="keyword">return</span> wrap(<span class="built_in">array</span>, <span class="number">0</span>, <span class="built_in">array</span>.length); &#125;</span><br></pre></td></tr></table></figure>
-<p>  <code>wrap</code>方法给定的字节数组array作为缓冲区的底层数组，修改缓冲区内容将同时修改array的内容，反之亦然。新缓冲区的容量为array.length，position<br>  为offset，limit为offset+length，mark未定义。　　</p>
+<p>  <code>wrap</code>方法给定的字节数组array作为缓冲区的底层数组，修改缓冲区内容将同时修改array的内容，反之亦然。新缓冲区的容量为array.length，position为offset，limit为offset+length，mark未定义。　　</p>
 </li>
 <li><p>slice</p>
   <figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">abstract</span> <span class="function">ByteBuffer <span class="title">slice</span><span class="params">()</span></span>;</span><br></pre></td></tr></table></figure>
-<p>  创建一个共享原Buffer内容子序列的新缓冲。新缓冲的position为0,limit和capacity为原来缓冲的remaining值，mark值未定义。两个缓冲区的position，<br>  limit和mark值彼此独立，不过两者任意一个改变缓冲区内容时，另一个缓冲区内容也会改变。<br>  新缓冲区当且仅当旧缓冲区是直接缓冲时才是直接缓冲区，当且仅当旧缓冲区是只读的时才是只读缓冲区。  </p>
+<p>  创建一个共享原Buffer内容子序列的新缓冲。新缓冲的position为0,limit和capacity为原来缓冲的remaining值，mark值未定义。两个缓冲区的position，limit和mark值彼此独立，不过两者任意一个改变缓冲区内容时，另一个缓冲区内容也会改变。<br>  新缓冲区当且仅当旧缓冲区是直接缓冲时才是直接缓冲区，当且仅当旧缓冲区是只读的时才是只读缓冲区。  </p>
 </li>
 <li><p>duplicate</p>
   <figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">abstract</span> <span class="function">ByteBuffer <span class="title">duplicate</span><span class="params">()</span></span>;</span><br></pre></td></tr></table></figure>
-<p>  复制旧缓冲区为新缓冲区，新缓冲区的position，limit，mark，capacity与旧缓冲区一样，分配后彼此独立，改变任意一个缓冲区的内容另一个缓冲区内容<br>  跟着改变。当且仅当旧缓冲区为直接缓冲区时，新缓冲区为直接缓冲区。当且仅当旧缓冲区为只读缓冲时，新缓冲区为只读缓冲区。  </p>
+<p>  复制旧缓冲区为新缓冲区，新缓冲区的position，limit，mark，capacity与旧缓冲区一样，分配后彼此独立，改变任意一个缓冲区的内容另一个缓冲区内容跟着改变。当且仅当旧缓冲区为直接缓冲区时，新缓冲区为直接缓冲区。当且仅当旧缓冲区为只读缓冲时，新缓冲区为只读缓冲区。  </p>
 </li>
 <li><p>asReadOnlyBuffer</p>
   <figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">abstract</span> <span class="function">ByteBuffer <span class="title">asReadOnlyBuffer</span><span class="params">()</span></span>;</span><br></pre></td></tr></table></figure>
-<p>  创建一个只读的，共享原缓冲区内容的新缓冲区。新缓冲区的position，limit，mark，capacity与旧缓冲区一样，分配后彼此独立。旧缓冲区内容改变时，<br>  新缓冲区的内容也跟着改变，不过新缓冲区不允许修改其中的内容。  </p>
+<p>  创建一个只读的，共享原缓冲区内容的新缓冲区。新缓冲区的position，limit，mark，capacity与旧缓冲区一样，分配后彼此独立。旧缓冲区内容改变时，新缓冲区的内容也跟着改变，不过新缓冲区不允许修改其中的内容。  </p>
 </li>
 <li><p>compact</p>
   <figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">abstract</span> <span class="function">ByteBuffer <span class="title">compact</span><span class="params">()</span></span>;</span><br></pre></td></tr></table></figure>
@@ -364,8 +364,7 @@ Buffer(java.nio)成员12345// Invariants: mark &amp;lt;= position &amp;lt;= limi
   <figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">abstract</span> <span class="function">CharBuffer <span class="title">asCharBuffer</span><span class="params">()</span></span>;<span class="comment">//字节缓冲的字符缓冲</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">abstract</span> <span class="function">ShortBuffer <span class="title">asShortBuffer</span><span class="params">()</span></span>;</span><br><span class="line"><span class="keyword">public</span> <span class="keyword">abstract</span> <span class="function">IntBuffer <span class="title">asIntBuffer</span><span class="params">()</span></span>;</span><br><span class="line"><span class="keyword">public</span> <span class="keyword">abstract</span> <span class="function">LongBuffer <span class="title">asLongBuffer</span><span class="params">()</span></span>;</span><br><span class="line"><span class="keyword">public</span> <span class="keyword">abstract</span> <span class="function">FloatBuffer <span class="title">asFloatBuffer</span><span class="params">()</span></span>;</span><br><span class="line"><span class="keyword">public</span> <span class="keyword">abstract</span> <span class="function">DoubleBuffer <span class="title">asDoubleBuffer</span><span class="params">()</span></span>;</span><br></pre></td></tr></table></figure>
 </li>
 </ul>
-<h4 id="比较">比较</h4><p>public int compareTo(ByteBuffer that) {//一般比较器会调用该方法<br>    //依次比较两个缓冲区中每一个字节<br>    int n = this.position() + Math.min(this.remaining(), that.remaining());<br>    for (int i = this.position(), j = that.position(); i &lt; n; i++, j++) {<br>        int cmp = compare(this.get(i), that.get(j));<br>        if (cmp != 0)<br>            return cmp;<br>    }<br>    return this.remaining() - that.remaining();<br>}</p>
-<p>private static int compare(byte x, byte y) {<br>    return Byte.compare(x, y);<br>}</p>
+<h4 id="比较">比较</h4><figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">int</span> <span class="title">compareTo</span>(<span class="params">ByteBuffer that</span>) </span>&#123;<span class="comment">//一般比较器会调用该方法</span></span><br><span class="line">    <span class="comment">//依次比较两个缓冲区中每一个字节</span></span><br><span class="line">    <span class="keyword">int</span> n = <span class="keyword">this</span>.position() + Math.min(<span class="keyword">this</span>.remaining(), that.remaining());</span><br><span class="line">    <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="keyword">this</span>.position(), j = that.position(); i &lt; n; i++, j++) &#123;</span><br><span class="line">        <span class="keyword">int</span> cmp = compare(<span class="keyword">this</span>.<span class="keyword">get</span>(i), that.<span class="keyword">get</span>(j));</span><br><span class="line">        <span class="keyword">if</span> (cmp != <span class="number">0</span>)</span><br><span class="line">            <span class="keyword">return</span> cmp;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">this</span>.remaining() - that.remaining();</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">int</span> <span class="title">compare</span>(<span class="params"><span class="keyword">byte</span> x, <span class="keyword">byte</span> y</span>) </span>&#123;</span><br><span class="line">    <span class="keyword">return</span> Byte.compare(x, y);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 <h2 id="其他Buffer，IntBuffer，FloatBuffer等">其他Buffer，IntBuffer，FloatBuffer等</h2><p>大致一样，只不过操作的单位不一样，可参照ByteBuffer中的view Buffer原理，对IntBuffer来说一次读写对应四个字节，比较的时候也是比较一个Int的值。</p>
 </span>
       
@@ -375,9 +374,9 @@ Buffer(java.nio)成员12345// Invariants: mark &amp;lt;= position &amp;lt;= limi
       
         <div class="post-tags">
           
-            <a href="/tags/Hadoop/" rel="tag">#Hadoop</a>
+            <a href="/tags/Java/" rel="tag">#Java</a>
           
-            <a href="/tags/Java流/" rel="tag">#Java流</a>
+            <a href="/tags/Java基础/" rel="tag">#Java基础</a>
           
         </div>
       
@@ -386,16 +385,16 @@ Buffer(java.nio)成员12345// Invariants: mark &amp;lt;= position &amp;lt;= limi
         <div class="post-nav">
           <div class="post-nav-next post-nav-item">
             
-              <a href="/Configuration/" rel="next" title="Common源码阅读---Configuration">
-                <i class="fa fa-chevron-left"></i> Common源码阅读---Configuration
+              <a href="/Socket选项/" rel="next" title="TCP Socket选项">
+                <i class="fa fa-chevron-left"></i> TCP Socket选项
               </a>
             
           </div>
 
           <div class="post-nav-prev post-nav-item">
             
-              <a href="/Java动态代理/" rel="prev" title="Java动态代理">
-                Java动态代理 <i class="fa fa-chevron-right"></i>
+              <a href="/辅助类/" rel="prev" title="RaidNode源码阅读---辅助类">
+                RaidNode源码阅读---辅助类 <i class="fa fa-chevron-right"></i>
               </a>
             
           </div>
@@ -491,21 +490,21 @@ Buffer(java.nio)成员12345// Invariants: mark &amp;lt;= position &amp;lt;= limi
         <nav class="site-state motion-element">
           <div class="site-state-item site-state-posts">
             <a href="/archives">
-              <span class="site-state-item-count">29</span>
+              <span class="site-state-item-count">34</span>
               <span class="site-state-item-name">日志</span>
             </a>
           </div>
 
           <div class="site-state-item site-state-categories">
             <a href="/categories">
-              <span class="site-state-item-count">24</span>
+              <span class="site-state-item-count">49</span>
               <span class="site-state-item-name">分类</span>
               </a>
           </div>
 
           <div class="site-state-item site-state-tags">
             <a href="/tags">
-              <span class="site-state-item-count">14</span>
+              <span class="site-state-item-count">25</span>
               <span class="site-state-item-name">标签</span>
               </a>
           </div>

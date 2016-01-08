@@ -35,7 +35,7 @@
 <link href="/css/main.css?v=0.4.5.2" rel="stylesheet" type="text/css" />
 
 
-  <meta name="keywords" content="Java," />
+  <meta name="keywords" content="Java,Java基础," />
 
 
 
@@ -59,7 +59,7 @@
 <meta property="og:site_name" content="xiaoyun">
 <meta property="og:description" content="Java动态代理类位于java.lang.reflect包下，主要包括java.lang.reflect.Proxy和java.lang.reflect.InvocationHandler。Proxy提供了创建动态代理类和动态代理实例的静态方法，是通过这些方法创建出来的所有代理类的超类。  
 代理接口是被代理类实现的接口。代理实例是代理类的一个实例，需要实现代理接口和完成调用转发，可以在调用转发前">
-<meta property="og:updated_time" content="2015-12-18T02:34:47.376Z">
+<meta property="og:updated_time" content="2016-01-08T06:45:06.322Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="Java动态代理">
 <meta name="twitter:description" content="Java动态代理类位于java.lang.reflect包下，主要包括java.lang.reflect.Proxy和java.lang.reflect.InvocationHandler。Proxy提供了创建动态代理类和动态代理实例的静态方法，是通过这些方法创建出来的所有代理类的超类。  
@@ -234,8 +234,8 @@
         <div class="post-meta">
           <span class="post-time">
             发表于
-            <time itemprop="dateCreated" datetime="2015-12-18T10:34:47+08:00" content="2015-12-18">
-              2015-12-18
+            <time itemprop="dateCreated" datetime="2016-01-08T14:45:06+08:00" content="2016-01-08">
+              2016-01-08
             </time>
           </span>
 
@@ -286,7 +286,7 @@
 <p>  返回对应的调用处理器</p>
 </li>
 </ul>
-<p>通过getProxyClass获得的代理类都包含一个构造函数，该构造函数需要一个InvocationHandler的实例，所以在newProxyInstance中还需要一个<br>InvocationHandler的参数。</p>
+<p>通过getProxyClass获得的代理类都包含一个构造函数，该构造函数需要一个InvocationHandler的实例，所以在newProxyInstance中还需要一个InvocationHandler的参数。</p>
 <p>可以通过以下方法创建实现代理接口<code>Foo</code>的代理实例:<br><figure class="highlight gradle"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">InvocationHandler handler = <span class="keyword">new</span> MyInvocationHandler(...);<span class="comment">//调用处理器</span></span><br><span class="line"><span class="keyword">Class</span>&lt;?&gt; proxyClass = Proxy.getProxyClass(Foo.<span class="keyword">class</span>.getClassLoader(), Foo.<span class="keyword">class</span>);<span class="comment">//获取代理接口对应的动态代理类</span></span><br><span class="line">Foo f = (Foo) proxyClass.getConstructor(InvocationHandler.<span class="keyword">class</span>).newInstance(handler);<span class="comment">//反射创建代理实例</span></span><br></pre></td></tr></table></figure></p>
 <p>或者简单的调用<code>newProxyInstance</code>方法:<br><figure class="highlight d"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">Foo f = (Foo) Proxy.newProxyInstance(Foo.<span class="keyword">class</span>.getClassLoader(),<span class="keyword">new</span> Class&lt;?&gt;[] &#123; Foo.<span class="keyword">class</span> &#125;, handler);</span><br><span class="line"><span class="string">``</span><span class="string">` </span><br><span class="line"></span><br><span class="line">动态代理上调用接口的方法时，会将该方法转发给相应的调用处理器InvocationHandler，InvocationHandler如下:</span></span><br></pre></td></tr></table></figure></p>
 <p>public interface InvocationHandler {<br>    public Object invoke(Object proxy, Method method, Object[] args) throws Throwable;<br>}<br><figure class="highlight nimrod"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">包含一个方法`invoke`。  </span><br><span class="line">参数`proxy`为代理对象本身。  </span><br><span class="line">`<span class="keyword">method</span>`为调用的代理对象的方法。`<span class="type">Method</span>`为反射中的方法类型，含有invoke方法</span><br></pre></td></tr></table></figure></p>
@@ -302,6 +302,8 @@
           
             <a href="/tags/Java/" rel="tag">#Java</a>
           
+            <a href="/tags/Java基础/" rel="tag">#Java基础</a>
+          
         </div>
       
 
@@ -309,16 +311,16 @@
         <div class="post-nav">
           <div class="post-nav-next post-nav-item">
             
-              <a href="/缓冲区/" rel="next" title="Java NIO---缓冲区">
-                <i class="fa fa-chevron-left"></i> Java NIO---缓冲区
+              <a href="/InMemoryFileSystem/" rel="next" title="Hadoop FileSystem实现---InMemoryFileSystem">
+                <i class="fa fa-chevron-left"></i> Hadoop FileSystem实现---InMemoryFileSystem
               </a>
             
           </div>
 
           <div class="post-nav-prev post-nav-item">
             
-              <a href="/配置相关RPC/" rel="prev" title="Hadoop配置相关---RPC">
-                Hadoop配置相关---RPC <i class="fa fa-chevron-right"></i>
+              <a href="/Java流/" rel="prev" title="Java流">
+                Java流 <i class="fa fa-chevron-right"></i>
               </a>
             
           </div>
@@ -414,21 +416,21 @@
         <nav class="site-state motion-element">
           <div class="site-state-item site-state-posts">
             <a href="/archives">
-              <span class="site-state-item-count">29</span>
+              <span class="site-state-item-count">34</span>
               <span class="site-state-item-name">日志</span>
             </a>
           </div>
 
           <div class="site-state-item site-state-categories">
             <a href="/categories">
-              <span class="site-state-item-count">24</span>
+              <span class="site-state-item-count">49</span>
               <span class="site-state-item-name">分类</span>
               </a>
           </div>
 
           <div class="site-state-item site-state-tags">
             <a href="/tags">
-              <span class="site-state-item-count">14</span>
+              <span class="site-state-item-count">25</span>
               <span class="site-state-item-name">标签</span>
               </a>
           </div>

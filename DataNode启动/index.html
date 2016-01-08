@@ -1,0 +1,867 @@
+<!doctype html>
+<html class="theme-next   use-motion ">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+  <link href="/vendors/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css"/>
+
+
+
+
+  <link href="//fonts.googleapis.com/css?family=Lato:300,400,700,400italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+
+
+
+<link href="/vendors/font-awesome/css/font-awesome.min.css?v=4.4.0" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=0.4.5.2" rel="stylesheet" type="text/css" />
+
+
+  <meta name="keywords" content="DataNode,DataNode源码阅读,HDFS,Hadoop-1.2.1,Java,源码阅读," />
+
+
+
+
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=0.4.5.2" />
+
+
+
+
+
+
+<meta name="description" content="Hadoop版本:Hadoop-1.2.1参考：《Hadoop技术内幕-深入解析Hadoop Common和HDFS架构设计与实现原理》  
+
+当通过start-dfs.sh或者start-all.sh等方式启动DataNode时，最终会调用DataNode的main方法，这中间过程不再分析。12345678910111213141516171819202122232425262728public">
+<meta property="og:type" content="article">
+<meta property="og:title" content="DataNode实现源码分析---DataNode启动">
+<meta property="og:url" content="http://xiao-yun.github.io/DataNode启动/index.html">
+<meta property="og:site_name" content="xiaoyun">
+<meta property="og:description" content="Hadoop版本:Hadoop-1.2.1参考：《Hadoop技术内幕-深入解析Hadoop Common和HDFS架构设计与实现原理》  
+
+当通过start-dfs.sh或者start-all.sh等方式启动DataNode时，最终会调用DataNode的main方法，这中间过程不再分析。12345678910111213141516171819202122232425262728public">
+<meta property="og:updated_time" content="2016-01-08T06:45:06.310Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="DataNode实现源码分析---DataNode启动">
+<meta name="twitter:description" content="Hadoop版本:Hadoop-1.2.1参考：《Hadoop技术内幕-深入解析Hadoop Common和HDFS架构设计与实现原理》  
+
+当通过start-dfs.sh或者start-all.sh等方式启动DataNode时，最终会调用DataNode的main方法，这中间过程不再分析。12345678910111213141516171819202122232425262728public">
+
+
+
+<script type="text/javascript" id="hexo.configuration">
+  var CONFIG = {
+    scheme: 'Mist',
+    sidebar: 'hide',
+    motion: true
+  };
+</script>
+
+  <title> DataNode实现源码分析---DataNode启动 | xiaoyun </title>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  <!--[if lte IE 8]>
+  <div style=' clear: both; height: 59px; padding:0 0 0 15px; position: relative;margin:0 auto;'>
+    <a href="http://windows.microsoft.com/en-US/internet-explorer/products/ie/home?ocid=ie6_countdown_bannercode">
+      <img src="http://7u2nvr.com1.z0.glb.clouddn.com/picouterie.jpg" border="0" height="42" width="820"
+           alt="You are using an outdated browser. For a faster, safer browsing experience, upgrade for free today or use other browser ,like chrome firefox safari."
+           style='margin-left:auto;margin-right:auto;display: block;'/>
+    </a>
+  </div>
+<![endif]-->
+  
+
+
+
+  <script type="text/javascript">
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "//hm.baidu.com/hm.js?caeb4129c91d1e6fb3d562d35fedef0d";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+  <div class="container one-column page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-meta ">
+  
+
+  <div class="custom-logo-site-title">
+    <a href="/"  class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <span class="site-title">xiaoyun</span>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+  <p class="site-subtitle"></p>
+</div>
+
+<div class="site-nav-toggle">
+  <button>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+  </button>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu ">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-home fa-fw"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives" rel="section">
+            
+              <i class="menu-item-icon fa fa-archive fa-fw"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories" rel="section">
+            
+              <i class="menu-item-icon fa fa-th fa-fw"></i> <br />
+            
+            分类
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+              <i class="menu-item-icon fa fa-tags fa-fw"></i> <br />
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about" rel="section">
+            
+              <i class="menu-item-icon fa fa-user fa-fw"></i> <br />
+            
+            关于
+          </a>
+        </li>
+      
+
+      
+      
+    </ul>
+  
+
+  
+</nav>
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div id="content" class="content">
+          
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                DataNode实现源码分析---DataNode启动
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            发表于
+            <time itemprop="dateCreated" datetime="2016-01-08T14:45:06+08:00" content="2016-01-08">
+              2016-01-08
+            </time>
+          </span>
+
+          
+            <span class="post-category" >
+              &nbsp; | &nbsp; 分类于
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Java/" itemprop="url" rel="index">
+                    <span itemprop="name">Java</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Java/Hadoop-1-2-1/" itemprop="url" rel="index">
+                    <span itemprop="name">Hadoop-1.2.1</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Java/Hadoop-1-2-1/HDFS/" itemprop="url" rel="index">
+                    <span itemprop="name">HDFS</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Java/Hadoop-1-2-1/HDFS/DataNode/" itemprop="url" rel="index">
+                    <span itemprop="name">DataNode</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Java/Hadoop-1-2-1/HDFS/DataNode/源码阅读/" itemprop="url" rel="index">
+                    <span itemprop="name">源码阅读</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Java/Hadoop-1-2-1/HDFS/DataNode/源码阅读/DataNode源码阅读/" itemprop="url" rel="index">
+                    <span itemprop="name">DataNode源码阅读</span>
+                  </a>
+                </span>
+
+                
+                
+
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                &nbsp; | &nbsp;
+                <a href="/DataNode启动/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="DataNode启动/" itemprop="commentsCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+
+        </div>
+      </header>
+    
+
+
+    <div class="post-body">
+
+      
+      
+
+      
+        <span itemprop="articleBody"><p>Hadoop版本:<a href="https://archive.apache.org/dist/hadoop/core/hadoop-1.2.1/" target="_blank" rel="external">Hadoop-1.2.1</a><br>参考：《Hadoop技术内幕-深入解析Hadoop Common和HDFS架构设计与实现原理》  </p>
+<hr>
+<p>当通过<code>start-dfs.sh</code>或者<code>start-all.sh</code>等方式启动DataNode时，最终会调用DataNode的<code>main</code>方法，这中间过程不再分析。<br><figure class="highlight processing"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> main(<span class="keyword">String</span> args[]) &#123;</span><br><span class="line">    secureMain(args, <span class="keyword">null</span>);</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> secureMain(<span class="keyword">String</span> [] args, SecureResources resources) &#123;</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">      StringUtils.startupShutdownMessage(DataNode.class, args, LOG);<span class="comment">//启动日志，设置关闭日志</span></span><br><span class="line">      DataNode datanode = createDataNode(args, <span class="keyword">null</span>, resources);<span class="comment">//创建DataNode启动</span></span><br><span class="line">      <span class="keyword">if</span> (datanode != <span class="keyword">null</span>)<span class="comment">//主线程中等待DataNode运行完</span></span><br><span class="line">        datanode.<span class="built_in">join</span>();</span><br><span class="line">    &#125; <span class="keyword">catch</span> (Throwable e) &#123;</span><br><span class="line">      LOG.error(StringUtils.stringifyException(e));</span><br><span class="line">      System.<span class="built_in">exit</span>(-<span class="number">1</span>);</span><br><span class="line">    &#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">      <span class="comment">// We need to add System.exit here because either shutdown was called or</span></span><br><span class="line">      <span class="comment">// some disk related conditions like volumes tolerated or volumes required</span></span><br><span class="line">      <span class="comment">// condition was not met. Also, In secure mode, control will go to Jsvc and</span></span><br><span class="line">      <span class="comment">// the process hangs without System.exit.</span></span><br><span class="line">      LOG.info(<span class="string">"Exiting Datanode"</span>);</span><br><span class="line">      System.<span class="built_in">exit</span>(<span class="number">0</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">void</span> <span class="built_in">join</span>() &#123;</span><br><span class="line">    <span class="keyword">if</span> (dataNodeThread != <span class="keyword">null</span>) &#123;</span><br><span class="line">      <span class="keyword">try</span> &#123;</span><br><span class="line">        dataNodeThread.<span class="built_in">join</span>();</span><br><span class="line">      &#125; <span class="keyword">catch</span> (InterruptedException e) &#123;&#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，首先会记录”STARTUP_MSG。。。”这样的启动日志信息，在DataNode的日志文件中可以找到，然后注册关闭日志”SHUTDOWN_MSG。。。”。通过<code>createDataNode</code>创建DataNode并启动，在main线程中等待datanode执行完。<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> <span class="function">DataNode <span class="title">createDataNode</span><span class="params">(String args[], Configuration conf, SecureResources resources)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">    DataNode dn = instantiateDataNode(args, conf, resources);</span><br><span class="line">    runDatanodeDaemon(dn);</span><br><span class="line">    <span class="keyword">return</span> dn;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，通过<code>instantiateDataNode</code>实例化DataNode对象，然后通过<code>runDatanodeDaemon</code>向NameNode注册，并创建dataNodeThread线程启动。  </p>
+<h2 id="1-_创建实例对象">1. 创建实例对象</h2><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> <span class="function">DataNode <span class="title">instantiateDataNode</span><span class="params">(String args[], Configuration conf, SecureResources resources)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (conf == <span class="keyword">null</span>) conf = <span class="keyword">new</span> Configuration();</span><br><span class="line">    ...<span class="comment">//参数检查</span></span><br><span class="line">    String[] dataDirs = conf.getStrings(DATA_DIR_KEY);<span class="comment">//dfs.data.dir数据节点存储目录</span></span><br><span class="line">    dnThreadName = <span class="string">"DataNode: ["</span> + StringUtils.arrayToString(dataDirs) + <span class="string">"]"</span>;<span class="comment">//DataNode线程名</span></span><br><span class="line">    DefaultMetricsSystem.initialize(<span class="string">"DataNode"</span>);</span><br><span class="line">    <span class="function"><span class="keyword">return</span> <span class="title">makeInstance</span><span class="params">(dataDirs, conf, resources)</span></span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>如上，读取<code>dfs.data.dir</code>配置项作为DataNode的本地存储目录，该目录可以有多个，以<code>，</code>分隔，然后通过<code>makeInstance</code>创建DataNode对象<br><figure class="highlight stata"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line">public static DataNode makeInstance(String[] dataDirs, Configuration <span class="keyword">conf</span>, SecureResources resources) throws IOException &#123;</span><br><span class="line">    UserGroupInformation.setConfiguration(<span class="keyword">conf</span>);</span><br><span class="line">    LocalFileSystem localFS = FileSystem.getLocal(<span class="keyword">conf</span>);<span class="comment">//本地文件系统(含校验和)</span></span><br><span class="line">    ArrayList&lt;<span class="keyword">File</span>&gt; dirs = new ArrayList&lt;<span class="keyword">File</span>&gt;();</span><br><span class="line">    <span class="comment">//dfs.datanode.data.dir.perm配置项，配置dfs.data.dir权限</span></span><br><span class="line">    FsPermission dataDirPermission = new FsPermission(<span class="keyword">conf</span>.<span class="literal">get</span>(DATA_DIR_PERMISSION_KEY, DEFAULT_DATA_DIR_PERMISSION));</span><br><span class="line">    <span class="keyword">for</span> (String <span class="keyword">dir</span> : dataDirs) &#123;</span><br><span class="line">      try &#123;</span><br><span class="line">        DiskChecker.checkDir(localFS, new Path(<span class="keyword">dir</span>), dataDirPermission);<span class="comment">//检查目录是否有读/写权限，没有抛出异常，不会添加到dirs中</span></span><br><span class="line">        dirs.add(new <span class="keyword">File</span>(<span class="keyword">dir</span>));</span><br><span class="line">      &#125; catch(IOException <span class="keyword">e</span>) &#123;</span><br><span class="line">        <span class="keyword">LOG</span>.warn(<span class="string">"Invalid directory in "</span> + DATA_DIR_KEY +  <span class="string">": "</span> + </span><br><span class="line">                 <span class="keyword">e</span>.getMessage());</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> (dirs.size() &gt; 0) <span class="comment">//存在满足条件的本地存储目录，创建DataNode对象</span></span><br><span class="line">      <span class="keyword">return</span> new DataNode(<span class="keyword">conf</span>, dirs, resources);</span><br><span class="line">    <span class="keyword">LOG</span>.<span class="keyword">error</span>(<span class="string">"All directories in "</span> + DATA_DIR_KEY + <span class="string">" are invalid."</span>);</span><br><span class="line">    <span class="keyword">return</span> null;<span class="comment">//没有满足条件的目录，不能创建DataNode，返回null</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，<code>dfs.data.dir</code>目录对应的权限为配置项<code>dfs.datanode.data.dir.perm</code>，默认为<code>755</code>。要保证配置的项为目录且有读写权限，否则不能作为DataNode的本地存储目录，当没有满足条件的本地存储目录时，不能创建DataNode对象，返回null，否则通过DataNode的构造函数创建DataNode对象。<br><figure class="highlight gradle"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">DataNode(<span class="keyword">final</span> Configuration conf, <span class="keyword">final</span> AbstractList&lt;<span class="keyword">File</span>&gt; dataDirs, SecureResources resources) <span class="keyword">throws</span> IOException &#123;</span><br><span class="line">    <span class="keyword">super</span>(conf);</span><br><span class="line">    SecurityUtil.login(conf, DFSConfigKeys.DFS_DATANODE_KEYTAB_FILE_KEY, DFSConfigKeys.DFS_DATANODE_USER_NAME_KEY);</span><br><span class="line">    datanodeObject = <span class="keyword">this</span>;</span><br><span class="line">    <span class="comment">//这里为true，启动时若发现blocksBeingWritten目录下有文件，将这些区块文件添加到ongoingCreates和volumeMap中，否则删除</span></span><br><span class="line">    durableSync = conf.getBoolean(<span class="string">"dfs.durable.sync"</span>, <span class="keyword">true</span>);</span><br><span class="line">    <span class="keyword">this</span>.userWithLocalPathAccess = conf .get(DFSConfigKeys.DFS_BLOCK_LOCAL_PATH_ACCESS_USER_KEY);</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">      startDataNode(conf, dataDirs, resources);</span><br><span class="line">    &#125; <span class="keyword">catch</span> (IOException ie) &#123;</span><br><span class="line">      shutdown();</span><br><span class="line">      <span class="keyword">throw</span> ie;</span><br><span class="line">    &#125;   </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，通过<code>startDataNode</code>初始化其他主要成员，这里关于安全登陆的不做分析。<br>在startDataNode中构造初始化了DataNode的主要成员，这里分析主要成员的初始化</p>
+<h3 id="1-1_配置相关成员">1.1 配置相关成员</h3><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">this</span>.blockReportInterval = conf.getLong(<span class="string">"dfs.blockreport.intervalMsec"</span>, BLOCKREPORT_INTERVAL);</span><br><span class="line"><span class="keyword">this</span>.initialBlockReportDelay = conf.getLong(<span class="string">"dfs.blockreport.initialDelay"</span>, BLOCKREPORT_INITIAL_DELAY)* <span class="number">1000L</span>; </span><br><span class="line"><span class="keyword">this</span>.heartBeatInterval = conf.getLong(<span class="string">"dfs.heartbeat.interval"</span>, HEARTBEAT_INTERVAL) * <span class="number">1000L</span>;</span><br></pre></td></tr></table></figure>
+<p>DataNode需要周期性的向NameNode报告区块信息，<code>dfs.blockreport.intervalMsec</code>定义了报告的周期，默认1个小时，<code>dfs.blockreport.initialDelay</code>用于初始化DataNode创建时的<code>lastBlockReport</code>时间，一般来说启动后立即向NameNode报告。<br><code>dfs.heart.interval</code>定义了DataNode向NameNode发送心跳的周期，默认3s。</p>
+<h3 id="1-2_服务地址">1.2 服务地址</h3><h4 id="1-2-1_机器名machineName">1.2.1 机器名machineName</h4><figure class="highlight stata"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (<span class="keyword">conf</span>.<span class="literal">get</span>(<span class="string">"slave.host.name"</span>) != null) &#123;</span><br><span class="line">  machineName = <span class="keyword">conf</span>.<span class="literal">get</span>(<span class="string">"slave.host.name"</span>);   </span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">if</span> (machineName == null) &#123;</span><br><span class="line">  machineName = DNS.getDefaultHost( <span class="keyword">conf</span>.<span class="literal">get</span>(<span class="string">"dfs.datanode.dns.interface"</span>,<span class="string">"default"</span>),</span><br><span class="line">                                    <span class="keyword">conf</span>.<span class="literal">get</span>(<span class="string">"dfs.datanode.dns.nameserver"</span>,<span class="string">"default"</span>));</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>DataNode在集群中的机器名通过<code>slave.host.name</code>配置，如果没有通过DNS查询</p>
+<h4 id="1-2-2_NameNode地址">1.2.2 NameNode地址</h4><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line">InetSocketAddress nameNodeAddr = NameNode.getServiceAddress(conf, <span class="keyword">true</span>);</span><br><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> <span class="function">InetSocketAddress <span class="title">getServiceAddress</span><span class="params">(Configuration conf, <span class="keyword">boolean</span> fallback)</span> </span>&#123;</span><br><span class="line">    <span class="comment">//通过dfs.namenode.servicerpc-address获取NameNode地址</span></span><br><span class="line">    String addr = conf.get(DFSConfigKeys.DFS_NAMENODE_SERVICE_RPC_ADDRESS_KEY);</span><br><span class="line">    <span class="keyword">if</span> (addr == <span class="keyword">null</span> || addr.isEmpty()) &#123;<span class="comment">//没有配置dfs.namenode.servicerpc-address或为空，允许fallback的话使用旧的配置项</span></span><br><span class="line">      <span class="keyword">return</span> fallback ? getAddress(conf) : <span class="keyword">null</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="function"><span class="keyword">return</span> <span class="title">getAddress</span><span class="params">(addr)</span></span>;</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> <span class="function">InetSocketAddress <span class="title">getAddress</span><span class="params">(Configuration conf)</span> </span>&#123;</span><br><span class="line">    String addr = conf.get(DFSConfigKeys.DFS_NAMENODE_RPC_ADDRESS_KEY);<span class="comment">//旧的配置项为dfs.namenode.rpc-address</span></span><br><span class="line">    <span class="keyword">if</span> (addr == <span class="keyword">null</span> || addr.isEmpty()) &#123;<span class="comment">//如果旧的配置项也没配置或为空，使用缺省的即`fs.default.name`配置</span></span><br><span class="line">      <span class="keyword">return</span> getAddress(FileSystem.getDefaultUri(conf).toString());</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="function"><span class="keyword">return</span> <span class="title">getAddress</span><span class="params">(addr)</span></span>;</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> <span class="function">InetSocketAddress <span class="title">getAddress</span><span class="params">(String address)</span> </span>&#123;<span class="comment">//NameNode RPC端口缺省为8020</span></span><br><span class="line">    <span class="function"><span class="keyword">return</span> NetUtils.<span class="title">createSocketAddr</span><span class="params">(address, DEFAULT_PORT)</span></span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>如上，如果配置项<code>dfs.namenode.servicerpc-address</code>没有配置或为空，则若允许使用旧的配置项时，使用<code>dfs.namenode.rpc-address</code>获取NameNod地址，如果配置项也没有配置或为空时，使用缺省的<code>fs.default.name</code>地址。  </p>
+<h4 id="1-2-3_本机流服务地址">1.2.3 本机流服务地址</h4><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">InetSocketAddress socAddr = DataNode.getStreamingAddr(conf);</span><br><span class="line"><span class="keyword">int</span> tmpPort = socAddr.getPort();</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> <span class="function">InetSocketAddress <span class="title">getStreamingAddr</span><span class="params">(Configuration conf)</span> </span>&#123;</span><br><span class="line">    String address = NetUtils.getServerAddress(</span><br><span class="line">        conf, <span class="string">"dfs.datanode.bindAddress"</span>, <span class="string">"dfs.datanode.port"</span>, <span class="string">"dfs.datanode.address"</span>);</span><br><span class="line">    <span class="function"><span class="keyword">return</span> NetUtils.<span class="title">createSocketAddr</span><span class="params">(address)</span></span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>流服务地址现在使用<code>dfs.datanode.address</code>配置，包括端口，老的流服务器使用<code>dfs.datanode.bindAddress</code>配置地址，<code>dfs.datanode.port</code>配置端口。<br>NetUtils.getServerAddress不再分析，逻辑为当新的地址和端口没有配置，不管有没有配置旧的地址和端口都会抛出异常，而同时配置新的和旧的配置项时，会使用新的配置项，在日志中会提示旧的配置项已经不建议使用。<br><code>dfs.datanode.address</code>在<code>hdfs-default.xml</code>中配置为<code>0.0.0.0:50010</code>。</p>
+<h3 id="1-3_流服务相关">1.3 流服务相关</h3><h4 id="1-3-1_配置选项">1.3.1 配置选项</h4><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">this</span>.socketTimeout =  conf.getInt(<span class="string">"dfs.socket.timeout"</span>, HdfsConstants.READ_TIMEOUT);<span class="comment">//默认1min</span></span><br><span class="line"><span class="keyword">this</span>.socketWriteTimeout = conf.getInt(<span class="string">"dfs.datanode.socket.write.timeout"</span>, HdfsConstants.WRITE_TIMEOUT);<span class="comment">//默认6min</span></span><br><span class="line"><span class="keyword">this</span>.transferToAllowed = conf.getBoolean(<span class="string">"dfs.datanode.transferTo.allowed"</span>, <span class="literal">true</span>);<span class="comment">//不同平台可能设置不同的值</span></span><br><span class="line"><span class="keyword">this</span>.writePacketSize = conf.getInt(<span class="string">"dfs.write.packet.size"</span>, <span class="number">64</span>*<span class="number">1024</span>);<span class="comment">//默认64KB</span></span><br></pre></td></tr></table></figure>
+<ul>
+<li><code>socketTimeout</code>，流服务中建立Socket连接时的连接超时和Socket读超时的超时时间，默认1min</li>
+<li><code>socketWriteTimeout</code>，流服务中Socket写超时时间，默认6min</li>
+<li><code>transferToAllowed</code>，是否支持”零拷贝传输”，在不同平台上应该设置不同的值，关于”零拷贝传输”在后面数据传输中具体分析</li>
+<li><code>writePacketSize</code>，为数据传输过程中写数据的包大小，参考<a href="../HDFS流接口">HDFS流接口</a>中的写数据包响应</li>
+</ul>
+<h4 id="1-3-2_Socket">1.3.2 Socket</h4><figure class="highlight sml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">ServerSocket</span> ss;</span><br><span class="line"><span class="keyword">if</span>(secureResources == null) &#123;</span><br><span class="line">  ss = (socketWriteTimeout &gt; <span class="number">0</span>) ? </span><br><span class="line">    <span class="type">ServerSocketChannel</span>.<span class="keyword">open</span><span class="literal">()</span>.socket<span class="literal">()</span> : new <span class="type">ServerSocket</span><span class="literal">()</span>;</span><br><span class="line">  <span class="type">Server</span>.bind(ss, socAddr, <span class="number">0</span>);</span><br><span class="line">&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">  ss = resources.getStreamingSocket<span class="literal">()</span>;</span><br><span class="line">&#125;</span><br><span class="line">ss.setReceiveBufferSize(<span class="type">DEFAULT_DATA_SOCKET_SIZE</span>);</span><br></pre></td></tr></table></figure>
+<p>创建Socket，绑定流服务地址和端口</p>
+<h4 id="1-3-3_服务线程DataXceiverServer">1.3.3 服务线程DataXceiverServer</h4><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">this</span>.threadGroup = <span class="keyword">new</span> ThreadGroup(<span class="string">"dataXceiverServer"</span>);</span><br><span class="line"><span class="keyword">this</span>.dataXceiverServer = <span class="keyword">new</span> Daemon(threadGroup, <span class="keyword">new</span> DataXceiverServer(ss, conf, <span class="keyword">this</span>));</span><br><span class="line"><span class="keyword">this</span>.threadGroup.setDaemon(<span class="literal">true</span>); <span class="comment">// auto destroy when empty</span></span><br><span class="line"></span><br><span class="line">DataXceiverServer(ServerSocket ss, Configuration conf, DataNode datanode) &#123;</span><br><span class="line">    <span class="keyword">this</span>.ss = ss;</span><br><span class="line">    <span class="keyword">this</span>.datanode = datanode;</span><br><span class="line">    <span class="comment">//最大服务线程数为256</span></span><br><span class="line">    <span class="keyword">this</span>.maxXceiverCount = conf.getInt(<span class="string">"dfs.datanode.max.xcievers"</span>, MAX_XCEIVER_COUNT);</span><br><span class="line">    <span class="comment">//预估区块大小为64MB</span></span><br><span class="line">    <span class="keyword">this</span>.estimateBlockSize = conf.getLong(<span class="string">"dfs.block.size"</span>, DEFAULT_BLOCK_SIZE);</span><br><span class="line">    <span class="comment">//创建节流器</span></span><br><span class="line">    <span class="keyword">this</span>.balanceThrottler = <span class="keyword">new</span> BlockBalanceThrottler(conf.getLong(<span class="string">"dfs.balance.bandwidthPerSec"</span>, <span class="number">1024L</span>*<span class="number">1024</span>));</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>DataNode的流服务由DataXceiverServer提供，其管理的Socket ss连接到来的请求，accept后创建DataXceiver线程进行相应的读写操作，创建的线程不能超过<code>maxXceiverCount</code>。</p>
+<h3 id="1-4_NameNode_RPC代理">1.4 NameNode RPC代理</h3><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">this</span>.namenode = (DatanodeProtocol)RPC.waitForProxy(DatanodeProtocol.class, DatanodeProtocol.versionID, nameNodeAddr, conf);</span><br><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> <span class="function">VersionedProtocol <span class="title">waitForProxy</span><span class="params">(Class&lt;? <span class="keyword">extends</span> VersionedProtocol&gt; protocol,</span><br><span class="line">        <span class="keyword">long</span> clientVersion, InetSocketAddress addr, Configuration conf)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">return</span> <span class="title">waitForProxy</span><span class="params">(protocol, clientVersion, addr, conf, <span class="number">0</span>, Long.MAX_VALUE)</span></span>;</span><br><span class="line">&#125;     </span><br><span class="line"><span class="keyword">static</span> <span class="function">VersionedProtocol <span class="title">waitForProxy</span><span class="params">(Class&lt;? <span class="keyword">extends</span> VersionedProtocol&gt; protocol, <span class="keyword">long</span> clientVersion,</span><br><span class="line">        InetSocketAddress addr, Configuration conf, <span class="keyword">int</span> rpcTimeout, <span class="keyword">long</span> connTimeout)</span> <span class="keyword">throws</span> IOException </span>&#123; </span><br><span class="line">    <span class="keyword">long</span> startTime = System.currentTimeMillis();</span><br><span class="line">    IOException ioe;</span><br><span class="line">    <span class="keyword">while</span> (<span class="keyword">true</span>) &#123;</span><br><span class="line">      <span class="keyword">try</span> &#123;</span><br><span class="line">        <span class="function"><span class="keyword">return</span> <span class="title">getProxy</span><span class="params">(protocol, clientVersion, addr, conf, rpcTimeout)</span></span>;<span class="comment">//连接到NameNode</span></span><br><span class="line">      &#125; <span class="keyword">catch</span>(ConnectException se) &#123;  <span class="comment">//NameNode还没启动</span></span><br><span class="line">        LOG.info(<span class="string">"Server at "</span> + addr + <span class="string">" not available yet, Zzzzz..."</span>);</span><br><span class="line">        ioe = se;</span><br><span class="line">      &#125; <span class="keyword">catch</span>(SocketTimeoutException te) &#123;<span class="comment">//NameNode现在忙</span></span><br><span class="line">        LOG.info(<span class="string">"Problem connecting to server: "</span> + addr);</span><br><span class="line">        ioe = te;</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="comment">//还没到超时时间，等待1s，继续尝试连接</span></span><br><span class="line">      <span class="keyword">if</span> (System.currentTimeMillis()-connTimeout &gt;= startTime) &#123;</span><br><span class="line">        <span class="keyword">throw</span> ioe;</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="keyword">try</span> &#123;</span><br><span class="line">        Thread.sleep(<span class="number">1000</span>);</span><br><span class="line">      &#125; <span class="keyword">catch</span> (InterruptedException ie) &#123;</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>如上，最终通过<code>RPC.getProxy</code>获取代理对象，默认情况下创建动态代理后，会首次通过<code>checkVersion</code>进行首次通信，验证版本号，因此会连接NameNode。NameNode没有启动或者正在忙的时候会超时，没有超过设置的超时时间(默认值Long.MAX_VALUE)等待1s继续尝试获取代理。<br>RPC.getProxy另见<a href="../RPC源码分析下篇">RPC源码分析上篇</a></p>
+<h3 id="1-5_对外提供的RPC服务">1.5 对外提供的RPC服务</h3><figure class="highlight sml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">InetSocketAddress</span> ipcAddr = <span class="type">NetUtils</span>.createSocketAddr(conf.get(<span class="string">"dfs.datanode.ipc.address"</span>));</span><br><span class="line">ipcServer = <span class="type">RPC</span>.getServer(this, ipcAddr.getHostName<span class="literal">()</span>, ipcAddr.getPort<span class="literal">()</span>, </span><br><span class="line">    conf.getInt(<span class="string">"dfs.datanode.handler.count"</span>, <span class="number">3</span>), <span class="literal">false</span>, conf, blockTokenSecretManager);</span><br><span class="line">dnRegistration.setIpcPort(ipcServer.getListenerAddress<span class="literal">()</span>.getPort<span class="literal">()</span>);</span><br></pre></td></tr></table></figure>
+<p>如上，通过配置项<code>dfs.datanode.ipc.address</code>配置DataNode对外(DataNode对应InterDatanodeProtocol，Client对应ClientDatanodeProtocol)提供的RPC服务地址，然后通过<code>RPC.getServer</code>创建RPC服务器，服务器的处理器线程数为3个，关于RPC.getServer另见<a href="../RPC源码分析上篇">RPC源码分析上篇</a><br>此外，更新dnRegistration中的ipc地址和端口信息(dnRegistration包含DataNode向NameNode通信时所有需要的注册信息，另见<a href="../HDFS相关实体对象">HDFS相关实体对象</a>)，创建过程见下面，这里没有按照DataNode构造方法中的顺序来。</p>
+<h3 id="1-6_本地存储相关">1.6 本地存储相关</h3><p>在<a href="../DataNode本地存储管理">DataNode本地存储管理</a>中分析了DataNode的本地存储由DataStorage和FSDataset负责<br>创建DataStorage<br><figure class="highlight actionscript"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">storage = <span class="keyword">new</span> DataStorage();</span><br></pre></td></tr></table></figure></p>
+<p>通过机器名和流服务地址端口创建DatanodeRegistration对象，其他成员如layoutVersion等还为空<br><figure class="highlight actionscript"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">this</span>.dnRegistration = <span class="keyword">new</span> DatanodeRegistration(machineName + <span class="string">":"</span> + tmpPort);</span><br></pre></td></tr></table></figure></p>
+<p>然后从NameNode中获取集群的信息<br><figure class="highlight lisp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">NamespaceInfo nsInfo = handshake<span class="list">()</span><span class="comment">;</span></span><br><span class="line">StartupOption startOpt = getStartupOption<span class="list">(<span class="keyword">conf</span>)</span><span class="comment">;</span></span><br></pre></td></tr></table></figure></p>
+<p>如上，handshake通过NameNode代理通过<code>versionRequest</code>询问NameNode版本信息<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">boolean</span> simulatedFSDataset = conf.getBoolean(<span class="string">"dfs.datanode.simulateddatastorage"</span>, <span class="keyword">false</span>);</span><br><span class="line"><span class="keyword">if</span> (simulatedFSDataset) &#123;</span><br><span class="line">...<span class="comment">//伪分布式处理</span></span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">else</span> &#123; <span class="comment">// real storage</span></span><br><span class="line">  storage.recoverTransitionRead(nsInfo, dataDirs, startOpt);</span><br><span class="line">  <span class="keyword">this</span>.dnRegistration.setStorageInfo(storage);</span><br><span class="line">  <span class="keyword">this</span>.data = <span class="keyword">new</span> FSDataset(storage, conf);<span class="comment">//创建FSDataset对象，读取所有存储目录下的文件初始化成员volumeMap</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，创建DataStorage对象，从NameNode获取命名空间信息后，分析本地目录，根据启动方式和集群版本做相应的处理，<code>dfs.datanode.simulateddatastorage</code>为true时这里不分析，主要用于调试，性能评估。<br><figure class="highlight gradle"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">void</span> recoverTransitionRead(NamespaceInfo nsInfo, Collection&lt;<span class="keyword">File</span>&gt; dataDirs, StartupOption startOpt) <span class="keyword">throws</span> IOException &#123;</span><br><span class="line">    assert FSConstants.LAYOUT_VERSION == nsInfo.getLayoutVersion() : <span class="string">"Data-node and name-node layout versions must be the same."</span>;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 1. For each data directory calculate its state and </span></span><br><span class="line">    <span class="comment">// check whether all is consistent before transitioning.</span></span><br><span class="line">    <span class="comment">// Format and recover.</span></span><br><span class="line">    <span class="keyword">this</span>.storageID = <span class="string">""</span>;</span><br><span class="line">    <span class="keyword">this</span>.storageDirs = <span class="keyword">new</span> ArrayList&lt;StorageDirectory&gt;(dataDirs.<span class="keyword">size</span>());</span><br><span class="line">    ArrayList&lt;StorageState&gt; dataDirStates = <span class="keyword">new</span> ArrayList&lt;StorageState&gt;(dataDirs.<span class="keyword">size</span>());</span><br><span class="line">    <span class="keyword">for</span>(Iterator&lt;<span class="keyword">File</span>&gt; it = dataDirs.iterator(); it.hasNext();) &#123;<span class="comment">//遍历所有配置的目录</span></span><br><span class="line">      <span class="keyword">File</span> dataDir = it.<span class="keyword">next</span>();</span><br><span class="line">      StorageDirectory sd = <span class="keyword">new</span> StorageDirectory(dataDir);<span class="comment">//创建StorageDirectory</span></span><br><span class="line">      StorageState curState;</span><br><span class="line">      <span class="keyword">try</span> &#123;</span><br><span class="line">        curState = sd.analyzeStorage(startOpt);<span class="comment">//分析存储目录的状态</span></span><br><span class="line">        <span class="comment">// sd is locked but not opened</span></span><br><span class="line">        <span class="keyword">switch</span>(curState) &#123;</span><br><span class="line">            <span class="keyword">case</span> NORMAL:</span><br><span class="line">              <span class="keyword">break</span>;</span><br><span class="line">            <span class="keyword">case</span> NON_EXISTENT:<span class="comment">//NON_EXISTENT，跳过不添加到DataStorage的storageDirs中</span></span><br><span class="line">              LOG.info(<span class="string">"Storage directory "</span> + dataDir + <span class="string">" does not exist"</span>);</span><br><span class="line">              it.remove();</span><br><span class="line">              <span class="keyword">continue</span>;</span><br><span class="line">            <span class="keyword">case</span> NOT_FORMATTED: <span class="comment">//NOT_FORMATTED，格式化，删除原来current目录，创建新的current目录，根据nsInfo写VERSION文件</span></span><br><span class="line">              LOG.info(<span class="string">"Storage directory "</span> + dataDir + <span class="string">" is not formatted"</span>);</span><br><span class="line">              LOG.info(<span class="string">"Formatting ..."</span>);</span><br><span class="line">              format(sd, nsInfo);</span><br><span class="line">              <span class="keyword">break</span>;</span><br><span class="line">            <span class="keyword">default</span>:  <span class="comment">//中间状态，恢复到NORMAL</span></span><br><span class="line">              sd.doRecover(curState);</span><br><span class="line">        &#125;</span><br><span class="line">      &#125; <span class="keyword">catch</span> (IOException ioe) &#123;</span><br><span class="line">        sd.unlock();</span><br><span class="line">        <span class="keyword">throw</span> ioe;</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="comment">// add to the storage list</span></span><br><span class="line">      addStorageDir(sd);</span><br><span class="line">      dataDirStates.add(curState);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (dataDirs.<span class="keyword">size</span>() == <span class="number">0</span>)  <span class="comment">// none of the data dirs exist</span></span><br><span class="line">      <span class="keyword">throw</span> <span class="keyword">new</span> IOException( <span class="string">"All specified directories are not accessible or do not exist."</span>);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 2. Do transitions</span></span><br><span class="line">    <span class="comment">// Each storage directory is treated individually.</span></span><br><span class="line">    <span class="comment">// During sturtup some of them can upgrade or rollback </span></span><br><span class="line">    <span class="comment">// while others could be uptodate for the regular startup.</span></span><br><span class="line">    <span class="keyword">for</span>(<span class="keyword">int</span> idx = <span class="number">0</span>; idx &lt; getNumStorageDirs(); idx++) &#123;</span><br><span class="line">      doTransition(getStorageDir(idx), nsInfo, startOpt);</span><br><span class="line">      assert <span class="keyword">this</span>.getLayoutVersion() == nsInfo.getLayoutVersion() :</span><br><span class="line">        <span class="string">"Data-node and name-node layout versions must be the same."</span>;</span><br><span class="line">      assert <span class="keyword">this</span>.getCTime() == nsInfo.getCTime() :</span><br><span class="line">        <span class="string">"Data-node and name-node CTimes must be the same."</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 3. Update all storages. Some of them might have just been formatted.</span></span><br><span class="line">    <span class="keyword">this</span>.writeAll();</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">private</span> <span class="keyword">void</span> doTransition( StorageDirectory sd, NamespaceInfo nsInfo, StartupOption startOpt) <span class="keyword">throws</span> IOException &#123;</span><br><span class="line">    <span class="keyword">if</span> (startOpt == StartupOption.ROLLBACK)</span><br><span class="line">      doRollback(sd, nsInfo); <span class="comment">//回滚方式启动，回滚</span></span><br><span class="line">    sd.<span class="keyword">read</span>();<span class="comment">//重新读取版本文件</span></span><br><span class="line">    checkVersionUpgradable(<span class="keyword">this</span>.layoutVersion);<span class="comment">//检查版本，不能为LAST_UPGRADABLE_LAYOUT_VERSION(-7)之前的版本</span></span><br><span class="line">    assert <span class="keyword">this</span>.layoutVersion &gt;= FSConstants.LAYOUT_VERSION : <span class="string">"Future version is not allowed"</span>;</span><br><span class="line">    <span class="keyword">if</span> (getNamespaceID() != nsInfo.getNamespaceID())</span><br><span class="line">      <span class="keyword">throw</span> <span class="keyword">new</span> IOException( <span class="string">"Incompatible namespaceIDs in "</span> + sd.getRoot().getCanonicalPath()</span><br><span class="line">                            + <span class="string">": namenode namespaceID = "</span> + nsInfo.getNamespaceID() </span><br><span class="line">                            + <span class="string">"; datanode namespaceID = "</span> + getNamespaceID());</span><br><span class="line">    <span class="keyword">if</span> (<span class="keyword">this</span>.layoutVersion == FSConstants.LAYOUT_VERSION &amp;&amp; <span class="keyword">this</span>.cTime == nsInfo.getCTime())</span><br><span class="line">      <span class="keyword">return</span>; <span class="comment">//版本与集群版本一致</span></span><br><span class="line">    verifyDistributedUpgradeProgress(nsInfo);</span><br><span class="line">    <span class="keyword">if</span> (<span class="keyword">this</span>.layoutVersion &gt; FSConstants.LAYOUT_VERSION || <span class="keyword">this</span>.cTime &lt; nsInfo.getCTime()) &#123;</span><br><span class="line">      doUpgrade(sd, nsInfo);  <span class="comment">//当前版本小于集群版本，更新</span></span><br><span class="line">      <span class="keyword">return</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">// layoutVersion == LAYOUT_VERSION &amp;&amp; this.cTime &gt; nsInfo.cTime</span></span><br><span class="line">    <span class="comment">// must shutdown</span></span><br><span class="line">    <span class="keyword">throw</span> <span class="keyword">new</span> IOException(<span class="string">"Datanode state: LV = "</span> + <span class="keyword">this</span>.getLayoutVersion() </span><br><span class="line">          + <span class="string">" CTime = "</span> + <span class="keyword">this</span>.getCTime() + <span class="string">" is newer than the namespace state: LV = "</span></span><br><span class="line">          + nsInfo.getLayoutVersion() + <span class="string">" CTime = "</span> + nsInfo.getCTime());</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，对每一个配置的目录，首先检查当前状态，如果为<code>NON_EXISTENT</code>不会添加到DataStorage的管理目录内。否则如果为<code>NOT_FORMATTED</code>，则格式化后添加到DataStorage的storageDirs中，而如果为<code>NORMAL</code>，则直接添加到storageDirs中，处于其他中间状态的，通过doRecover恢复到NORMAL状态，添加到storageDirs中。<br>通过<code>analyzeStorage</code>获取当前目录状态，通过<code>format</code>格式化，通过<code>doRecover</code>恢复这些方法见<a href="../DataNode本地存储管理">DataNode本地存储管理</a>  </p>
+<p>recoverTransitionRead之后，DataNode的本地存储目录处于正常状态，构建FSDataset对象，FSDataset构造见<a href="../DataNode本地存储管理">DataNode本地存储管理</a>，会对每一个存储目录构造相应的FSVolume对象，然后读取本地存储目录下的区块文件初始化volumeMap成员。<br>至此，本地存储相关的DataStorage和FSDataset对象构建和初始化完成了，DataStorage管理的存储目录在storageDirs中，而FSDataset的volumes包含了所有的FSVolume对象，volumeMap包含了所有现存的区块信息。  </p>
+<h3 id="1-7_HTTP服务器">1.7 HTTP服务器</h3><figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line">InetSocketAddress infoSocAddr = DataNode.getInfoAddr(conf);</span><br><span class="line"><span class="built_in">String</span> infoHost = infoSocAddr.getHostName();</span><br><span class="line"><span class="built_in">int</span> tmpInfoPort = infoSocAddr.getPort();</span><br><span class="line"><span class="keyword">this</span>.infoServer = (secureResources == <span class="keyword">null</span>) </span><br><span class="line">   ? <span class="keyword">new</span> HttpServer(<span class="string">"datanode"</span>, infoHost, tmpInfoPort, tmpInfoPort == <span class="number">0</span>, </span><br><span class="line">       conf, SecurityUtil.getAdminAcls(conf, DFSConfigKeys.DFS_ADMIN))</span><br><span class="line">   : <span class="keyword">new</span> HttpServer(<span class="string">"datanode"</span>, infoHost, tmpInfoPort, tmpInfoPort == <span class="number">0</span>,</span><br><span class="line">       conf, SecurityUtil.getAdminAcls(conf, DFSConfigKeys.DFS_ADMIN),</span><br><span class="line">       secureResources.getListener());</span><br><span class="line">...<span class="comment">//https相关</span></span><br><span class="line"><span class="keyword">this</span>.infoServer.addInternalServlet(<span class="keyword">null</span>, <span class="string">"/streamFile/*"</span>, StreamFile.<span class="keyword">class</span>);</span><br><span class="line"><span class="keyword">this</span>.infoServer.addInternalServlet(<span class="keyword">null</span>, <span class="string">"/getFileChecksum/*"</span>, FileChecksumServlets.GetServlet.<span class="keyword">class</span>);</span><br><span class="line"></span><br><span class="line"><span class="keyword">this</span>.infoServer.setAttribute(<span class="string">"datanode"</span>, <span class="keyword">this</span>);</span><br><span class="line"><span class="keyword">this</span>.infoServer.setAttribute(<span class="string">"datanode.blockScanner"</span>, blockScanner);</span><br><span class="line"><span class="keyword">this</span>.infoServer.setAttribute(JspHelper.CURRENT_CONF, conf);</span><br><span class="line"><span class="keyword">this</span>.infoServer.addServlet(<span class="keyword">null</span>, <span class="string">"/blockScannerReport"</span>, DataBlockScanner.Servlet.<span class="keyword">class</span>);</span><br><span class="line"><span class="keyword">this</span>.infoServer.start();</span><br><span class="line"><span class="keyword">this</span>.dnRegistration.setInfoPort(<span class="keyword">this</span>.infoServer.getPort());</span><br></pre></td></tr></table></figure>
+<p>如上，getInfoAddr读取配置<code>dfs.datanode.http.address</code>作为HTTP服务器的地址和端口，创建HttpServer，<code>addInternalServlet</code>已经声明为Deprecated，设置属性<code>datanode</code>，<code>datanode.blockScanner</code>，<code>current.conf</code>可以直接在jsp文件中或Servlet类中使用，添加一个Servlet，路径为/blockScannerReport，对应的类为<code>DataBlockScanner.Servlet</code>。<br>HTTP服务器在创建DataNode时启动，其他服务都在DataNode线程中启动，此外更新dnRegistration中关于info地址和端口信息。  </p>
+<h3 id="1-8_其他">1.8 其他</h3><h4 id="1-8-1_区块扫描器">1.8.1 区块扫描器</h4><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">blockScanner = <span class="keyword">new</span> DataBlockScanner(<span class="keyword">this</span>, (FSDataset)data, conf);</span><br><span class="line">DataBlockScanner(DataNode datanode, FSDataset dataset, Configuration conf) &#123;</span><br><span class="line">    <span class="keyword">this</span>.datanode = datanode;</span><br><span class="line">    <span class="keyword">this</span>.dataset = dataset;</span><br><span class="line">    scanPeriod = conf.getInt(<span class="string">"dfs.datanode.scan.period.hours"</span>, <span class="number">0</span>);</span><br><span class="line">    <span class="keyword">if</span> ( scanPeriod &lt;= <span class="number">0</span> ) &#123;</span><br><span class="line">      scanPeriod = DEFAULT_SCAN_PERIOD_HOURS;</span><br><span class="line">    &#125;</span><br><span class="line">    scanPeriod *= <span class="number">3600</span> * <span class="number">1000</span>;</span><br><span class="line">    <span class="comment">// initialized when the scanner thread is started.</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>区块扫描器所属DataNode为当前DataNode，管理的数据集为DataNode的FSDataset，扫描周期为<code>dfs.datanode.scan.period.hours</code>，默认情况下3个小时。  </p>
+<h4 id="1-8-2_度量统计">1.8.2 度量统计</h4> <figure class="highlight dns"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">myMetrics = DataNodeInstrumentation.create(conf, dnRegistration.getStorageID())<span class="comment">;</span></span><br></pre></td></tr></table></figure>
+<h4 id="1-8-3_区块口令安全管理器">1.8.3 区块口令安全管理器</h4><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// BlockTokenSecretManager is created here, but it shouldn't be</span></span><br><span class="line"><span class="comment">// used until it is initialized in register().</span></span><br><span class="line"><span class="keyword">this</span>.blockTokenSecretManager = <span class="keyword">new</span> BlockTokenSecretManager(<span class="literal">false</span>, <span class="number">0</span>, <span class="number">0</span>);</span><br></pre></td></tr></table></figure>
+<h4 id="1-8-4_插件">1.8.4 插件</h4><figure class="highlight groovy"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">plugins = conf.getInstances(<span class="string">"dfs.datanode.plugins"</span>, ServicePlugin.<span class="keyword">class</span>);</span><br><span class="line"><span class="keyword">for</span> (ServicePlugin <span class="string">p:</span> plugins) &#123;</span><br><span class="line">  <span class="keyword">try</span> &#123;</span><br><span class="line">    p.start(<span class="keyword">this</span>);</span><br><span class="line">    LOG.info(<span class="string">"Started plug-in "</span> + p);</span><br><span class="line">  &#125; <span class="keyword">catch</span> (Throwable t) &#123;</span><br><span class="line">    LOG.warn(<span class="string">"ServicePlugin "</span> + p + <span class="string">" could not be started"</span>, t);</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>总结DataNode中的相关资源实例</p>
+<ul>
+<li>NameNode <code>RPC代理</code></li>
+<li>对外提供RPC服务的<code>RPC服务器</code>(ClientDatanodeProtocol，InterDatanodeProtocol)</li>
+<li>流服务请求处理线程<code>DataXceiverServer</code>和若干处理请求的<code>DataXceiver</code>线程</li>
+<li>HTTP服务器<code>HttpServer</code></li>
+<li>区块扫描器<code>BlockScanner</code>，默认3周扫描一次</li>
+<li>管理本地存储的<code>DataStorage</code>和<code>FSDataset</code>，其中FSDataset中有用于异步区块删除的线程<code>FSDatasetAsyncDiskService</code>和用于异步区块扫描(扫描本地区块用于区块报告)的线程<code>AsyncBlockReport</code></li>
+<li>度量统计<code>DataNodeInstrumentation</code></li>
+<li>安全相关的<code>BlockTokenSecretManager</code></li>
+<li>可能的若干插件<code>ServicePlugin</code>线程</li>
+</ul>
+<hr>
+<h2 id="2-_DataNode启动">2. DataNode启动</h2><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> <span class="function"><span class="keyword">void</span> <span class="title">runDatanodeDaemon</span><span class="params">(DataNode dn)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (dn != <span class="keyword">null</span>) &#123;</span><br><span class="line">      <span class="comment">//register datanode</span></span><br><span class="line">      dn.register();</span><br><span class="line">      dn.dataNodeThread = <span class="keyword">new</span> Thread(dn, dnThreadName);</span><br><span class="line">      dn.dataNodeThread.setDaemon(<span class="keyword">true</span>); <span class="comment">// needed for JUnit testing</span></span><br><span class="line">      dn.dataNodeThread.start();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>如上，启动DataNode线程前先向NameNode注册，从NameNode中获取存储信息，报告当前区块信息等<br><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">register</span><span class="params">()</span> throws IOException </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (dnRegistration.getStorageID().equals(<span class="string">""</span>)) &#123;</span><br><span class="line">      setNewStorageID(dnRegistration);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">while</span>(shouldRun) &#123;<span class="comment">//注册超时时，等待1s中继续注册</span></span><br><span class="line">      <span class="keyword">try</span> &#123;</span><br><span class="line">        dnRegistration.name = machineName + <span class="string">":"</span> + dnRegistration.getPort();</span><br><span class="line">        dnRegistration = namenode.<span class="keyword">register</span>(dnRegistration);</span><br><span class="line">        <span class="keyword">break</span>;</span><br><span class="line">      &#125; <span class="keyword">catch</span>(SocketTimeoutException e) &#123;  <span class="comment">// namenode is busy</span></span><br><span class="line">        LOG.info(<span class="string">"Problem connecting to server: "</span> + getNameNodeAddr());</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">          Thread.sleep(<span class="number">1000</span>);</span><br><span class="line">        &#125; <span class="keyword">catch</span> (InterruptedException ie) &#123;&#125;</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> (storage.getStorageID().equals(<span class="string">""</span>)) &#123;<span class="comment">//当前storageID没设置，通过从NameNode中获取的信息设置</span></span><br><span class="line">      storage.setStorageID(dnRegistration.getStorageID());</span><br><span class="line">      storage.writeAll();<span class="comment">//写到VERSION文件</span></span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span>(!storage.getStorageID().equals(dnRegistration.getStorageID())) &#123;</span><br><span class="line">      <span class="keyword">throw</span> <span class="keyword">new</span> IOException(<span class="string">"Inconsistent storage IDs. Name-node returned "</span></span><br><span class="line">          + dnRegistration.getStorageID() + <span class="string">". Expecting "</span> + storage.getStorageID());</span><br><span class="line">    &#125;</span><br><span class="line">    ...<span class="comment">//安全相关</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (durableSync) &#123;<span class="comment">//不删除blocksBeingWritten目录中的区块，则需要向NameNode报告这些区块信息</span></span><br><span class="line">      Block[] bbwReport = data.getBlocksBeingWrittenReport();</span><br><span class="line">      <span class="keyword">long</span>[] blocksBeingWritten = BlockListAsLongs.convertToArrayLongs(bbwReport);</span><br><span class="line">      namenode.blocksBeingWrittenReport(dnRegistration, blocksBeingWritten);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    data.requestAsyncBlockReport();</span><br><span class="line">    scheduleBlockReport(initialBlockReportDelay);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，通过NameNode代理register向NameNode注册并返回集群的版本信息，更新DataNode中的版本信息。如果blocksBeingWritten目录下存在区块，且允许不删除这些区块(这些区块会在创建FSDataset对象时恢复到ongoingCreates和volumeMap中)，需要向NameNode报告这些区块信息。然后进行区块报告相关设置。   </p>
+<p>注册后，创建DataNode线程启动，线程主流程如下<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">void</span> <span class="title">run</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    LOG.info(dnRegistration + <span class="string">"In DataNode.run, data = "</span> + data);</span><br><span class="line">    dataXceiverServer.start();<span class="comment">//启动流服务</span></span><br><span class="line">    ipcServer.start();<span class="comment">//启动RPC服务器</span></span><br><span class="line">        </span><br><span class="line">    <span class="keyword">while</span> (shouldRun) &#123;</span><br><span class="line">      <span class="keyword">try</span> &#123;</span><br><span class="line">        startDistributedUpgradeIfNeeded();</span><br><span class="line">        offerService();<span class="comment">//主服务</span></span><br><span class="line">      &#125; <span class="keyword">catch</span> (Exception ex) &#123;</span><br><span class="line">        LOG.<span class="keyword">error</span>(<span class="string">"Exception: "</span> + StringUtils.stringifyException(ex));</span><br><span class="line">        <span class="keyword">if</span> (shouldRun) &#123;</span><br><span class="line">          <span class="keyword">try</span> &#123;</span><br><span class="line">            Thread.sleep(<span class="number">5000</span>);</span><br><span class="line">          &#125; <span class="keyword">catch</span> (InterruptedException ie) &#123;</span><br><span class="line">          &#125;</span><br><span class="line">        &#125;</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">//通过shutdown退出   </span></span><br><span class="line">    LOG.info(dnRegistration + <span class="string">":Finishing DataNode in: "</span>+data);</span><br><span class="line">    shutdown();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，启动流服务，RPC服务(HTTP服务，插件等在DataNode构造中已经启动，区块扫描器线程在DataNode线程中启动)，DataNode运行时通过offerService提供主服务，退出时通过shutdown清理相关资源<br><figure class="highlight processing"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> offerService() <span class="keyword">throws</span> Exception &#123;</span><br><span class="line">    LOG.info(<span class="string">"using BLOCKREPORT_INTERVAL of "</span> + blockReportInterval + <span class="string">"msec"</span> + </span><br><span class="line">       <span class="string">" Initial delay: "</span> + initialBlockReportDelay + <span class="string">"msec"</span>);</span><br><span class="line">    <span class="keyword">while</span> (shouldRun) &#123;</span><br><span class="line">      <span class="keyword">try</span> &#123;</span><br><span class="line">        <span class="keyword">long</span> startTime = now();</span><br><span class="line">        <span class="keyword">if</span> (startTime - lastHeartbeat &gt; heartBeatInterval) &#123;<span class="comment">//到达心跳间隔，发送心跳信息</span></span><br><span class="line">          <span class="comment">//心跳信息包括，DataNode注册信息，数据传输端口，当前总容量，剩余容量</span></span><br><span class="line">          lastHeartbeat = startTime;</span><br><span class="line">          DatanodeCommand[] cmds = namenode.sendHeartbeat(</span><br><span class="line">                dnRegistration, data.getCapacity(), data.getDfsUsed(),</span><br><span class="line">                data.getRemaining(), xmitsInProgress.<span class="built_in">get</span>(), getXceiverCount());</span><br><span class="line">          myMetrics.addHeartBeat(now() - startTime);</span><br><span class="line">          <span class="keyword">if</span> (!processCommand(cmds))<span class="comment">//处理NameNode发送过来的命令</span></span><br><span class="line">            <span class="keyword">continue</span>;</span><br><span class="line">        &#125;</span><br><span class="line">            </span><br><span class="line">        <span class="comment">// check if there are newly received blocks</span></span><br><span class="line">        Block [] blockArray=<span class="keyword">null</span>;</span><br><span class="line">        <span class="keyword">String</span> [] delHintArray=<span class="keyword">null</span>;</span><br><span class="line">        <span class="keyword">synchronized</span>(receivedBlockList) &#123;</span><br><span class="line">          <span class="keyword">synchronized</span>(delHints) &#123;</span><br><span class="line">            <span class="built_in">int</span> numBlocks = receivedBlockList.<span class="built_in">size</span>();</span><br><span class="line">            <span class="keyword">if</span> (numBlocks &gt; <span class="number">0</span>) &#123;</span><br><span class="line">              <span class="keyword">if</span>(numBlocks!=delHints.<span class="built_in">size</span>()) &#123;</span><br><span class="line">                LOG.warn(<span class="string">"Panic: receiveBlockList and delHints are not of the same length"</span> );</span><br><span class="line">              &#125;</span><br><span class="line">              blockArray = receivedBlockList.toArray(<span class="keyword">new</span> Block[numBlocks]);<span class="comment">//新接收到的区块</span></span><br><span class="line">              delHintArray = delHints.toArray(<span class="keyword">new</span> <span class="keyword">String</span>[numBlocks]);<span class="comment">//这些节点上的对应区块将被删除</span></span><br><span class="line">            &#125;</span><br><span class="line">          &#125;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">if</span> (blockArray != <span class="keyword">null</span>) &#123;</span><br><span class="line">          <span class="keyword">if</span>(delHintArray == <span class="keyword">null</span> || delHintArray.length != blockArray.length ) &#123;</span><br><span class="line">            LOG.warn(<span class="string">"Panic: block array &amp; delHintArray are not the same"</span> );</span><br><span class="line">          &#125;</span><br><span class="line">          <span class="comment">//向NameNode报告新接收到的区块信息，delHintArray如果不为空则节点上对应的区块将被删除</span></span><br><span class="line">          namenode.blockReceived(dnRegistration, blockArray, delHintArray);</span><br><span class="line">          <span class="keyword">synchronized</span> (receivedBlockList) &#123;</span><br><span class="line">            <span class="keyword">synchronized</span> (delHints) &#123;</span><br><span class="line">              <span class="keyword">for</span>(<span class="built_in">int</span> i=<span class="number">0</span>; i&lt;blockArray.length; i++) &#123;</span><br><span class="line">                receivedBlockList.remove(blockArray[i]);</span><br><span class="line">                delHints.remove(delHintArray[i]);</span><br><span class="line">              &#125;</span><br><span class="line">            &#125;</span><br><span class="line">          &#125;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// Send latest blockinfo report if timer has expired.</span></span><br><span class="line">        <span class="keyword">if</span> (startTime - lastBlockReport &gt; blockReportInterval) &#123;</span><br><span class="line">          <span class="keyword">if</span> (data.isAsyncBlockReportReady()) &#123;<span class="comment">//异步区块扫描器已经扫描完，scan中保存了扫描结果，发送扫描结果区块报告</span></span><br><span class="line">            <span class="keyword">long</span> brCreateStartTime = now();</span><br><span class="line">            Block[] bReport = data.retrieveAsyncBlockReport();<span class="comment">//获取扫描结果</span></span><br><span class="line">            </span><br><span class="line">            <span class="keyword">long</span> brSendStartTime = now();</span><br><span class="line">            <span class="comment">//发送扫描结果，区块报告</span></span><br><span class="line">            DatanodeCommand cmd = namenode.blockReport(dnRegistration, BlockListAsLongs.convertToArrayLongs(bReport));</span><br><span class="line">            </span><br><span class="line">            <span class="keyword">long</span> brSendCost = now() - brSendStartTime;</span><br><span class="line">            <span class="keyword">long</span> brCreateCost = brSendStartTime - brCreateStartTime;</span><br><span class="line">            myMetrics.addBlockReport(brSendCost);</span><br><span class="line"></span><br><span class="line">            <span class="comment">//</span></span><br><span class="line">            <span class="comment">// If we have sent the first block report, then wait a random</span></span><br><span class="line">            <span class="comment">// time before we start the periodic block reports.</span></span><br><span class="line">            <span class="comment">//</span></span><br><span class="line">            <span class="keyword">if</span> (resetBlockReportTime) &#123;</span><br><span class="line">              lastBlockReport = startTime - R.nextInt((<span class="built_in">int</span>)(blockReportInterval));</span><br><span class="line">              resetBlockReportTime = <span class="keyword">false</span>;</span><br><span class="line">            &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">              <span class="comment">/* say the last block report was at 8:20:14. The current report </span><br><span class="line">               * should have started around 9:20:14 (default 1 hour interval). </span><br><span class="line">               * If current time is :</span><br><span class="line">               *   1) normal like 9:20:18, next report should be at 10:20:14</span><br><span class="line">               *   2) unexpected like 11:35:43, next report should be at</span><br><span class="line">               *      12:20:14</span><br><span class="line">               */</span></span><br><span class="line">              lastBlockReport += (now() - lastBlockReport) / blockReportInterval * blockReportInterval;</span><br><span class="line">            &#125;</span><br><span class="line">            processCommand(cmd);<span class="comment">//处理区块报告时，NameNode发送过来的命令</span></span><br><span class="line">          &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            data.requestAsyncBlockReport();<span class="comment">//如果区块扫描器没有扫描结果，则请求区块扫描器开始扫描</span></span><br><span class="line">            <span class="keyword">if</span> (lastBlockReport &gt; <span class="number">0</span>) &#123; <span class="comment">// this isn't the first report</span></span><br><span class="line">                ...<span class="comment">//记录日志</span></span><br><span class="line">            &#125;</span><br><span class="line">          &#125;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="comment">//启动区块扫描器</span></span><br><span class="line">        <span class="keyword">if</span> (blockScanner != <span class="keyword">null</span> &amp;&amp; blockScannerThread == <span class="keyword">null</span> &amp;&amp;</span><br><span class="line">            upgradeManager.isUpgradeCompleted()) &#123;</span><br><span class="line">          LOG.info(<span class="string">"Starting Periodic block scanner"</span>);</span><br><span class="line">          blockScannerThread = <span class="keyword">new</span> Daemon(blockScanner);</span><br><span class="line">          blockScannerThread.start();</span><br><span class="line">        &#125;</span><br><span class="line">            </span><br><span class="line">        <span class="comment">//</span></span><br><span class="line">        <span class="comment">// There is no work to do;  sleep until hearbeat timer elapses, </span></span><br><span class="line">        <span class="comment">// or work arrives, and then iterate again.</span></span><br><span class="line">        <span class="comment">//</span></span><br><span class="line">        <span class="keyword">long</span> waitTime = heartBeatInterval - (System.currentTimeMillis() - lastHeartbeat);</span><br><span class="line">        <span class="keyword">synchronized</span>(receivedBlockList) &#123;<span class="comment">//没有新的可发送的区块，且还没到达心跳周期，等待</span></span><br><span class="line">          <span class="keyword">if</span> (waitTime &gt; <span class="number">0</span> &amp;&amp; receivedBlockList.<span class="built_in">size</span>() == <span class="number">0</span>) &#123;</span><br><span class="line">            <span class="keyword">try</span> &#123;</span><br><span class="line">              receivedBlockList.wait(waitTime);</span><br><span class="line">            &#125; <span class="keyword">catch</span> (InterruptedException ie) &#123;</span><br><span class="line">            &#125;</span><br><span class="line">            delayBeforeBlockReceived();</span><br><span class="line">          &#125;</span><br><span class="line">        &#125; <span class="comment">// synchronized</span></span><br><span class="line">      &#125; <span class="keyword">catch</span>(RemoteException re) &#123;</span><br><span class="line">        <span class="keyword">String</span> reClass = re.getClassName();</span><br><span class="line">        <span class="keyword">if</span> (UnregisteredDatanodeException.class.getName().equals(reClass) ||</span><br><span class="line">            DisallowedDatanodeException.class.getName().equals(reClass) ||</span><br><span class="line">            IncorrectVersionException.class.getName().equals(reClass)) &#123;</span><br><span class="line">          LOG.warn(<span class="string">"DataNode is shutting down: "</span> + </span><br><span class="line">                   StringUtils.stringifyException(re));</span><br><span class="line">          shutdown();</span><br><span class="line">          <span class="keyword">return</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        LOG.warn(StringUtils.stringifyException(re));</span><br><span class="line">      &#125; <span class="keyword">catch</span> (IOException e) &#123;</span><br><span class="line">        LOG.warn(StringUtils.stringifyException(e));</span><br><span class="line">      &#125;</span><br><span class="line">    &#125; <span class="comment">// while (shouldRun)</span></span><br><span class="line">  &#125; <span class="comment">// offerService</span></span><br></pre></td></tr></table></figure></p>
+<p>如上，在主服务线程中，如果到达心跳周期，通过NameNode代理<code>sendHeartbeat</code>向NameNode发送心跳，包括DataNode的注册信息，数据传输端口，总容量，剩余容量，然后使用<code>processCommand</code>处理返回值中NameNode的命令。  </p>
+<p>如果接收到了新的区块，通过NameNode代理<code>blockReceived</code>向NameNode报告，其中的<code>delHintArray</code>参数表示对应的区块在这些节点上应该删除。  </p>
+<p>如果到达区块报告周期，查找异步区块扫描线程<code>AsyncBlockReport</code>扫描结果，如果扫描完成，通过NameNode代理<code>blockReport</code>进行区块报告，并通过<code>processCommand</code>处理NameNode下达的命令。而如果没有扫描结果，则通知AsyncBlockReport开始扫描本地区块。  </p>
+<p>以上事情处理完后，如果没有到达下一次心跳周期处理过程中没有接收到新的区块，则等待直到下一次心跳时间。<br>processCommand对NameNode命令的处理涉及到数据的读写等操作，见后面具体分析。</p>
+</span>
+      
+    </div>
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/DataNode/" rel="tag">#DataNode</a>
+          
+            <a href="/tags/DataNode源码阅读/" rel="tag">#DataNode源码阅读</a>
+          
+            <a href="/tags/HDFS/" rel="tag">#HDFS</a>
+          
+            <a href="/tags/Hadoop-1-2-1/" rel="tag">#Hadoop-1.2.1</a>
+          
+            <a href="/tags/Java/" rel="tag">#Java</a>
+          
+            <a href="/tags/源码阅读/" rel="tag">#源码阅读</a>
+          
+        </div>
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/DataNode流接口实现下篇/" rel="next" title="DataNode实现源码分析---流接口实现上篇">
+                <i class="fa fa-chevron-left"></i> DataNode实现源码分析---流接口实现上篇
+              </a>
+            
+          </div>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/HDFS流接口/" rel="prev" title="HDFS节点的流式接口访问">
+                HDFS节点的流式接口访问 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </article>
+
+
+
+    <div class="post-spread">
+      
+        <!-- JiaThis Button BEGIN -->
+<div class="jiathis_style">
+  <a class="jiathis_button_tsina"></a>
+  <a class="jiathis_button_tqq"></a>
+  <a class="jiathis_button_weixin"></a>
+  <a class="jiathis_button_cqq"></a>
+  <a class="jiathis_button_douban"></a>
+  <a class="jiathis_button_renren"></a>
+  <a class="jiathis_button_qzone"></a>
+  <a class="jiathis_button_kaixin001"></a>
+  <a class="jiathis_button_copy"></a>
+  <a href="http://www.jiathis.com/share" class="jiathis jiathis_txt jiathis_separator jtico jtico_jiathis" target="_blank"></a>
+  <a class="jiathis_counter_style"></a>
+</div>
+<script type="text/javascript" >
+  var jiathis_config={
+    hideMore:false
+  }
+</script>
+<script type="text/javascript" src="http://v3.jiathis.com/code/jia.js" charset="utf-8"></script>
+<!-- JiaThis Button END -->
+
+      
+    </div>
+  </div>
+
+
+        </div>
+
+        
+
+
+        
+  <div class="comments" id="comments">
+    
+      <div class="ds-thread" data-thread-key="DataNode启动/"
+           data-title="DataNode实现源码分析---DataNode启动" data-url="http://xiao-yun.github.io/DataNode启动/">
+      </div>
+    
+  </div>
+
+
+      </div>
+
+      
+        
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap" >
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel ">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+          <img class="site-author-image" src="/images/hero.jpg" alt="xiaoyun" itemprop="image"/>
+          <p class="site-author-name" itemprop="name">xiaoyun</p>
+        </div>
+        <p class="site-description motion-element" itemprop="description">学习笔记，网上资源摘要等</p>
+        <nav class="site-state motion-element">
+          <div class="site-state-item site-state-posts">
+            <a href="/archives">
+              <span class="site-state-item-count">34</span>
+              <span class="site-state-item-name">日志</span>
+            </a>
+          </div>
+
+          <div class="site-state-item site-state-categories">
+            <a href="/categories">
+              <span class="site-state-item-count">49</span>
+              <span class="site-state-item-name">分类</span>
+              </a>
+          </div>
+
+          <div class="site-state-item site-state-tags">
+            <a href="/tags">
+              <span class="site-state-item-count">25</span>
+              <span class="site-state-item-name">标签</span>
+              </a>
+          </div>
+
+        </nav>
+
+        
+
+        <div class="links-of-author motion-element">
+          
+            
+              <span class="links-of-author-item">
+                <a href="https://github.com/xiao-yun" target="_blank">
+                  
+                    <i class="fa fa-globe"></i> github
+                  
+                </a>
+              </span>
+            
+          
+        </div>
+
+        
+        
+
+        <div class="links-of-author motion-element">
+          
+        </div>
+
+      </section>
+
+      
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc-indicator-top post-toc-indicator">
+            <i class="fa fa-angle-double-up"></i>
+          </div>
+          <div class="post-toc">
+            
+              
+            
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-_创建实例对象"><span class="nav-number">1.</span> <span class="nav-text">1. 创建实例对象</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-1_配置相关成员"><span class="nav-number">1.1.</span> <span class="nav-text">1.1 配置相关成员</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-2_服务地址"><span class="nav-number">1.2.</span> <span class="nav-text">1.2 服务地址</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#1-2-1_机器名machineName"><span class="nav-number">1.2.1.</span> <span class="nav-text">1.2.1 机器名machineName</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#1-2-2_NameNode地址"><span class="nav-number">1.2.2.</span> <span class="nav-text">1.2.2 NameNode地址</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#1-2-3_本机流服务地址"><span class="nav-number">1.2.3.</span> <span class="nav-text">1.2.3 本机流服务地址</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-3_流服务相关"><span class="nav-number">1.3.</span> <span class="nav-text">1.3 流服务相关</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#1-3-1_配置选项"><span class="nav-number">1.3.1.</span> <span class="nav-text">1.3.1 配置选项</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#1-3-2_Socket"><span class="nav-number">1.3.2.</span> <span class="nav-text">1.3.2 Socket</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#1-3-3_服务线程DataXceiverServer"><span class="nav-number">1.3.3.</span> <span class="nav-text">1.3.3 服务线程DataXceiverServer</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-4_NameNode_RPC代理"><span class="nav-number">1.4.</span> <span class="nav-text">1.4 NameNode RPC代理</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-5_对外提供的RPC服务"><span class="nav-number">1.5.</span> <span class="nav-text">1.5 对外提供的RPC服务</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-6_本地存储相关"><span class="nav-number">1.6.</span> <span class="nav-text">1.6 本地存储相关</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-7_HTTP服务器"><span class="nav-number">1.7.</span> <span class="nav-text">1.7 HTTP服务器</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-8_其他"><span class="nav-number">1.8.</span> <span class="nav-text">1.8 其他</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#1-8-1_区块扫描器"><span class="nav-number">1.8.1.</span> <span class="nav-text">1.8.1 区块扫描器</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#1-8-2_度量统计"><span class="nav-number">1.8.2.</span> <span class="nav-text">1.8.2 度量统计</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#1-8-3_区块口令安全管理器"><span class="nav-number">1.8.3.</span> <span class="nav-text">1.8.3 区块口令安全管理器</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#1-8-4_插件"><span class="nav-number">1.8.4.</span> <span class="nav-text">1.8.4 插件</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-_DataNode启动"><span class="nav-number">2.</span> <span class="nav-text">2. DataNode启动</span></a></li></ol></div>
+            
+          </div>
+          <div class="post-toc-indicator-bottom post-toc-indicator">
+            <i class="fa fa-angle-double-down"></i>
+          </div>
+        </section>
+      
+
+    </div>
+  </aside>
+
+
+      
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright" >
+  
+  &copy; 
+  <span itemprop="copyrightYear">2016</span>
+  <span class="with-love">
+    <i class="icon-next-heart fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">xiaoyun</span>
+</div>
+
+<div class="powered-by">
+  由 <a class="theme-link" href="http://hexo.io">Hexo</a> 强力驱动
+</div>
+
+<div class="theme-info">
+  主题 -
+  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
+    NexT.Mist
+  </a>
+</div>
+
+
+
+      </div>
+    </footer>
+
+    <div class="back-to-top"></div>
+  </div>
+
+  <script type="text/javascript" src="/vendors/jquery/index.js?v=2.1.3"></script>
+
+  
+  
+
+  
+    
+
+  
+    
+  
+
+  <script type="text/javascript">
+    var duoshuoQuery = {short_name:"xiaoyuncom"};
+    (function() {
+      var ds = document.createElement('script');
+      ds.type = 'text/javascript';ds.async = true;
+      ds.id = 'duoshuo-script';
+      ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+      ds.charset = 'UTF-8';
+      (document.getElementsByTagName('head')[0]
+      || document.getElementsByTagName('body')[0]).appendChild(ds);
+    })();
+  </script>
+    
+     
+
+
+    
+  
+
+  
+  <script type="text/javascript" src="/vendors/fancybox/source/jquery.fancybox.pack.js"></script>
+  <script type="text/javascript" src="/js/fancy-box.js?v=0.4.5.2"></script>
+
+
+  <script type="text/javascript" src="/js/helpers.js?v=0.4.5.2"></script>
+  <script type="text/javascript" src="/vendors/velocity/velocity.min.js"></script>
+<script type="text/javascript" src="/vendors/velocity/velocity.ui.min.js"></script>
+
+<script type="text/javascript" src="/js/motion.js?v=0.4.5.2" id="motion.global"></script>
+
+
+  <script type="text/javascript" src="/vendors/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  <script type="text/javascript" src="/vendors/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  
+<script type="text/javascript" src="/js/bootstrap.scrollspy.js?v=0.4.5.2" id="bootstrap.scrollspy.custom"></script>
+
+
+<script type="text/javascript" id="sidebar.toc.highlight">
+  $(document).ready(function () {
+    var tocSelector = '.post-toc';
+    var $tocSelector = $(tocSelector);
+    var activeCurrentSelector = '.active-current';
+
+    $tocSelector
+      .on('activate.bs.scrollspy', function () {
+        var $currentActiveElement = $(tocSelector + ' .active').last();
+
+        removeCurrentActiveClass();
+        $currentActiveElement.addClass('active-current');
+
+        $tocSelector[0].scrollTop = $currentActiveElement.position().top;
+      })
+      .on('clear.bs.scrollspy', function () {
+        removeCurrentActiveClass();
+      });
+
+    function removeCurrentActiveClass () {
+      $(tocSelector + ' ' + activeCurrentSelector)
+        .removeClass(activeCurrentSelector.substring(1));
+    }
+
+    function processTOC () {
+      getTOCMaxHeight();
+      toggleTOCOverflowIndicators();
+    }
+
+    function getTOCMaxHeight () {
+      var height = $('.sidebar').height() -
+                   $tocSelector.position().top -
+                   $('.post-toc-indicator-bottom').height();
+
+      $tocSelector.css('height', height);
+
+      return height;
+    }
+
+    function toggleTOCOverflowIndicators () {
+      tocOverflowIndicator(
+        '.post-toc-indicator-top',
+        $tocSelector.scrollTop() > 0 ? 'show' : 'hide'
+      );
+
+      tocOverflowIndicator(
+        '.post-toc-indicator-bottom',
+        $tocSelector.scrollTop() >= $tocSelector.find('ol').height() - $tocSelector.height() ? 'hide' : 'show'
+      )
+    }
+
+    $(document).on('sidebar.motion.complete', function () {
+      processTOC();
+    });
+
+    $('body').scrollspy({ target: tocSelector });
+    $(window).on('resize', function () {
+      if ( $('.sidebar').hasClass('sidebar-active') ) {
+        processTOC();
+      }
+    });
+
+    onScroll($tocSelector);
+
+    function onScroll (element) {
+      element.on('mousewheel DOMMouseScroll', function (event) {
+          var oe = event.originalEvent;
+          var delta = oe.wheelDelta || -oe.detail;
+
+          this.scrollTop += ( delta < 0 ? 1 : -1 ) * 30;
+          event.preventDefault();
+
+          toggleTOCOverflowIndicators();
+      });
+    }
+
+    function tocOverflowIndicator (indicator, action) {
+      var $indicator = $(indicator);
+      var opacity = action === 'show' ? 1 : 0;
+      $indicator.velocity ?
+        $indicator.velocity('stop').velocity({
+          opacity: opacity
+        }, { duration: 100 }) :
+        $indicator.stop().animate({
+          opacity: opacity
+        }, 100);
+    }
+
+  });
+</script>
+
+<script type="text/javascript" id="sidebar.nav">
+  $(document).ready(function () {
+    var html = $('html');
+    var TAB_ANIMATE_DURATION = 200;
+    var hasVelocity = $.isFunction(html.velocity);
+
+    $('.sidebar-nav li').on('click', function () {
+      var item = $(this);
+      var activeTabClassName = 'sidebar-nav-active';
+      var activePanelClassName = 'sidebar-panel-active';
+      if (item.hasClass(activeTabClassName)) {
+        return;
+      }
+
+      var currentTarget = $('.' + activePanelClassName);
+      var target = $('.' + item.data('target'));
+
+      hasVelocity ?
+        currentTarget.velocity('transition.slideUpOut', TAB_ANIMATE_DURATION, function () {
+          target
+            .velocity('stop')
+            .velocity('transition.slideDownIn', TAB_ANIMATE_DURATION)
+            .addClass(activePanelClassName);
+        }) :
+        currentTarget.animate({ opacity: 0 }, TAB_ANIMATE_DURATION, function () {
+          currentTarget.hide();
+          target
+            .stop()
+            .css({'opacity': 0, 'display': 'block'})
+            .animate({ opacity: 1 }, TAB_ANIMATE_DURATION, function () {
+              currentTarget.removeClass(activePanelClassName);
+              target.addClass(activePanelClassName);
+            });
+        });
+
+      item.siblings().removeClass(activeTabClassName);
+      item.addClass(activeTabClassName);
+    });
+
+    $('.post-toc a').on('click', function (e) {
+      e.preventDefault();
+      var targetSelector = escapeSelector(this.getAttribute('href'));
+      var offset = $(targetSelector).offset().top;
+      hasVelocity ?
+        html.velocity('stop').velocity('scroll', {
+          offset: offset  + 'px',
+          mobileHA: false
+        }) :
+        $('html, body').stop().animate({
+          scrollTop: offset
+        }, 500);
+    });
+
+    // Expand sidebar on post detail page by default, when post has a toc.
+    motionMiddleWares.sidebar = function () {
+      var $tocContent = $('.post-toc-content');
+      if (CONFIG.sidebar === 'post') {
+        if ($tocContent.length > 0 && $tocContent.html().trim().length > 0) {
+          displaySidebar();
+        }
+      }
+    };
+  });
+</script>
+
+
+
+  <script type="text/javascript" src="/js/bootstrap.js"></script>
+
+  
+  
+
+  
+  
+
+</body>
+</html>

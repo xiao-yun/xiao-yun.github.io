@@ -71,7 +71,7 @@
 <meta property="og:image" content="http://xiao-yun.github.io/../images/数据块拷贝请求.png">
 <meta property="og:image" content="http://xiao-yun.github.io/../images/读数据块校验信息请求.png">
 <meta property="og:image" content="http://xiao-yun.github.io/../images/校验信息应答.png">
-<meta property="og:updated_time" content="2016-01-02T12:46:46.240Z">
+<meta property="og:updated_time" content="2016-01-08T06:45:06.314Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="HDFS节点的流式接口访问">
 <meta name="twitter:description" content="Hadoop版本:Hadoop-1.2.1参考：《Hadoop技术内幕-深入解析Hadoop Common和HDFS架构设计与实现原理》
@@ -247,8 +247,8 @@
         <div class="post-meta">
           <span class="post-time">
             发表于
-            <time itemprop="dateCreated" datetime="2016-01-02T20:46:46+08:00" content="2016-01-02">
-              2016-01-02
+            <time itemprop="dateCreated" datetime="2016-01-08T14:45:06+08:00" content="2016-01-08">
+              2016-01-08
             </time>
           </span>
 
@@ -257,7 +257,19 @@
               &nbsp; | &nbsp; 分类于
               
                 <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
-                  <a href="/categories/Hadoop-1-2-1/" itemprop="url" rel="index">
+                  <a href="/categories/Java/" itemprop="url" rel="index">
+                    <span itemprop="name">Java</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Java/Hadoop-1-2-1/" itemprop="url" rel="index">
                     <span itemprop="name">Hadoop-1.2.1</span>
                   </a>
                 </span>
@@ -269,7 +281,7 @@
 
               
                 <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
-                  <a href="/categories/Hadoop-1-2-1/HDFS/" itemprop="url" rel="index">
+                  <a href="/categories/Java/Hadoop-1-2-1/HDFS/" itemprop="url" rel="index">
                     <span itemprop="name">HDFS</span>
                   </a>
                 </span>
@@ -310,7 +322,7 @@
 <p>本文讨论HDFS中的流式接口，主要用在<code>客户端-数据节点</code>，<code>数据节点-数据节点</code>之间的数据读写(包括复制，数据块恢复等)，<code>名字节点-第二名字节点</code>之间的fsimage和editLog文件的获取。在这些情况下，涉及到大量数据的传输，不适合使用RPC来进行通信，RPC主要应用于小数据的方法调用场景。<br>因此，数据节点，名字节点和第二名字节点都开放了流式接口，用于相关数据访问。  </p>
 <p><strong>说明:</strong> 本文大部分内容来自于<code>技术内幕P245-P254</code>。  </p>
 <hr>
-<h2 id="1_数据节点上的流式接口">1 数据节点上的流式接口</h2><p>数据节点负责实际数据块的读写:将HDFS文件数据写到本地文件系统的文件中，或者从本地文件系统文件中读取HDFS文件数据。除了数据块的读写，数据节点还支持数据块替换，数据块拷贝和数据块检验信息读取等基于TPC的接口。这些操作基于TCP字节流，没有消息边界的概念，因此每个操作都对应一个帧结构，帧结构中包含标识该操作的操作码。<br>数据节点流式接口的操作码定义在<code>DataTransferProtocol</code>接口中<br><figure class="highlight groovy"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">interface</span> <span class="title">DataTransferProtocol</span> &#123;</span></span><br><span class="line">  <span class="comment">//接口版本号</span></span><br><span class="line">  <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="typename">int</span> DATA_TRANSFER_VERSION = <span class="number">17</span>;</span><br><span class="line"></span><br><span class="line">  <span class="comment">//操作码</span></span><br><span class="line">  <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="typename">byte</span> OP_WRITE_BLOCK = (<span class="typename">byte</span>) <span class="number">80</span>;</span><br><span class="line">  <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="typename">byte</span> OP_READ_BLOCK = (<span class="typename">byte</span>) <span class="number">81</span>;</span><br><span class="line">  <span class="comment">//截止版本号15，OP_READ_METADATA不再支持</span></span><br><span class="line">  <span class="annotation">@Deprecated</span> <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="typename">byte</span> OP_READ_METADATA = (<span class="typename">byte</span>) <span class="number">82</span>;</span><br><span class="line">  <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="typename">byte</span> OP_REPLACE_BLOCK = (<span class="typename">byte</span>) <span class="number">83</span>;</span><br><span class="line">  <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="typename">byte</span> OP_COPY_BLOCK = (<span class="typename">byte</span>) <span class="number">84</span>;</span><br><span class="line">  <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="typename">byte</span> OP_BLOCK_CHECKSUM = (<span class="typename">byte</span>) <span class="number">85</span>;</span><br><span class="line">  </span><br><span class="line">  <span class="comment">//操作码对应的状态码</span></span><br><span class="line">  <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="typename">int</span> OP_STATUS_SUCCESS = <span class="number">0</span>;  </span><br><span class="line">  <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="typename">int</span> OP_STATUS_ERROR = <span class="number">1</span>;  </span><br><span class="line">  <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="typename">int</span> OP_STATUS_ERROR_CHECKSUM = <span class="number">2</span>;  </span><br><span class="line">  <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="typename">int</span> OP_STATUS_ERROR_INVALID = <span class="number">3</span>;  </span><br><span class="line">  <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="typename">int</span> OP_STATUS_ERROR_EXISTS = <span class="number">4</span>;  </span><br><span class="line">  <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="typename">int</span> OP_STATUS_ERROR_ACCESS_TOKEN = <span class="number">5</span>;</span><br><span class="line">  <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="typename">int</span> OP_STATUS_CHECKSUM_OK = <span class="number">6</span>;</span><br></pre></td></tr></table></figure></p>
+<h2 id="1-_数据节点上的流式接口">1. 数据节点上的流式接口</h2><p>数据节点负责实际数据块的读写:将HDFS文件数据写到本地文件系统的文件中，或者从本地文件系统文件中读取HDFS文件数据。除了数据块的读写，数据节点还支持数据块替换，数据块拷贝和数据块检验信息读取等基于TPC的接口。这些操作基于TCP字节流，没有消息边界的概念，因此每个操作都对应一个帧结构，帧结构中包含标识该操作的操作码。<br>数据节点流式接口的操作码定义在<code>DataTransferProtocol</code>接口中<br><figure class="highlight groovy"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">interface</span> <span class="title">DataTransferProtocol</span> &#123;</span></span><br><span class="line">  <span class="comment">//接口版本号</span></span><br><span class="line">  <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="typename">int</span> DATA_TRANSFER_VERSION = <span class="number">17</span>;</span><br><span class="line"></span><br><span class="line">  <span class="comment">//操作码</span></span><br><span class="line">  <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="typename">byte</span> OP_WRITE_BLOCK = (<span class="typename">byte</span>) <span class="number">80</span>;</span><br><span class="line">  <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="typename">byte</span> OP_READ_BLOCK = (<span class="typename">byte</span>) <span class="number">81</span>;</span><br><span class="line">  <span class="comment">//截止版本号15，OP_READ_METADATA不再支持</span></span><br><span class="line">  <span class="annotation">@Deprecated</span> <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="typename">byte</span> OP_READ_METADATA = (<span class="typename">byte</span>) <span class="number">82</span>;</span><br><span class="line">  <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="typename">byte</span> OP_REPLACE_BLOCK = (<span class="typename">byte</span>) <span class="number">83</span>;</span><br><span class="line">  <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="typename">byte</span> OP_COPY_BLOCK = (<span class="typename">byte</span>) <span class="number">84</span>;</span><br><span class="line">  <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="typename">byte</span> OP_BLOCK_CHECKSUM = (<span class="typename">byte</span>) <span class="number">85</span>;</span><br><span class="line">  </span><br><span class="line">  <span class="comment">//操作码对应的状态码</span></span><br><span class="line">  <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="typename">int</span> OP_STATUS_SUCCESS = <span class="number">0</span>;  </span><br><span class="line">  <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="typename">int</span> OP_STATUS_ERROR = <span class="number">1</span>;  </span><br><span class="line">  <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="typename">int</span> OP_STATUS_ERROR_CHECKSUM = <span class="number">2</span>;  </span><br><span class="line">  <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="typename">int</span> OP_STATUS_ERROR_INVALID = <span class="number">3</span>;  </span><br><span class="line">  <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="typename">int</span> OP_STATUS_ERROR_EXISTS = <span class="number">4</span>;  </span><br><span class="line">  <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="typename">int</span> OP_STATUS_ERROR_ACCESS_TOKEN = <span class="number">5</span>;</span><br><span class="line">  <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="typename">int</span> OP_STATUS_CHECKSUM_OK = <span class="number">6</span>;</span><br></pre></td></tr></table></figure></p>
 <p>如上，除了操作码外，还定义了操作码对应的状态码。  </p>
 <h3 id="1-1_读数据">1.1 读数据</h3><p>读数据就是从数据节点上的某个数据块读取部分数据，操作码为81。  </p>
 <h4 id="1-1-1_读数据请求">1.1.1 读数据请求</h4><p>读数据请求帧结构如下:<br><img src="../images/数据节点读请求.png" alt="数据节点读请求"><br>按照先后顺序，字段分别代表的含义如下:</p>
@@ -337,7 +349,7 @@
 <p>应答头之后便是一个或多个的数据包</p>
 <h4 id="1-1-3_读请求响应数据包">1.1.3 读请求响应数据包</h4><p>读请求响应的数据包帧格式如下:<br><img src="../images/数据节点读应答的数据包.png" alt="数据节点读应答的数据包"><br>按照先后顺序，字段分别代表的含义如下:</p>
 <ul>
-<li><code>包长度</code>，该数据包的长度</li>
+<li><code>包长度</code>，该数据包的长度，包含”len+checksum+data”长度，即”实际校验数据+实际数据”长度+4</li>
 <li><code>偏移量</code>，与应答头的偏移量对应，该包第一个字节数据在数据块的偏移量</li>
 <li><code>顺序号</code>，包的序号</li>
 <li><code>tail</code>，是否为最后一个包</li>
@@ -349,22 +361,22 @@
 <h4 id="1-2-1_数据写请求">1.2.1 数据写请求</h4><p>写请求的帧结构如下:<br><img src="../images/数据节点写请求.png" alt="数据节点写请求">  </p>
 <ul>
 <li>与读数据请求类似，首先是接口版本号和操作码，写请求操作码为80；然后是写的Block ID和generationStamp，标识该Block；写数据没有偏移量字段，只能往数据块后面添加数据，而不能修改已经写入的文件内容。  </li>
-<li><code>pipelineSize</code>为整个数据流管道的大小，如上为3；<code>isRecover</code>标识是否为数据修复过程；  </li>
-<li>如果数据来源是客户端，则接下来要写客户端的名字，<code>hasSrcDataNode</code>标志为false，没有srcDataNode字段；<br>否则如果数据来源是数据节点，即执行数据复制，客户端字段为空，同时<code>hasSrcDataNode</code>标志置位，紧接着是包含数据来源的数据节点序列化结果；</li>
+<li><code>pipelineSize</code>为整个数据流管道的大小，如上为3；<code>isRecover</code>标识是否为数据修复过程；</li>
+<li>如果数据来源是客户端，则写客户端信息，<code>hasSrcDataNode</code>标志为false，没有srcDataNode字段；<br>否则如果数据来源是数据节点，即执行数据复制，则客户端信息字段为空，同时<code>hasSrcDataNode</code>标志置位，紧接着是包含数据来源的数据节点序列化结果；</li>
 <li><code>targets</code>是目标列表，<code>numTargets</code>为列表大小。<br>当numTargets为0时，表示当前数据节点为数据流管道的最后一个节点，不需要继续推送到其他数据节点；<br>如果numTargets大于0，那么数据目标列表中的第一项即为当前数据节点的下游数据推送目标；  </li>
 <li>访问令牌与安全相关，<code>DataChecksum</code>包含数据校验信息，与数据节点读应答应答头一致，包含校验方式和校验块大小；</li>
 </ul>
 <p>以上面的例子为例，DataNode1接收到Client的写请求时，client字段存在，hasSrcDataNode为0，不存在srcDataNode信息。numTargets为2，targets包含DataNode2和DataNode3的信息。DataNode1会建立到DataNode2的连接并发送接收到的数据。<br>DataNode2收到DataNode1的写请求时，client字段为空，hasSrcDataNode为1，srcDataNode为DataNode1的信息。numTarget为1，targets包含DataNode3的信息。DataNode2会建立到DataNode3的连接并发送接收到的数据。<br>DataNode3收到DataNode2的写请求时，client字段为空，hasSrcDataNode为1，srcDataNode为DataNode2的信息。numTargets为0，DataNode3得知自己为最后一个节点，不会继续建立连接。</p>
 <h4 id="1-2-2_数据写应答">1.2.2 数据写应答</h4><p>写请求有相应的应答，应答会从管道的最后一个数据节点开始(如上DataNode3)，往客户端方向发送，管道上每一个节点都会等待这个应答，收到应答后，才会开始接收数据。也就是说，客户端会等待管道完全建立收到应答后，才会开始发送数据。<br>应答帧格式如下:<br><img src="../images/数据节点写请求应答.png" alt="数据节点写请求应答"><br>接收到应答之后，发送端发送一个或多个数据包，数据包格式与读请求应答一样，见[1.1.3]  </p>
 <p>管道上下游节点接收到上游节点发送的数据包后，会给上游节点发送该数据包的确认包。确认包是<code>DataTransferProtocol.PipelineAck</code>序列化结果<br><figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">class</span> <span class="title">PipelineAck</span> <span class="title">implements</span> <span class="title">Writable</span> &#123;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">long</span> seqno;<span class="comment">//包序号</span></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">short</span> replies[];<span class="comment">//应答</span></span><br><span class="line">    final <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">long</span> UNKOWN_SEQNO = -<span class="number">2</span>; </span><br><span class="line">    </span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">write</span>(<span class="params">DataOutput <span class="keyword">out</span></span>) throws IOException </span>&#123;</span><br><span class="line">      <span class="comment">//WritableUtils.writeVLong(out, seqno);</span></span><br><span class="line">      <span class="keyword">out</span>.writeLong(seqno);</span><br><span class="line">      <span class="keyword">out</span>.writeShort((<span class="keyword">short</span>)replies.length);</span><br><span class="line">      <span class="keyword">for</span>(<span class="keyword">short</span> reply : replies) &#123;</span><br><span class="line">        <span class="keyword">out</span>.writeShort(reply);</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    ...</span><br></pre></td></tr></table></figure></p>
-<p>如上，PipelineAck包含两个成员属性:<code>seqno</code>和<code>replies</code>。seqno是该确认包要确认的数据包序号，replies包含了管道上各个节点上对该数据包的处理结果，成功为OP_STATUS_SUCCESS，失败为OP_STATUS_ERROR，随着确认包的逆流而上(DataNode3-&gt;DataNode2-&gt;DataNode1-&gt;Client)，replies字段不断增长，最终Client接收到后判断replies数组是否全为OP_STATUS_SUCCESS来判断该包是否已经成功被接收。  </p>
+<p>如上，PipelineAck包含两个成员属性:<code>seqno</code>和<code>replies</code>。seqno是该确认包要确认的数据包序号，replies包含了管道上各个节点上对该数据包的处理结果，成功为OP_STATUS_SUCCESS，失败为OP_STATUS_ERROR，随着确认包的逆流而上(DataNode3-&gt;DataNode2-&gt;DataNode1-&gt;Client)，replies字段不断增长，最终Client接收到后判断replies数组是否全为OP_STATUS_SUCCESS来判断该包是否已经成功被接收。<br>replies中的处理结果，首先是下游节点的处理结果，然后是下游节点的下游节点处理结果，以此类推。如Client收到的replies中，replies[0]是DataNode1的操作结果，replies[1]是DataNode2的处理结果。</p>
 <p>均衡器使用数据块替换和数据块拷贝接口，在数据节点间移动数据块，以平衡数据节点的负载</p>
-<h3 id="1-3_数据块替换">1.3 数据块替换</h3><p>数据块替换用于将某个数据节点上的数据块移动到另外一个数据节点，元数据节点上的数据块在成功复制到目标数据节点后，会被删除，该请求由均衡器发往目标数据节点。数据块替换请求帧格式如下:<br><img src="../images/数据块替换请求.png" alt="数据块替换请求"><br>前面4个字段意义现在已经很明显了。<br><code>sourceID</code>为数据源的存储标识，数据块替换操作成功后，执行操作的节点使用这个标识，通过DatanodeProtocol.blockReceived通知名字节点，删除名字节点上源数据节点拥有的，被替换数据块的响应记录，并进一步通过名字节点指令，删除源数据节点上的数据块。<br>源数据节点包含了源数据节点的信息。  </p>
-<p>数据节点执行数据块替换请求的过程中，将源数据节点上的数据复制到目标数据节点，是由数据块拷贝完成的。</p>
-<h3 id="1-4_数据块拷贝">1.4 数据块拷贝</h3><p>数据块拷贝，本质就是一个读操作，由于拷贝针对整个数据块，所以不需要读请求帧的一些字段。数据块拷贝的应答，采用了和读操作应答一样的流程，即应答包含一个应答头和若干应答包。<br>数据块拷贝请求帧格式如下:<br><img src="../images/数据块拷贝请求.png" alt="数据块拷贝请求"><br>操作码为84。</p>
-<h3 id="1-5_读数据块校验信息">1.5 读数据块校验信息</h3><p>读数据块校验信息读取的是整个数据块校验信息的摘要，请求帧格式如下:<br><img src="../images/读数据块校验信息请求.png" alt="读数据块校验信息请求"><br>操作码为85。该请求的应答如下:<br><img src="../images/校验信息应答.png" alt="校验信息应答">  </p>
+<h3 id="1-3_数据块替换">1.3 数据块替换</h3><p>数据块替换用于将某个数据节点上的数据块移动到另外一个数据节点，原数据节点上的数据块在成功复制到目标数据节点后，会被删除，该请求由均衡器发往目标数据节点。数据块替换请求帧格式如下:<br><img src="../images/数据块替换请求.png" alt="数据块替换请求"><br>前面4个字段意义现在已经很明显了。<br><code>sourceID</code>为数据源的存储标识，数据块替换操作成功后，执行操作的节点使用这个标识，通过DatanodeProtocol.blockReceived通知名字节点，删除名字节点上源数据节点拥有的，被替换数据块的响应记录，并进一步通过名字节点指令，删除源数据节点上的数据块。<br>源数据节点包含了源数据节点的信息。  </p>
+<p>数据节点执行数据块替换请求的过程中，将源数据节点上的数据复制到目标数据节点，是由数据块拷贝完成的。拷贝完成后，最后会读取一个标识对端发送完的字节，然后发送替换操作的执行状态给对端作为响应。  </p>
+<h3 id="1-4_数据块拷贝">1.4 数据块拷贝</h3><p>数据块拷贝，本质就是一个读操作，由于拷贝针对整个数据块，所以不需要读请求帧的一些字段。数据块拷贝的应答，采用了和读操作应答一样的流程，即应答包含一个应答头和若干应答包。不过数据块拷贝为整个块拷贝，因此可选偏移量不存在。<br>数据块拷贝请求帧格式如下:<br><img src="../images/数据块拷贝请求.png" alt="数据块拷贝请求"><br>操作码为84。</p>
+<h3 id="1-5_读数据块校验信息">1.5 读数据块校验信息</h3><p>读数据块校验信息读取的是整个数据块校验文件的MD5摘要，请求帧格式如下:<br><img src="../images/读数据块校验信息请求.png" alt="读数据块校验信息请求"><br>操作码为85。该请求的应答如下:<br><img src="../images/校验信息应答.png" alt="校验信息应答">  </p>
 <hr>
-<h2 id="2_名字节点和第二名字节点上的流式接口">2 名字节点和第二名字节点上的流式接口</h2><p>名字节点和第二名字节点上的流式接口用来通过HTTP get fsimage和editlog文件。<br>名字节点管理的文件系统元信息保存在fsimage中，不过并不是每次操作都写到fsimage中，而是保存在editlog即编辑日志中，当名字节点从错误中恢复时，通过fsimage和editlog便能恢复到错误前状态。  </p>
+<h2 id="2-_名字节点和第二名字节点上的流式接口">2. 名字节点和第二名字节点上的流式接口</h2><p>名字节点和第二名字节点上的流式接口用来通过HTTP get fsimage和editlog文件。<br>名字节点管理的文件系统元信息保存在fsimage中，不过并不是每次操作都写到fsimage中，而是保存在editlog即编辑日志中，当名字节点从错误中恢复时，通过fsimage和editlog便能恢复到错误前状态。  </p>
 <p>第二名字节点周期性的获取HDFS中的editlog大小，如果超过了某个大小(通过配置)则需要将edit合并到fsimage中。此时第二名字节点便通过名字节点的HTTP服务通过get方法获取fsimage和editlog文件，此时在名字节点上editlog保存下来发送给第二名字节点，并启用一个新的editlog文件记录改变。第二名字节点获取到fsimage和editlog后进行合并，合并完成通知名字节点取回。这时名字节点通过第二名字节点的HTTP服务由get方法获取合并的新的fsimage文件并替换掉原来的fsimage文件。  </p>
 <p>如上分析，名字节点命名空间镜像fsimage的HTTP地址为:<br><figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">http://<span class="tag">&lt;<span class="title">名字节点地址</span>&gt;</span>:<span class="tag">&lt;<span class="title">名字节点HTTP端口</span>&gt;</span>/getimage?getimage=1</span><br></pre></td></tr></table></figure></p>
 <p>编辑日志editlog的HTTP地址为:<br><figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">http://<span class="tag">&lt;<span class="title">名字节点地址</span>&gt;</span>:<span class="tag">&lt;<span class="title">名字节点HTTP端口</span>&gt;</span>/getimage?getedit=1</span><br></pre></td></tr></table></figure></p>
@@ -394,13 +406,17 @@
         <div class="post-nav">
           <div class="post-nav-next post-nav-item">
             
-              <a href="/HDFS相关实体对象/" rel="next" title="HDFS相关实体对象">
-                <i class="fa fa-chevron-left"></i> HDFS相关实体对象
+              <a href="/DataNode启动/" rel="next" title="DataNode实现源码分析---DataNode启动">
+                <i class="fa fa-chevron-left"></i> DataNode实现源码分析---DataNode启动
               </a>
             
           </div>
 
           <div class="post-nav-prev post-nav-item">
+            
+              <a href="/HDFS相关实体对象/" rel="prev" title="HDFS相关实体对象">
+                HDFS相关实体对象 <i class="fa fa-chevron-right"></i>
+              </a>
             
           </div>
         </div>
@@ -495,21 +511,21 @@
         <nav class="site-state motion-element">
           <div class="site-state-item site-state-posts">
             <a href="/archives">
-              <span class="site-state-item-count">29</span>
+              <span class="site-state-item-count">34</span>
               <span class="site-state-item-name">日志</span>
             </a>
           </div>
 
           <div class="site-state-item site-state-categories">
             <a href="/categories">
-              <span class="site-state-item-count">24</span>
+              <span class="site-state-item-count">49</span>
               <span class="site-state-item-name">分类</span>
               </a>
           </div>
 
           <div class="site-state-item site-state-tags">
             <a href="/tags">
-              <span class="site-state-item-count">14</span>
+              <span class="site-state-item-count">25</span>
               <span class="site-state-item-name">标签</span>
               </a>
           </div>
@@ -551,7 +567,7 @@
               
             
             
-              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#1_数据节点上的流式接口"><span class="nav-number">1.</span> <span class="nav-text">1 数据节点上的流式接口</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-1_读数据"><span class="nav-number">1.1.</span> <span class="nav-text">1.1 读数据</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#1-1-1_读数据请求"><span class="nav-number">1.1.1.</span> <span class="nav-text">1.1.1 读数据请求</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#1-1-2_读请求响应应答头"><span class="nav-number">1.1.2.</span> <span class="nav-text">1.1.2 读请求响应应答头</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#1-1-3_读请求响应数据包"><span class="nav-number">1.1.3.</span> <span class="nav-text">1.1.3 读请求响应数据包</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-2_写数据"><span class="nav-number">1.2.</span> <span class="nav-text">1.2 写数据</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#1-2-1_数据写请求"><span class="nav-number">1.2.1.</span> <span class="nav-text">1.2.1 数据写请求</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#1-2-2_数据写应答"><span class="nav-number">1.2.2.</span> <span class="nav-text">1.2.2 数据写应答</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-3_数据块替换"><span class="nav-number">1.3.</span> <span class="nav-text">1.3 数据块替换</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-4_数据块拷贝"><span class="nav-number">1.4.</span> <span class="nav-text">1.4 数据块拷贝</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-5_读数据块校验信息"><span class="nav-number">1.5.</span> <span class="nav-text">1.5 读数据块校验信息</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2_名字节点和第二名字节点上的流式接口"><span class="nav-number">2.</span> <span class="nav-text">2 名字节点和第二名字节点上的流式接口</span></a></li></ol></div>
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-_数据节点上的流式接口"><span class="nav-number">1.</span> <span class="nav-text">1. 数据节点上的流式接口</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-1_读数据"><span class="nav-number">1.1.</span> <span class="nav-text">1.1 读数据</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#1-1-1_读数据请求"><span class="nav-number">1.1.1.</span> <span class="nav-text">1.1.1 读数据请求</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#1-1-2_读请求响应应答头"><span class="nav-number">1.1.2.</span> <span class="nav-text">1.1.2 读请求响应应答头</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#1-1-3_读请求响应数据包"><span class="nav-number">1.1.3.</span> <span class="nav-text">1.1.3 读请求响应数据包</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-2_写数据"><span class="nav-number">1.2.</span> <span class="nav-text">1.2 写数据</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#1-2-1_数据写请求"><span class="nav-number">1.2.1.</span> <span class="nav-text">1.2.1 数据写请求</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#1-2-2_数据写应答"><span class="nav-number">1.2.2.</span> <span class="nav-text">1.2.2 数据写应答</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-3_数据块替换"><span class="nav-number">1.3.</span> <span class="nav-text">1.3 数据块替换</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-4_数据块拷贝"><span class="nav-number">1.4.</span> <span class="nav-text">1.4 数据块拷贝</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-5_读数据块校验信息"><span class="nav-number">1.5.</span> <span class="nav-text">1.5 读数据块校验信息</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-_名字节点和第二名字节点上的流式接口"><span class="nav-number">2.</span> <span class="nav-text">2. 名字节点和第二名字节点上的流式接口</span></a></li></ol></div>
             
           </div>
           <div class="post-toc-indicator-bottom post-toc-indicator">

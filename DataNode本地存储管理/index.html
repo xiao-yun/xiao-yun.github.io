@@ -1,0 +1,956 @@
+<!doctype html>
+<html class="theme-next   use-motion ">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+  <link href="/vendors/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css"/>
+
+
+
+
+  <link href="//fonts.googleapis.com/css?family=Lato:300,400,700,400italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+
+
+
+<link href="/vendors/font-awesome/css/font-awesome.min.css?v=4.4.0" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=0.4.5.2" rel="stylesheet" type="text/css" />
+
+
+  <meta name="keywords" content="DataNode,DataNode源码阅读,HDFS,Hadoop-1.2.1,Java,源码阅读," />
+
+
+
+
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=0.4.5.2" />
+
+
+
+
+
+
+<meta name="description" content="Hadoop版本:Hadoop-1.2.1参考：《Hadoop技术内幕-深入解析Hadoop Common和HDFS架构设计与实现原理》
+
+DataNode的本地存储由DataStorage和FSDataset负责，本地存储目录通过dfs.data.dir配置，可配置多个存储目录。每个目录下有多个目录，current目录保存VERSION文件，区块文件，区块元数据文件，previous目录保存上一">
+<meta property="og:type" content="article">
+<meta property="og:title" content="DataNode本地存储管理">
+<meta property="og:url" content="http://xiao-yun.github.io/DataNode本地存储管理/index.html">
+<meta property="og:site_name" content="xiaoyun">
+<meta property="og:description" content="Hadoop版本:Hadoop-1.2.1参考：《Hadoop技术内幕-深入解析Hadoop Common和HDFS架构设计与实现原理》
+
+DataNode的本地存储由DataStorage和FSDataset负责，本地存储目录通过dfs.data.dir配置，可配置多个存储目录。每个目录下有多个目录，current目录保存VERSION文件，区块文件，区块元数据文件，previous目录保存上一">
+<meta property="og:image" content="http://xiao-yun.github.io/../images/StorageInfo实现.png">
+<meta property="og:image" content="http://xiao-yun.github.io/../images/数据节点Storage状态机.png">
+<meta property="og:image" content="http://xiao-yun.github.io/../images/FSDataset成员属性.png">
+<meta property="og:updated_time" content="2016-01-08T06:45:06.270Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="DataNode本地存储管理">
+<meta name="twitter:description" content="Hadoop版本:Hadoop-1.2.1参考：《Hadoop技术内幕-深入解析Hadoop Common和HDFS架构设计与实现原理》
+
+DataNode的本地存储由DataStorage和FSDataset负责，本地存储目录通过dfs.data.dir配置，可配置多个存储目录。每个目录下有多个目录，current目录保存VERSION文件，区块文件，区块元数据文件，previous目录保存上一">
+
+
+
+<script type="text/javascript" id="hexo.configuration">
+  var CONFIG = {
+    scheme: 'Mist',
+    sidebar: 'hide',
+    motion: true
+  };
+</script>
+
+  <title> DataNode本地存储管理 | xiaoyun </title>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  <!--[if lte IE 8]>
+  <div style=' clear: both; height: 59px; padding:0 0 0 15px; position: relative;margin:0 auto;'>
+    <a href="http://windows.microsoft.com/en-US/internet-explorer/products/ie/home?ocid=ie6_countdown_bannercode">
+      <img src="http://7u2nvr.com1.z0.glb.clouddn.com/picouterie.jpg" border="0" height="42" width="820"
+           alt="You are using an outdated browser. For a faster, safer browsing experience, upgrade for free today or use other browser ,like chrome firefox safari."
+           style='margin-left:auto;margin-right:auto;display: block;'/>
+    </a>
+  </div>
+<![endif]-->
+  
+
+
+
+  <script type="text/javascript">
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "//hm.baidu.com/hm.js?caeb4129c91d1e6fb3d562d35fedef0d";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+  <div class="container one-column page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-meta ">
+  
+
+  <div class="custom-logo-site-title">
+    <a href="/"  class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <span class="site-title">xiaoyun</span>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+  <p class="site-subtitle"></p>
+</div>
+
+<div class="site-nav-toggle">
+  <button>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+  </button>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu ">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-home fa-fw"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives" rel="section">
+            
+              <i class="menu-item-icon fa fa-archive fa-fw"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories" rel="section">
+            
+              <i class="menu-item-icon fa fa-th fa-fw"></i> <br />
+            
+            分类
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+              <i class="menu-item-icon fa fa-tags fa-fw"></i> <br />
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about" rel="section">
+            
+              <i class="menu-item-icon fa fa-user fa-fw"></i> <br />
+            
+            关于
+          </a>
+        </li>
+      
+
+      
+      
+    </ul>
+  
+
+  
+</nav>
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div id="content" class="content">
+          
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                DataNode本地存储管理
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            发表于
+            <time itemprop="dateCreated" datetime="2016-01-08T14:45:06+08:00" content="2016-01-08">
+              2016-01-08
+            </time>
+          </span>
+
+          
+            <span class="post-category" >
+              &nbsp; | &nbsp; 分类于
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Java/" itemprop="url" rel="index">
+                    <span itemprop="name">Java</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Java/Hadoop-1-2-1/" itemprop="url" rel="index">
+                    <span itemprop="name">Hadoop-1.2.1</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Java/Hadoop-1-2-1/HDFS/" itemprop="url" rel="index">
+                    <span itemprop="name">HDFS</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Java/Hadoop-1-2-1/HDFS/DataNode/" itemprop="url" rel="index">
+                    <span itemprop="name">DataNode</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Java/Hadoop-1-2-1/HDFS/DataNode/源码阅读/" itemprop="url" rel="index">
+                    <span itemprop="name">源码阅读</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Java/Hadoop-1-2-1/HDFS/DataNode/源码阅读/DataNode源码阅读/" itemprop="url" rel="index">
+                    <span itemprop="name">DataNode源码阅读</span>
+                  </a>
+                </span>
+
+                
+                
+
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                &nbsp; | &nbsp;
+                <a href="/DataNode本地存储管理/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="DataNode本地存储管理/" itemprop="commentsCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+
+        </div>
+      </header>
+    
+
+
+    <div class="post-body">
+
+      
+      
+
+      
+        <span itemprop="articleBody"><p>Hadoop版本:<a href="https://archive.apache.org/dist/hadoop/core/hadoop-1.2.1/" target="_blank" rel="external">Hadoop-1.2.1</a><br>参考：《Hadoop技术内幕-深入解析Hadoop Common和HDFS架构设计与实现原理》</p>
+<hr>
+<p>DataNode的本地存储由<code>DataStorage</code>和<code>FSDataset</code>负责，本地存储目录通过<code>dfs.data.dir</code>配置，可配置多个存储目录。每个目录下有多个目录，current目录保存VERSION文件，区块文件，区块元数据文件，previous目录保存上一个版本的文件，若干临时目录用于升级，回滚，升级提交等工作。blocksBeingWritten目录用于保存Client正在写的区块文件，tmp目录保存DataNode之间区块复制正在写的区块文件，还可能有detach目录，用于硬链接的分离。<br>DatasStorage负责版本文件，文件锁，工作目录，不同版本之间工作目录以及升级，回滚，升级提交等工作。涉及到current目录，previous目录，以及相关临时目录。<br>而FSDataset负责数据块和本地文件的对应关系管理，DataNode数据块的读写复制等操作都需要通过FSDataset管理的数据块和本地文件关系来进行。涉及到current目录，blocksBeingWritten目录，tmp目录，detach目录等。</p>
+<p>DataStorage相关类图如下:<br><img src="../images/StorageInfo实现.png" alt="StorageInfo实现"><br>DataStorage继承Storage抽象类，而Storage又继承StorageInfo。<br>StorageInfo包含了节点的基本存储信息，包括<code>layoutVersion</code>，<code>namespaceID</code>，<code>cTime</code>，分别是HDFS存储系统版本号，存储系统标识，存储系统创建时间。<br>Storage为存储管理的抽象类，在StorageInfo的基础上增加了节点类型<code>storageType</code>，管理着多个存储目录，每一个存储目录使用其内部类<code>StorageDirectory</code>表示。节点的<code>layoutVersion</code>，<code>namespaceID</code>,<code>cTime</code>,<code>storageType</code>保存在每个存储目录的<code>current</code>目录下的VERSION文件中。<br>DataStorage继承Storage，它的storageType为<code>NodeType.DATA_NODE</code>，是数据节点的存储管理类，每一个通过<code>dfs.data.dir</code>配置的目录都通过一个StorageDirectory对象管理。  </p>
+<p>类图中的其他类，<code>NamespaceInfo</code>用于DataNode和NameNode通信的DataNodeProtocol接口，DataNode向NameNode注册时，首先通过<code>versionRequest</code>获取集群的信息，返回一个NamespaceInfo对象。<br><code>CheckpointSignature</code>用于NameNode和SecondaryNameNode通信的NameNodeProtocol接口，标识了NameNode元数据的检查点。<br><code>FSImage</code>管理NameNode的文件结构，与DataStorage对应。<code>CheckpointStorage</code>管理SecondaryNameNode的文件结构。   </p>
+<p>StorageInfo比较简单，下面分析Storage</p>
+<hr>
+<h2 id="1_Storage">1 Storage</h2><h3 id="1-1_成员，构造">1.1 成员，构造</h3><p>Storage继承StorageInfo，是节点的存储管理抽象类，管理节点的所有存储目录，数据节点对应的DataStorage和FSImage都继承该类<br><figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">public <span class="keyword">abstract</span> <span class="class"><span class="keyword">class</span> <span class="title">Storage</span> <span class="keyword"><span class="keyword">extends</span></span> <span class="title">StorageInfo</span></span></span><br></pre></td></tr></table></figure></p>
+<p>成员属性如下<br><figure class="highlight lasso"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> NodeType storageType;    <span class="comment">// Type of the node using this storage </span></span><br><span class="line"><span class="keyword">protected</span> <span class="built_in">List</span>&lt;StorageDirectory&gt; storageDirs = <span class="literal">new</span> ArrayList&lt;StorageDirectory&gt;();</span><br></pre></td></tr></table></figure></p>
+<ul>
+<li><p><code>storageType</code>，节点类型，目前支持数据节点和名字节点</p>
+  <figure class="highlight crystal"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">static public <span class="class"><span class="keyword">enum</span> <span class="title">NodeType</span> &#123;</span></span><br><span class="line">    <span class="constant">NAME_NODE</span>,</span><br><span class="line">    <span class="constant">DATA_NODE</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+</li>
+<li><p><code>storageDirs</code>,管理所有的存储目录，存储目录为StorageDirectory类型，StorageDirectory为Storage的内部类，提供了存储目录管理的大部分操作<br>  StorageDirectory的成员属性如下:</p>
+  <figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">File              root; <span class="comment">//根目录</span></span><br><span class="line">FileLock          <span class="keyword">lock</span>; <span class="comment">//存储锁</span></span><br><span class="line">StorageDirType dirType; <span class="comment">//存储目录类型</span></span><br></pre></td></tr></table></figure>
+<p>  如上，每个存储目录包含根目录<code>root</code>；每个存储目录有一个文件锁，对应的文件为root目录下的<code>in_use.lock</code>，有数据节点管理该存储目录时会创建该文件并获得其独占文件锁，保证只有一个DataNode使用该目录；<code>dirType</code>为StorageDirType类型，对DataNode来说只有一种存储目录，因此一般使用null，而NameNode中有不同的存储目录类型</p>
+  <figure class="highlight crystal"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">static <span class="class"><span class="keyword">enum</span> <span class="title">NameNodeDirType</span> <span class="title">implements</span> <span class="title">StorageDirType</span> &#123;</span></span><br><span class="line">    <span class="constant">UNDEFINED</span>,</span><br><span class="line">    <span class="constant">IMAGE</span>,</span><br><span class="line">    <span class="constant">EDITS</span>,</span><br><span class="line">    <span class="constant">IMAGE_AND_EDITS</span>;</span><br></pre></td></tr></table></figure>
+<p>  因此，StorageDirectory有针对此的不同构造函数</p>
+  <figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="title">StorageDirectory</span>(<span class="params">File dir</span>) </span>&#123;</span><br><span class="line">  <span class="keyword">this</span>(dir, <span class="keyword">null</span>);</span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="title">StorageDirectory</span>(<span class="params">File dir, StorageDirType dirType</span>) </span>&#123;</span><br><span class="line">  <span class="keyword">this</span>.root = dir;</span><br><span class="line">  <span class="keyword">this</span>.<span class="keyword">lock</span> = <span class="keyword">null</span>;</span><br><span class="line">  <span class="keyword">this</span>.dirType = dirType;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>  StorageDirectory中的方法提供了存储目录管理的大部分操作，具体见后面分析。</p>
+</li>
+</ul>
+<p>Storage构造<br><figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">protected</span> <span class="type">Storage</span>(<span class="type">NodeType</span> <span class="class"><span class="keyword">type</span>) &#123;</span></span><br><span class="line">    <span class="keyword">super</span>();</span><br><span class="line">    <span class="keyword">this</span>.storageType = <span class="class"><span class="keyword">type</span>;</span></span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">protected</span> <span class="type">Storage</span>(<span class="type">NodeType</span> <span class="class"><span class="keyword">type</span>, <span class="title">int</span> <span class="title">nsID</span>, <span class="title">long</span> <span class="title">cT</span>) &#123;</span></span><br><span class="line">    <span class="keyword">super</span>(<span class="type">FSConstants</span>.<span class="type">LAYOUT_VERSION</span>, nsID, cT);</span><br><span class="line">    <span class="keyword">this</span>.storageType = <span class="class"><span class="keyword">type</span>;</span></span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">protected</span> <span class="type">Storage</span>(<span class="type">NodeType</span> <span class="class"><span class="keyword">type</span>, <span class="title">StorageInfo</span> <span class="title">storageInfo</span>) &#123;</span></span><br><span class="line">    <span class="keyword">super</span>(storageInfo);</span><br><span class="line">    <span class="keyword">this</span>.storageType = <span class="class"><span class="keyword">type</span>;</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>构造函数中只是初始化与版本信息相关的成员，可通过<code>addStorageDir</code>添加管理的存储目录<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">protected</span> <span class="function"><span class="keyword">void</span> <span class="title">addStorageDir</span><span class="params">(StorageDirectory sd)</span> </span>&#123; storageDirs.add(sd); &#125;</span><br></pre></td></tr></table></figure></p>
+<h3 id="1-2_管理的文件目录">1.2 管理的文件目录</h3><p>Storage负责节点存储目录的管理，其管理的目录或重要文件如下，这些文件或目录对应为一个存储目录的，当DataNode管理多个存储目录时，每个存储目录下都会有这些文件，对这些文件的操作通过StorageDirectory中的方法完成<br><figure class="highlight processing"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span>   <span class="keyword">static</span> <span class="keyword">final</span> <span class="keyword">String</span> STORAGE_FILE_LOCK     = <span class="string">"in_use.lock"</span>;</span><br><span class="line"><span class="keyword">protected</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="keyword">String</span> STORAGE_FILE_VERSION  = <span class="string">"VERSION"</span>;</span><br><span class="line"><span class="keyword">public</span>    <span class="keyword">static</span> <span class="keyword">final</span> <span class="keyword">String</span> STORAGE_DIR_CURRENT   = <span class="string">"current"</span>;</span><br><span class="line"><span class="keyword">private</span>   <span class="keyword">static</span> <span class="keyword">final</span> <span class="keyword">String</span> STORAGE_DIR_PREVIOUS  = <span class="string">"previous"</span>;</span><br><span class="line"><span class="keyword">private</span>   <span class="keyword">static</span> <span class="keyword">final</span> <span class="keyword">String</span> STORAGE_TMP_REMOVED   = <span class="string">"removed.tmp"</span>;</span><br><span class="line"><span class="keyword">private</span>   <span class="keyword">static</span> <span class="keyword">final</span> <span class="keyword">String</span> STORAGE_TMP_PREVIOUS  = <span class="string">"previous.tmp"</span>;</span><br><span class="line"><span class="keyword">private</span>   <span class="keyword">static</span> <span class="keyword">final</span> <span class="keyword">String</span> STORAGE_TMP_FINALIZED = <span class="string">"finalized.tmp"</span>;</span><br><span class="line"><span class="keyword">private</span>   <span class="keyword">static</span> <span class="keyword">final</span> <span class="keyword">String</span> STORAGE_TMP_LAST_CKPT = <span class="string">"lastcheckpoint.tmp"</span>;</span><br><span class="line"><span class="keyword">private</span>   <span class="keyword">static</span> <span class="keyword">final</span> <span class="keyword">String</span> STORAGE_PREVIOUS_CKPT = <span class="string">"previous.checkpoint"</span>;</span><br></pre></td></tr></table></figure></p>
+<ul>
+<li><p><code>in_use.lock</code>，为文件锁，DataNode运行时创建在root目录下，关闭时删除。通过StorageDirectory中的lock方法获取文件锁并创建文件</p>
+  <figure class="highlight gradle"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> lock() <span class="keyword">throws</span> IOException &#123;</span><br><span class="line">  <span class="keyword">this</span>.lock = tryLock();</span><br><span class="line">  <span class="keyword">if</span> (lock == <span class="keyword">null</span>) &#123;</span><br><span class="line">    String msg = <span class="string">"Cannot lock storage "</span> + <span class="keyword">this</span>.root + <span class="string">". The directory is already locked."</span>;</span><br><span class="line">    LOG.info(msg);</span><br><span class="line">    <span class="keyword">throw</span> <span class="keyword">new</span> IOException(msg);</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br><span class="line">FileLock tryLock() <span class="keyword">throws</span> IOException &#123;</span><br><span class="line">  <span class="keyword">boolean</span> deletionHookAdded = <span class="keyword">false</span>;</span><br><span class="line">  <span class="keyword">File</span> lockF = <span class="keyword">new</span> <span class="keyword">File</span>(root, STORAGE_FILE_LOCK);<span class="comment">//文件锁在存储目录下，名字为in_use.lock</span></span><br><span class="line">  <span class="keyword">if</span> (!lockF.exists()) &#123;</span><br><span class="line">    lockF.deleteOnExit();<span class="comment">//文件锁在文件系统(File对应的本地文件系统)关闭即关机，或虚拟机关闭(即DataNode关闭)时自动删除</span></span><br><span class="line">    deletionHookAdded = <span class="keyword">true</span>;</span><br><span class="line">  &#125;</span><br><span class="line">  RandomAccessFile <span class="keyword">file</span> = <span class="keyword">new</span> RandomAccessFile(lockF, <span class="string">"rws"</span>);</span><br><span class="line">  FileLock res = <span class="keyword">null</span>;</span><br><span class="line">  <span class="keyword">try</span> &#123;</span><br><span class="line">    res = <span class="keyword">file</span>.getChannel().tryLock();<span class="comment">//通过通道获取文件锁对象</span></span><br><span class="line">  &#125; <span class="keyword">catch</span>(OverlappingFileLockException oe) &#123;</span><br><span class="line">    <span class="keyword">file</span>.close();</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">null</span>;</span><br><span class="line">  &#125; <span class="keyword">catch</span>(IOException e) &#123;</span><br><span class="line">    LOG.error(<span class="string">"Cannot create lock on "</span> + lockF, e);</span><br><span class="line">    <span class="keyword">file</span>.close();</span><br><span class="line">    <span class="keyword">throw</span> e;</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">if</span> (res != <span class="keyword">null</span> &amp;&amp; !deletionHookAdded) &#123;</span><br><span class="line">    lockF.deleteOnExit();</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">return</span> res;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>  如上，”in_use.lock”文件由<code>tryLock</code>创建并上锁，创建并上锁两个操作缺一不可，如果只是创建文件但不加锁，不能防止用户对文件的误操作，如删除文件或移动文件造成”in_use.lock”文件丢失。通过文件通道的tryLock方法获得了文件的独占锁，可以避免上述问题。同时”in_use.lock”会在数据节点退出时删除。(这段话摘自技术内幕P267)<br>  数据节点启动时会获取存储目录的文件锁，如果文件锁已经被占用(即其他数据节点已经在使用这个存储目录)了，则该存储目录不能作为数据节点的存储目录。  </p>
+</li>
+<li><p><code>VERSION</code>，版本文件，保存了存储节点的信息，包括layoutVersion，namespaceID，cTime，storageType，该文件位于current目录下。<br>版本文件同样的每一个StorageDirectory都会有一个，通过StorageDirectory中的read，write方法读写，这里分析下write方法</p>
+  <figure class="highlight gradle"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="keyword">write</span>() <span class="keyword">throws</span> IOException &#123;</span><br><span class="line">  corruptPreUpgradeStorage(root);</span><br><span class="line">  <span class="keyword">write</span>(getVersionFile());</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">public</span> <span class="keyword">File</span> getVersionFile() &#123;<span class="comment">//版本文件位于current目录下，名字为VERSION</span></span><br><span class="line">  <span class="keyword">return</span> <span class="keyword">new</span> <span class="keyword">File</span>(<span class="keyword">new</span> <span class="keyword">File</span>(root, STORAGE_DIR_CURRENT), STORAGE_FILE_VERSION);</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="keyword">write</span>(<span class="keyword">File</span> to) <span class="keyword">throws</span> IOException &#123;</span><br><span class="line">  Properties props = <span class="keyword">new</span> Properties();</span><br><span class="line">  setFields(props, <span class="keyword">this</span>);<span class="comment">//设置props为当前StorageDirectory的属性，layoutVersion，storageType，namespaceID，cTime</span></span><br><span class="line">  RandomAccessFile <span class="keyword">file</span> = <span class="keyword">new</span> RandomAccessFile(to, <span class="string">"rws"</span>);</span><br><span class="line">  FileOutputStream out = <span class="keyword">null</span>;</span><br><span class="line">  <span class="keyword">try</span> &#123;</span><br><span class="line">    <span class="keyword">file</span>.seek(<span class="number">0</span>);</span><br><span class="line">    out = <span class="keyword">new</span> FileOutputStream(<span class="keyword">file</span>.getFD());</span><br><span class="line">    props.store(out, <span class="keyword">null</span>);<span class="comment">//版本文件是Java属性文件</span></span><br><span class="line">    <span class="keyword">file</span>.setLength(out.getChannel().position());<span class="comment">//更新版本文件长度</span></span><br><span class="line">  &#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">    <span class="keyword">if</span> (out != <span class="keyword">null</span>) &#123;</span><br><span class="line">      out.close();</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">file</span>.close();</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">protected</span> <span class="keyword">void</span> setFields(Properties props, StorageDirectory sd ) <span class="keyword">throws</span> IOException &#123;</span><br><span class="line">    props.setProperty(<span class="string">"layoutVersion"</span>, String.valueOf(layoutVersion));</span><br><span class="line">    props.setProperty(<span class="string">"storageType"</span>, storageType.toString());</span><br><span class="line">    props.setProperty(<span class="string">"namespaceID"</span>, String.valueOf(namespaceID));</span><br><span class="line">    props.setProperty(<span class="string">"cTime"</span>, String.valueOf(cTime));</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>  如上，版本文件为Java的Properties文件，包含layoutVersion，storageType，namespaceID，cTime4个属性。通过write方法更新当前数据节点的版本信息到VERSION中，一般在格式化，版本更新或版本回滚时会改变版本文件。<br>  版本文件的读操作通过read完成，与写操作类似，构造Properties对象，通过load方法加载属性文件到Properties对象中，然后使用Storage的getProperty方法读取并检查，设置Storage的相关成员值。  </p>
+</li>
+<li><code>current</code>,当前版本使用的工作目录，目录下可能有以blk*命名的区块文件和区块校验文件，subdir*为名的子目录，dncp*为名的区块扫描器记录日志，VERSION文件</li>
+<li><code>previous</code>,上一个版本使用的目录，HDFS最多保留上一个版本的文件系统，没有多版本的升级，回滚机制   </li>
+<li><code>previous.tmp</code>,<code>removed.tmp</code>,<code>finalized.tmp</code>，升级，回滚，提交升级用到的临时文件，用于在这些过程中出错(DataNode死机)时，能够恢复操作。<br>这里简单介绍，具体过程见后面分析。<br>DataNode<code>升级</code>时，将current目录重命名为<code>previous.tmp</code>，然后重新创建current目录，建立previous.tmp目录到新current目录数据块和元数据文件的硬连接，建立完成后根据新的版本信息创建新的VERSION文件保存在新current目录中，最终将previous.tmp重命名为previous。此时previous和current中数据块和元数据为硬连接关系，在新版本中改变了这些数据块原来版本的数据块也将改变，两个目录下的VERSION文件不一样。<br>DataNode<code>回滚</code>时，current目录改名为<code>removed.tmp</code>，然后将previous目录改名为current目录，最终删除removed.tmp目录完成回滚，因为previous目录中VERSION为上一个版本的信息，所以直接重命名即可。<br>DataNode<code>提交升级</code>，即删除previous版本，将previous目录重命名为finalized.tmp，然后删除finalized.tmp目录完成升级提交。    </li>
+<li><code>lastcheckpoint.tmp</code>和<code>previous.checkpoint</code>用于名字节点检查点相关。  </li>
+</ul>
+<hr>
+<h2 id="2_DataStorage">2 DataStorage</h2><h3 id="2-1_成员，构造">2.1 成员，构造</h3><p>DataStorage继承Storage，管理了DataNode中所有的存储目录，存储在<code>storageDirs</code>中，DataStorage会初始化Storage中的storageType成员。<br>此外还提供了其他成员<br><figure class="highlight delphi"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="keyword">String</span> storageID;</span><br></pre></td></tr></table></figure></p>
+<p>DataStorage的构造如下<br><figure class="highlight processing"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">DataStorage() &#123;</span><br><span class="line">    <span class="keyword">super</span>(NodeType.DATA_NODE);</span><br><span class="line">    storageID = <span class="string">""</span>;</span><br><span class="line">&#125;</span><br><span class="line">DataStorage(<span class="built_in">int</span> nsID, <span class="keyword">long</span> cT, <span class="keyword">String</span> strgID) &#123;</span><br><span class="line">    <span class="keyword">super</span>(NodeType.DATA_NODE, nsID, cT);</span><br><span class="line">    <span class="keyword">this</span>.storageID = strgID;</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">public</span> DataStorage(StorageInfo storageInfo, <span class="keyword">String</span> strgID) &#123;</span><br><span class="line">    <span class="keyword">super</span>(NodeType.DATA_NODE, storageInfo);</span><br><span class="line">    <span class="keyword">this</span>.storageID = strgID;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，构造DataStorage时会初始化Storage中storageType为<code>NodeType.DATA_NODE</code>。  </p>
+<h3 id="2-2_格式化">2.2 格式化</h3><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">format</span><span class="params">(StorageDirectory sd, NamespaceInfo nsInfo)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">    sd.clearDirectory(); <span class="comment">// create directory</span></span><br><span class="line">    <span class="keyword">this</span>.layoutVersion = FSConstants.LAYOUT_VERSION;</span><br><span class="line">    <span class="keyword">this</span>.namespaceID = nsInfo.getNamespaceID();</span><br><span class="line">    <span class="keyword">this</span>.cTime = <span class="number">0</span>;</span><br><span class="line">    sd.write();</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">void</span> <span class="title">clearDirectory</span><span class="params">()</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">  File curDir = <span class="keyword">this</span>.getCurrentDir();<span class="comment">//current目录</span></span><br><span class="line">  <span class="keyword">if</span> (curDir.exists())</span><br><span class="line">    <span class="keyword">if</span> (!(FileUtil.fullyDelete(curDir)))</span><br><span class="line">      <span class="keyword">throw</span> <span class="keyword">new</span> IOException(<span class="string">"Cannot remove current directory: "</span> + curDir);</span><br><span class="line">  <span class="keyword">if</span> (!curDir.mkdirs())</span><br><span class="line">    <span class="keyword">throw</span> <span class="keyword">new</span> IOException(<span class="string">"Cannot create directory "</span> + curDir);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>如上，格式化时，如果current目录存在会将current目录删除，然后重新创建空的current目录，根据获取到的命名空间信息<code>nsInfo</code>初始化版本信息，然后将当前版本信息写到current目录下的VERSION文件中。<br>一般在数据节点第一次启动时，会格式化存储目录。format方法格式化一个存储目录，如果有多个存储目录需要多次调用该方法，NamespaceInfo有可能为从NameNode中获得的命名空间信息(如versionRequest)  </p>
+<h3 id="2-3_升级">2.3 升级</h3><p>如前面介绍，数据节点升级时，正常情况下，先将current目录重命名为previous.tmp，这样在升级失败时能够通过previous.tmp恢复到升级前状态。然后创建新的current目录，建立previous.tmp中区块文件，区块校验文件到新current目录的硬连接，完成后在新current目录下根据新的版本信息建立VERSION文件，然后将previous.tmp目录重命名为previous。因此，升级前要确保previous不存在，如果存在要删除。<br>DataNode的升级通过<code>doUpgrade</code>完成<br><figure class="highlight ceylon"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">void</span> doUpgrade(StorageDirectory sd, NamespaceInfo nsInfo) <span class="annotation">throws</span> IOException &#123;</span><br><span class="line">    <span class="comment">// enable hardlink stats via hardLink object instance</span></span><br><span class="line">    HardLink hardLink = <span class="keyword">new</span> HardLink();</span><br><span class="line">    File curDir = sd.getCurrentDir();<span class="comment">//current目录</span></span><br><span class="line">    File prevDir = sd.getPreviousDir();<span class="comment">//previous目录</span></span><br><span class="line">    <span class="keyword">assert</span> curDir.<span class="keyword">exists</span>() : <span class="string">"Current directory must exist."</span>;</span><br><span class="line">    <span class="comment">// delete previous dir before upgrading</span></span><br><span class="line">    <span class="keyword">if</span> (prevDir.<span class="keyword">exists</span>())<span class="comment">//如果previous目录存在，删除</span></span><br><span class="line">      deleteDir(prevDir);</span><br><span class="line">    File tmpDir = sd.getPreviousTmp();<span class="comment">//previous.tmp目录</span></span><br><span class="line">    <span class="keyword">assert</span> !tmpDir.<span class="keyword">exists</span>() : <span class="string">"previous.tmp directory must not exist."</span>;</span><br><span class="line">    <span class="comment">// rename current to tmp</span></span><br><span class="line">    rename(curDir, tmpDir);<span class="comment">//current-&gt;previous.tmp</span></span><br><span class="line">    <span class="comment">// hardlink blocks</span></span><br><span class="line">    linkBlocks(tmpDir, curDir, <span class="keyword">this</span>.getLayoutVersion(), hardLink);<span class="comment">//previous.tmp中的区块文件，区块校验文件dhcp开头的文件硬链接到新的current目录中</span></span><br><span class="line">    <span class="comment">// write version file</span></span><br><span class="line">    <span class="keyword">this</span>.layoutVersion = FSConstants.LAYOUT<span class="number">_</span>VERSION;<span class="comment">//设置LAYOUT_VERSION</span></span><br><span class="line">    <span class="keyword">assert</span> <span class="keyword">this</span>.namespaceID == nsInfo.getNamespaceID() : <span class="string">"Data-node and name-node layout versions must be the same."</span>;</span><br><span class="line">    <span class="keyword">this</span>.cTime = nsInfo.getCTime();<span class="comment">//更新cTime</span></span><br><span class="line">    sd.write();<span class="comment">//新的current创建VERSION文件，写入新的版本信息</span></span><br><span class="line">    <span class="comment">// rename tmp to previous</span></span><br><span class="line">    rename(tmpDir, prevDir);<span class="comment">//previous.tmp-&gt;previous</span></span><br><span class="line">    LOG.info( hardLink.linkStats.report());</span><br><span class="line">    LOG.info(<span class="string">"Upgrade of "</span> + sd.getRoot()+ <span class="string">" is complete"</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，将previous.tmp中的文件硬链接到新的current目录中通过<code>linkBlocks</code>完成，不再分析。<br>通过硬链接的方式，升级后previous和current中链接的文件，其中一个改变会导致另一个改变，他们对应的inode号是一样的，物理上是一个文件。因此在新的版本上对硬链接的文件进行更改，回滚到原来版本，这些文件也是已经改变了的。  </p>
+<h3 id="2-4_回滚">2.4 回滚</h3><p>回滚即变回原来的版本，HDFS只保存了最近的一个版本，因此只支持当前版本的前一次版本回滚。回滚时将current先重命名为remove.tmp，以便在回滚失败时能够通过remove.tmp恢复到回滚前状态。然后将previous重命名为current，最终删除remove.tmp完成回滚。<br>回滚通过<code>doRollback</code>完成<br><figure class="highlight ceylon"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">void</span> doRollback( StorageDirectory sd, NamespaceInfo nsInfo) <span class="annotation">throws</span> IOException &#123;</span><br><span class="line">    File prevDir = sd.getPreviousDir();</span><br><span class="line">    <span class="comment">// regular startup if previous dir does not exist</span></span><br><span class="line">    <span class="keyword">if</span> (!prevDir.<span class="keyword">exists</span>())<span class="comment">//previous不存在，当然不能回滚</span></span><br><span class="line">      <span class="keyword">return</span>;</span><br><span class="line">    DataStorage prevInfo = <span class="keyword">new</span> DataStorage();</span><br><span class="line">    <span class="comment">//StorageDirectory为内部类，创建previous版本对应的StorageDirectory对象</span></span><br><span class="line">    StorageDirectory prevSD = prevInfo.<span class="keyword">new</span> StorageDirectory(sd.getRoot());</span><br><span class="line">    prevSD.read(prevSD.getPreviousVersionFile());<span class="comment">//读previous中的VERSION文件初始化</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">//LAYOUT_VERSION是个负数，当升级新版本时会减少，只能回滚到以前的版本，因此以前的版本的layoutversion大于当前layoutversion，cTime小于当前cTime</span></span><br><span class="line">    <span class="keyword">if</span> (!(prevInfo.getLayoutVersion() &gt;= FSConstants.LAYOUT<span class="number">_</span>VERSION</span><br><span class="line">          &amp;&amp; prevInfo.getCTime() &lt;= nsInfo.getCTime()))  <span class="comment">//不是以前的版本，不能回滚</span></span><br><span class="line">      <span class="keyword">throw</span> <span class="keyword">new</span> InconsistentFSStateException(prevSD.getRoot(),</span><br><span class="line">                                             <span class="string">"Cannot rollback to a newer state.\nDatanode previous state: LV = "</span> </span><br><span class="line">                                             + prevInfo.getLayoutVersion() + <span class="string">" CTime = "</span> + prevInfo.getCTime() </span><br><span class="line">                                             + <span class="string">" is newer than the namespace state: LV = "</span></span><br><span class="line">                                             + nsInfo.getLayoutVersion() + <span class="string">" CTime = "</span> + nsInfo.getCTime());</span><br><span class="line">    File tmpDir = sd.getRemovedTmp();<span class="comment">//removed.tmp</span></span><br><span class="line">    <span class="keyword">assert</span> !tmpDir.<span class="keyword">exists</span>() : <span class="string">"removed.tmp directory must not exist."</span>;</span><br><span class="line">    <span class="comment">// rename current to tmp</span></span><br><span class="line">    File curDir = sd.getCurrentDir();<span class="comment">//current</span></span><br><span class="line">    <span class="keyword">assert</span> curDir.<span class="keyword">exists</span>() : <span class="string">"Current directory must exist."</span>;</span><br><span class="line">    rename(curDir, tmpDir);<span class="comment">//current-&gt;removed.tmp</span></span><br><span class="line">    <span class="comment">// rename previous to current</span></span><br><span class="line">    rename(prevDir, curDir);<span class="comment">//previous-&gt;current</span></span><br><span class="line">    <span class="comment">// delete tmp dir</span></span><br><span class="line">    deleteDir(tmpDir);<span class="comment">//删除removed.tmp</span></span><br><span class="line">    LOG.info(<span class="string">"Rollback of "</span> + sd.getRoot() + <span class="string">" is complete"</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，回滚时只允许回滚到以前的版本，通过layout和cTime来判断，layout是个负数，创建新版本时会减少。  </p>
+<h3 id="2-5_升级提交">2.5 升级提交</h3><p>升级提交后不能回滚，删除previous目录。同样的为了在中间过程出错后能够恢复，先将previous重命名为finalized.tmp，然后删除finalized.tmp完成提交。<br>升级提交通过<code>doFinalize</code>完成<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">doFinalize</span><span class="params">(StorageDirectory sd)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">    File prevDir = sd.getPreviousDir();</span><br><span class="line">    <span class="keyword">if</span> (!prevDir.exists())<span class="comment">//previous目录不存在，已经提交了</span></span><br><span class="line">      <span class="keyword">return</span>; <span class="comment">// already discarded</span></span><br><span class="line">    <span class="keyword">final</span> String dataDirPath = sd.getRoot().getCanonicalPath();</span><br><span class="line">    <span class="keyword">assert</span> sd.getCurrentDir().exists() : <span class="string">"Current directory must exist."</span>;</span><br><span class="line">    <span class="keyword">final</span> File tmpDir = sd.getFinalizedTmp();<span class="comment">//finalized.tmp</span></span><br><span class="line">    rename(prevDir, tmpDir);<span class="comment">//previous-&gt;finalized.tmp</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">new</span> Daemon(<span class="keyword">new</span> Runnable() &#123;<span class="comment">//创建新的后台线程来删除finalized.tmp</span></span><br><span class="line">        <span class="keyword">public</span> <span class="function"><span class="keyword">void</span> <span class="title">run</span><span class="params">()</span> </span>&#123;</span><br><span class="line">          <span class="keyword">try</span> &#123;</span><br><span class="line">            deleteDir(tmpDir);</span><br><span class="line">          &#125; <span class="keyword">catch</span>(IOException ex) &#123;</span><br><span class="line">            LOG.<span class="keyword">error</span>(<span class="string">"Finalize upgrade for "</span> + dataDirPath + <span class="string">" failed"</span>, ex);</span><br><span class="line">          &#125;</span><br><span class="line">          LOG.info(<span class="string">"Finalize upgrade for "</span> + dataDirPath + <span class="string">" is complete"</span>);</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">public</span> <span class="function">String <span class="title">toString</span><span class="params">()</span> </span>&#123; <span class="keyword">return</span> <span class="string">"Finalize "</span> + dataDirPath; &#125;</span><br><span class="line">      &#125;).start();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<h3 id="2-6_存储空间状态(技术内幕)">2.6 存储空间状态(技术内幕)</h3><p>如上2.4，2.5，2.6升级，回滚，升级提交都引入了中间临时目录，这样当操作过程中发生故障(如机器故障死机)，在故障恢复时处于一个中间阶段，能够从这个中间阶段恢复到操作前的状态。<br>例如，在升级提交中，如果不使用finalized.tmp目录，而是直接删除previous目录。删除目录时，会先递归删除目录下文件，子目录，所有文件子目录删除后才能删除目录。这样，当删除previous目录下的部分文件，目录后，DataNode出现故障关闭了，在DataNode重启后，还是存在previous目录，我们不知道是否是正常状态。如果我们要判断是否是一个中间状态，需要将previous目录下所有文件与current进行比较，而且还不一定会有结果，因为current目录在升级后会写新的文件。<br>而current重命名为finalized.tmp后，如果在中间过程DataNode故障，那么在重启后发现存在finalized.tmp目录，则很简单的判断出现在是一个中间状态。  </p>
+<p>因此，针对升级，回滚，升级提交等过程，定义了如下可能的存储空间状态:<br><figure class="highlight crystal"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">public <span class="class"><span class="keyword">enum</span> <span class="title">StorageState</span> &#123;</span></span><br><span class="line">    <span class="constant">NON_EXISTENT</span>,<span class="regexp">//</span>目录不存在</span><br><span class="line">    <span class="constant">NOT_FORMATTED</span>,<span class="regexp">//</span>还未格式化</span><br><span class="line">    <span class="constant">COMPLETE_UPGRADE</span>,<span class="regexp">//</span>可以完成升级</span><br><span class="line">    <span class="constant">RECOVER_UPGRADE</span>,<span class="regexp">//</span>可以从升级中恢复</span><br><span class="line">    <span class="constant">COMPLETE_FINALIZE</span>,<span class="regexp">//</span>可以完成提交</span><br><span class="line">    <span class="constant">COMPLETE_ROLLBACK</span>,<span class="regexp">//</span>可以完成回滚</span><br><span class="line">    <span class="constant">RECOVER_ROLLBACK</span>,<span class="regexp">//</span>可以从回滚中恢复</span><br><span class="line">    <span class="constant">COMPLETE_CHECKPOINT</span>,<span class="regexp">//</span>可以完成校验点</span><br><span class="line">    <span class="constant">RECOVER_CHECKPOINT</span>,<span class="regexp">//</span>可以从校验点中恢复</span><br><span class="line">    <span class="constant">NORMAL</span>;<span class="regexp">//</span>正常状态</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>以上状态定义在Storage中，根据升级，回滚，提交过程，可以得到以下状态机图(下图见技术内幕P275)<br><img src="../images/数据节点Storage状态机.png" alt="数据节点Storage状态机"><br>上图包含两个NORMAL状态，Storage中的NORMAL状态，表明存储空间里不存在”tmp”目录。下面的NORMAL包含previous和current，上面的NORMAL只包含current目录。  </p>
+<h3 id="2-7_当前状态">2.7 当前状态</h3><p>当前的状态可通过<code>Storage.analyzeStorage</code>方法获得<br><figure class="highlight groovy"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> StorageState analyzeStorage(StartupOption startOpt) <span class="keyword">throws</span> IOException &#123;</span><br><span class="line">  <span class="keyword">assert</span> root != <span class="string">null :</span> <span class="string">"root is null"</span>;</span><br><span class="line">  String rootPath = root.getCanonicalPath();</span><br><span class="line">  <span class="keyword">try</span> &#123; <span class="comment">// check that storage exists</span></span><br><span class="line">    <span class="keyword">if</span> (!root.exists()) &#123;</span><br><span class="line">      <span class="keyword">if</span> (startOpt != StartupOption.FORMAT) &#123;<span class="comment">//根目录不存在，且不是format方式启动的，NON_EXISTENT</span></span><br><span class="line">        LOG.info(<span class="string">"Storage directory "</span> + rootPath + <span class="string">" does not exist"</span>);</span><br><span class="line">        <span class="keyword">return</span> StorageState.NON_EXISTENT;</span><br><span class="line">      &#125;</span><br><span class="line">      LOG.info(rootPath + <span class="string">" does not exist. Creating..."</span>);</span><br><span class="line">      <span class="keyword">if</span> (!root.mkdirs())<span class="comment">//根目录不存在，format方式启动，创建根目录</span></span><br><span class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> IOException(<span class="string">"Cannot create directory "</span> + rootPath);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">//root不是目录或者不能访问，NON_EXISTENT</span></span><br><span class="line">    <span class="keyword">if</span> (!root.isDirectory()) &#123;</span><br><span class="line">      LOG.info(rootPath + <span class="string">"is not a directory"</span>);</span><br><span class="line">      <span class="keyword">return</span> StorageState.NON_EXISTENT;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> (!root.canWrite()) &#123;</span><br><span class="line">      LOG.info(<span class="string">"Cannot access storage directory "</span> + rootPath);</span><br><span class="line">      <span class="keyword">return</span> StorageState.NON_EXISTENT;</span><br><span class="line">    &#125;</span><br><span class="line">  &#125; <span class="keyword">catch</span>(SecurityException ex) &#123;</span><br><span class="line">    LOG.info(<span class="string">"Cannot access storage directory "</span> + rootPath, ex);</span><br><span class="line">    <span class="keyword">return</span> StorageState.NON_EXISTENT;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">this</span>.lock(); <span class="comment">// lock storage if it exists</span></span><br><span class="line"></span><br><span class="line">  <span class="keyword">if</span> (startOpt == HdfsConstants.StartupOption.FORMAT)</span><br><span class="line">    <span class="keyword">return</span> StorageState.NOT_FORMATTED;<span class="comment">//format启动，root存在且能访问，NOT_FORMATTED</span></span><br><span class="line">  <span class="keyword">if</span> (startOpt != HdfsConstants.StartupOption.IMPORT) &#123;</span><br><span class="line">    checkConversionNeeded(<span class="keyword">this</span>);</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  File versionFile = getVersionFile();</span><br><span class="line">  <span class="typename">boolean</span> hasCurrent = versionFile.exists();</span><br><span class="line"></span><br><span class="line">  <span class="typename">boolean</span> hasPrevious = getPreviousDir().exists();</span><br><span class="line">  <span class="typename">boolean</span> hasPreviousTmp = getPreviousTmp().exists();</span><br><span class="line">  <span class="typename">boolean</span> hasRemovedTmp = getRemovedTmp().exists();</span><br><span class="line">  <span class="typename">boolean</span> hasFinalizedTmp = getFinalizedTmp().exists();</span><br><span class="line">  <span class="typename">boolean</span> hasCheckpointTmp = getLastCheckpointTmp().exists();</span><br><span class="line"></span><br><span class="line">  <span class="keyword">if</span> (!(hasPreviousTmp || hasRemovedTmp || hasFinalizedTmp || hasCheckpointTmp)) &#123;<span class="comment">//不存在tmp目录</span></span><br><span class="line">    <span class="keyword">if</span> (hasCurrent)<span class="comment">//current目录包含VERSION，NROMAL</span></span><br><span class="line">      <span class="keyword">return</span> StorageState.NORMAL;</span><br><span class="line">    <span class="keyword">if</span> (hasPrevious)<span class="comment">//没有current，但是有previous，抛出异常</span></span><br><span class="line">      <span class="keyword">throw</span> <span class="keyword">new</span> InconsistentFSStateException(root, <span class="string">"version file in current directory is missing."</span>);</span><br><span class="line">    <span class="keyword">return</span> StorageState.NOT_FORMATTED;<span class="comment">//没有current，没有previous，需重新格式化，NOT_FORMATTED</span></span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">if</span> ((hasPreviousTmp?1:<span class="number">0</span>) + (hasRemovedTmp?1:<span class="number">0</span>) + (hasFinalizedTmp?1:<span class="number">0</span>) + (hasCheckpointTmp?1:<span class="number">0</span>) &gt; <span class="number">1</span>)</span><br><span class="line">    <span class="comment">//有超过一个tmp目录存在，抛出异常</span></span><br><span class="line">    <span class="keyword">throw</span> <span class="keyword">new</span> InconsistentFSStateException(root, <span class="string">"too many temporary directories."</span>);</span><br><span class="line"></span><br><span class="line">  <span class="keyword">if</span> (hasCheckpointTmp) &#123;<span class="comment">//lastcheckpoint.tmp存在，且current存在为COMPLETE_CHECKPOINT，current不存在为RECOVER_CHECKPOINT</span></span><br><span class="line">    <span class="keyword">return</span> hasCurrent ? StorageState.COMPLETE_CHECKPOINT : StorageState.RECOVER_CHECKPOINT;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">if</span> (hasFinalizedTmp) &#123;<span class="comment">//finalized.tmp存在，提交，此时不应该有previous，COMPLETE_FINALIZE</span></span><br><span class="line">    <span class="keyword">if</span> (hasPrevious)</span><br><span class="line">      <span class="keyword">throw</span> <span class="keyword">new</span> InconsistentFSStateException(root, STORAGE_DIR_PREVIOUS + <span class="string">" and "</span> + STORAGE_TMP_FINALIZED</span><br><span class="line">                                             + <span class="string">"cannot exist together."</span>);</span><br><span class="line">    <span class="keyword">return</span> StorageState.COMPLETE_FINALIZE;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">if</span> (hasPreviousTmp) &#123;</span><br><span class="line">  <span class="comment">//previous.tmp存在，升级，此时不应该有previous，如果current的VERSION已经存在，COMPLETE_UPGRADE</span></span><br><span class="line">  <span class="comment">//如果VERSION还未生成，current没有包含完全的数据，RECOVER_UPGRADE</span></span><br><span class="line">    <span class="keyword">if</span> (hasPrevious)</span><br><span class="line">      <span class="keyword">throw</span> <span class="keyword">new</span> InconsistentFSStateException(root, STORAGE_DIR_PREVIOUS + <span class="string">" and "</span> + STORAGE_TMP_PREVIOUS</span><br><span class="line">                                             + <span class="string">" cannot exist together."</span>);</span><br><span class="line">    <span class="keyword">if</span> (hasCurrent) <span class="keyword">return</span> StorageState.COMPLETE_UPGRADE;</span><br><span class="line">    <span class="keyword">return</span> StorageState.RECOVER_UPGRADE;</span><br><span class="line">  &#125;</span><br><span class="line">  </span><br><span class="line">  <span class="keyword">assert</span> <span class="string">hasRemovedTmp :</span> <span class="string">"hasRemovedTmp must be true"</span>;</span><br><span class="line">  <span class="comment">//removed.tmp存在，回滚，current和previous只能存在一个，current存在时，COMPLETE_ROLLBACK，previous存在时，RECOVER_ROLLBACK</span></span><br><span class="line">  <span class="keyword">if</span> (!(hasCurrent ^ hasPrevious))</span><br><span class="line">    <span class="keyword">throw</span> <span class="keyword">new</span> InconsistentFSStateException(root, <span class="string">"one and only one directory "</span> + STORAGE_DIR_CURRENT </span><br><span class="line">           + <span class="string">" or "</span> + STORAGE_DIR_PREVIOUS + <span class="string">" must be present when "</span> + STORAGE_TMP_REMOVED + <span class="string">" exists."</span>);</span><br><span class="line">  <span class="keyword">if</span> (hasCurrent)</span><br><span class="line">    <span class="keyword">return</span> StorageState.COMPLETE_ROLLBACK;</span><br><span class="line">  <span class="keyword">return</span> StorageState.RECOVER_ROLLBACK;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，总结各种状态的情况<br><code>NON_EXISTENT</code></p>
+<ul>
+<li>根目录不存在且不是以format方式启动；(若根目录不存在，且以format方式启动时会创建根目录)</li>
+<li>根目录不是目录(dfs.data.dir配置的路径不是目录)</li>
+<li>根目录不可访问</li>
+</ul>
+<p><code>NOT_FORMATTED</code></p>
+<ul>
+<li>根目录存在，获得了文件”in_use.lock”文件锁，但是是以format方式启动的，需要重新格式化</li>
+<li>所有tmp目录不存在，current目录VERSION不存在，previous不存在，需要重新格式化</li>
+</ul>
+<p><code>COMPLETE_UPGRADE</code>，previous.tmp和current目录下的VERSION文件同时存在(没有其他tmp目录)<br><code>RECOVER_UPGRADE</code>，previous.tmp存在，但current目录下的VERSION文件不存在，硬件链接还未完成，需恢复到升级前状态(没有其他tmp目录)</p>
+<p><code>COMPLETE_FINALIZE</code>，finalized.tmp存在且previous不存在，即finalized.tmp目录还未删除完，继续删除完成提交(没有其他tmp目录)  </p>
+<p><code>COMPLETE_ROLLBACK</code>，removed.tmp存在，previous不存在，current目录下VERSION存在(没有其他tmp目录)<br><code>RECOVER_ROLLBACK</code>，removed.tmp存在，previous存在，current目录下VERSION不存在(没有其他tmp目录)  </p>
+<p><code>NORMAL</code>，没有任何tmp目录，且current目录下的VERSION存在</p>
+<h3 id="2-8_恢复到正常状态">2.8 恢复到正常状态</h3><p>如果中间状态，需要恢复到正常状态，可通过<code>Storage.doRecover</code><br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">void</span> <span class="title">doRecover</span><span class="params">(StorageState curState)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">      File curDir = getCurrentDir();</span><br><span class="line">      String rootPath = root.getCanonicalPath();</span><br><span class="line">      <span class="keyword">switch</span>(curState) &#123;</span><br><span class="line">      <span class="keyword">case</span> COMPLETE_UPGRADE:  </span><br><span class="line">        rename(getPreviousTmp(), getPreviousDir());<span class="comment">//previous.tmp -&gt; previous</span></span><br><span class="line">        <span class="keyword">return</span>;</span><br><span class="line">      <span class="keyword">case</span> RECOVER_UPGRADE:   </span><br><span class="line">        <span class="keyword">if</span> (curDir.exists())//current存在，先删除</span><br><span class="line">          deleteDir(curDir);</span><br><span class="line">        rename(getPreviousTmp(), curDir);<span class="comment">//previous.tmp -&gt; current</span></span><br><span class="line">        <span class="keyword">return</span>;</span><br><span class="line">      <span class="keyword">case</span> COMPLETE_ROLLBACK: </span><br><span class="line">        deleteDir(getRemovedTmp());<span class="comment">//删除removed.tmp</span></span><br><span class="line">        <span class="keyword">return</span>;</span><br><span class="line">      <span class="keyword">case</span> RECOVER_ROLLBACK:  </span><br><span class="line">        rename(getRemovedTmp(), curDir);<span class="comment">//removed.tmp -&gt; current</span></span><br><span class="line">        <span class="keyword">return</span>;</span><br><span class="line">      <span class="keyword">case</span> COMPLETE_FINALIZE: </span><br><span class="line">        deleteDir(getFinalizedTmp());<span class="comment">//删除finalized.tmp</span></span><br><span class="line">        <span class="keyword">return</span>;</span><br><span class="line">      <span class="keyword">case</span> COMPLETE_CHECKPOINT: // mv lastcheckpoint.tmp -&gt; previous.checkpoint</span><br><span class="line">        File prevCkptDir = getPreviousCheckpoint();</span><br><span class="line">        <span class="keyword">if</span> (prevCkptDir.exists())</span><br><span class="line">          deleteDir(prevCkptDir);</span><br><span class="line">        rename(getLastCheckpointTmp(), prevCkptDir);</span><br><span class="line">        <span class="keyword">return</span>;</span><br><span class="line">      <span class="keyword">case</span> RECOVER_CHECKPOINT:  // mv lastcheckpoint.tmp -&gt; current</span><br><span class="line">        LOG.info(<span class="string">"Recovering storage directory "</span> + rootPath</span><br><span class="line">                 + <span class="string">" from failed checkpoint"</span>);</span><br><span class="line">        <span class="keyword">if</span> (curDir.exists())</span><br><span class="line">          deleteDir(curDir);</span><br><span class="line">        rename(getLastCheckpointTmp(), curDir);</span><br><span class="line">        <span class="keyword">return</span>;</span><br><span class="line">      <span class="keyword">default</span>:</span><br><span class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> IOException(<span class="string">"Unexpected FS state: "</span> + curState);</span><br><span class="line">      &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，根据2.6中的状态机很容易得出操作过程，checkpoint与NameNode有关，这里不分析。</p>
+<hr>
+<h2 id="3_FSDataset">3 FSDataset</h2><p>FSDataset管理DataNode上的数据区块，每个数据区块在本地文件系统中都有一个对应的文件，还可能有对应的元数据文件。<br>FSDataset中通过三个内部类对三个不同目录级别进行表示，<code>FSVolumeSet</code>对应所有的存储目录即<code>dfs.data.dir</code>配置中的所有目录项，<code>FSVolume</code>管理一个存储目录即为<code>dfs.data.dir</code>中的一项，<code>FSDir</code>表示current目录及其子目录。<br>这里简单介绍FSDataset，并对上述三个内部类进行分析，FSDataset中具体的操作在后面DataNode的实现中具体分析。  </p>
+<h3 id="3-1_FSDataset成员属性">3.1 FSDataset成员属性</h3><p>FSDataset中成员属性如下:<br><img src="../images/FSDataset成员属性.png" alt="FSDataset成员属性">  </p>
+<ul>
+<li><code>volumns</code>，为FSVolumeSet对象，管理所有的存储目录</li>
+<li><p><code>ongoingCreates</code>，管理了当前正在写的数据块及其对应的”活动文件”ActiveFile的映射，ActiveFile如下</p>
+  <figure class="highlight gradle"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">static</span> <span class="keyword">class</span> ActiveFile &#123;</span><br><span class="line">    <span class="keyword">final</span> <span class="keyword">File</span> <span class="keyword">file</span>;<span class="comment">//对应的本地文件</span></span><br><span class="line">    <span class="keyword">final</span> List&lt;Thread&gt; threads = <span class="keyword">new</span> ArrayList&lt;Thread&gt;(<span class="number">2</span>);<span class="comment">//操作该文件的线程</span></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">volatile</span> <span class="keyword">long</span> visibleLength;<span class="comment">//当前数据块的可见长度</span></span><br><span class="line">    <span class="keyword">final</span> <span class="keyword">boolean</span> wasRecoveredOnStartup;<span class="comment">//是否启动时进行恢复</span></span><br><span class="line">    ...</span><br></pre></td></tr></table></figure>
+</li>
+<li><p><code>maxBlocksPerDir</code>，一个目录下最大的区块文件数量，超出该限制将创建子目录，为配置项<code>dfs.datanode.numblocks</code>，默认64</p>
+</li>
+<li><p><code>volumeMap</code>，保持了所有数据块在数据节点的附加信息<code>DatanodeBlockInfo</code>，如下</p>
+  <figure class="highlight gradle"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">class</span> DatanodeBlockInfo &#123;</span><br><span class="line">  <span class="keyword">private</span> FSVolume volume;       <span class="comment">//该区块所属的FSVolume</span></span><br><span class="line">  <span class="keyword">private</span> <span class="keyword">File</span>     <span class="keyword">file</span>;         <span class="comment">//对应的本地文件</span></span><br><span class="line">  <span class="keyword">private</span> <span class="keyword">boolean</span> detached;      <span class="comment">//是否写时复制</span></span><br><span class="line">  ...</span><br></pre></td></tr></table></figure>
+</li>
+<li><p><code>validVolsRequired</code>，正常情况下需要存储目录的个数，为配置的目录个数减去能够容忍失效的目录个数，小于该值会抛出<code>磁盘错误</code>异常不能正常工作</p>
+</li>
+<li><p><code>asyncDiskService</code>，FSDatasetAsyncDiskService类，包含多个线程池，每一个线程池为一个存储目录提供异步操作。在FSDataset中删除文件或目录交给该服务，因为删除可能会很慢，每次删除操作时创建新线程也不高效。<br>  FSDatasetAsyncDiskService成员属性如下:</p>
+  <figure class="highlight gradle"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="keyword">int</span> CORE_THREADS_PER_VOLUME = <span class="number">1</span>;</span><br><span class="line"><span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="keyword">int</span> MAXIMUM_THREADS_PER_VOLUME = <span class="number">4</span>;</span><br><span class="line"><span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="keyword">long</span> THREADS_KEEP_ALIVE_SECONDS = <span class="number">60</span>; </span><br><span class="line"></span><br><span class="line"><span class="keyword">private</span> <span class="keyword">final</span> ThreadGroup threadGroup = <span class="keyword">new</span> ThreadGroup(<span class="string">"async disk service"</span>);</span><br><span class="line"><span class="keyword">private</span> ThreadFactory threadFactory;</span><br><span class="line"><span class="keyword">private</span> HashMap&lt;<span class="keyword">File</span>, ThreadPoolExecutor&gt; executors = <span class="keyword">new</span> HashMap&lt;<span class="keyword">File</span>, ThreadPoolExecutor&gt;();</span><br></pre></td></tr></table></figure>
+<p>  如上，executors管理了存储目录和ThreadPoolExecutor的映射，每一个存储目录对应一个线程池执行器，构造如下</p>
+  <figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">FSDatasetAsyncDiskService(File[] volumes) &#123;</span><br><span class="line">    threadFactory = <span class="keyword">new</span> ThreadFactory() &#123;</span><br><span class="line">      <span class="function"><span class="keyword">public</span> Thread <span class="title">newThread</span><span class="params">(Runnable r)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">new</span> Thread(threadGroup, r);</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;;</span><br><span class="line">    <span class="keyword">for</span> (<span class="keyword">int</span> v = <span class="number">0</span> ; v &lt; volumes.length; v++) &#123;</span><br><span class="line">      ThreadPoolExecutor executor = <span class="keyword">new</span> ThreadPoolExecutor(</span><br><span class="line">          CORE_THREADS_PER_VOLUME, MAXIMUM_THREADS_PER_VOLUME, </span><br><span class="line">          THREADS_KEEP_ALIVE_SECONDS, TimeUnit.SECONDS, </span><br><span class="line">          <span class="keyword">new</span> LinkedBlockingQueue&lt;Runnable&gt;(), threadFactory);</span><br><span class="line"></span><br><span class="line">      executor.allowCoreThreadTimeOut(<span class="literal">true</span>);</span><br><span class="line">      executors.put(volumes[v], executor);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>  如上，为每个存储目录创建一个线程池执行器对象，核心线程数为1，最大线程数为4，核心线程之外保活时间1min。<br>  删除文件操作对应的线程为<code>ReplicaFileDeleteTask</code>，成员如下:</p>
+  <figure class="highlight axapta"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">static</span> <span class="class"><span class="keyword">class</span> <span class="title">ReplicaFileDeleteTask</span> <span class="keyword">implements</span> <span class="title">Runnable</span> </span>&#123;</span><br><span class="line">    FSDataset.FSVolume volume;<span class="comment">//所属存储目录</span></span><br><span class="line">    File blockFile;<span class="comment">//区块文件</span></span><br><span class="line">    File metaFile;<span class="comment">//区块文件对应元数据文件</span></span><br><span class="line">    <span class="keyword">long</span> dfsBytes;<span class="comment">//区块大小</span></span><br><span class="line">    String blockName;<span class="comment">//区块名</span></span><br><span class="line">    ...</span><br></pre></td></tr></table></figure>
+<p>  对应的主程序如下:</p>
+  <figure class="highlight armasm"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">@Override</span></span><br><span class="line"><span class="label">public</span> void run() &#123;</span><br><span class="line">  <span class="preprocessor">if</span> ( !<span class="keyword">blockFile.delete() </span><span class="title">||</span> ( !metaFile.delete() &amp;&amp; metaFile.exists() ) ) &#123;</span><br><span class="line">    DataNode.LOG.warn(<span class="string">"Unexpected error trying to delete "</span> + <span class="keyword">blockName </span>+ <span class="string">" at file "</span> + <span class="keyword">blockFile </span>+ <span class="string">". Ignored."</span>)<span class="comment">;</span></span><br><span class="line">  &#125; <span class="preprocessor">else</span> &#123;</span><br><span class="line">    volume.decDfsUsed(dfsBytes)<span class="comment">;</span></span><br><span class="line">    DataNode.LOG.info(<span class="string">"Deleted "</span> + <span class="keyword">blockName </span>+ <span class="string">" at file "</span> + <span class="keyword">blockFile);</span><br><span class="line"></span>  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>  如上，删除区块文件和元数据文件，然后减少存储目录volume中的已使用数据量。该线程会交给volume对应的线程池执行器通过execute调用。  </p>
+</li>
+<li><p><code>asyncBlockReport</code>，异步区块报告线程，负责扫描本地区块文件<br>  成员</p>
+  <figure class="highlight gradle"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="keyword">final</span> Thread thread;<span class="comment">//对应的线程</span></span><br><span class="line"><span class="keyword">private</span> <span class="keyword">final</span> FSDataset fsd;<span class="comment">//要扫描的数据集</span></span><br><span class="line"><span class="keyword">boolean</span> requested = <span class="keyword">false</span>;<span class="comment">//DataNode是否请求扫描</span></span><br><span class="line"><span class="keyword">boolean</span> shouldRun = <span class="keyword">true</span>;<span class="comment">//DataNode是否还在运行</span></span><br><span class="line"><span class="keyword">private</span> HashMap&lt;Block, <span class="keyword">File</span>&gt; scan = <span class="keyword">null</span>;<span class="comment">//扫描结果</span></span><br></pre></td></tr></table></figure>
+<p>  如上，DataNode请求扫描时(第一次为在向NameNode注册时，register方法中请求扫描)，<code>requested</code>为true才会开始扫描，可以通过<code>request</code>方法开始请求扫描</p>
+  <figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">synchronized</span> <span class="function"><span class="keyword">void</span> <span class="title">request</span><span class="params">()</span> </span>&#123;</span><br><span class="line">  requested = <span class="keyword">true</span>;</span><br><span class="line">  notifyAll();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>  <code>scan</code>保存扫描结果，通过<code>getAndReset</code>获取扫描结果并清空scan，每次读取扫描结果后需要再次请求扫描</p>
+  <figure class="highlight gradle"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">synchronized</span> HashMap&lt;Block, <span class="keyword">File</span>&gt; getAndReset() &#123;</span><br><span class="line">  <span class="keyword">if</span> (!isReady()) &#123;</span><br><span class="line">    <span class="keyword">throw</span> <span class="keyword">new</span> IllegalStateException(<span class="string">"report not ready!"</span>);</span><br><span class="line">  &#125;</span><br><span class="line">  HashMap&lt;Block, <span class="keyword">File</span>&gt; ret = scan;</span><br><span class="line">  scan = <span class="keyword">null</span>;</span><br><span class="line">  requested = <span class="keyword">false</span>;</span><br><span class="line">  <span class="keyword">return</span> ret;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>  构造</p>
+  <figure class="highlight lasso"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">AsyncBlockReport(FSDataset fsd) &#123;</span><br><span class="line">  this<span class="built_in">.</span>fsd = fsd;</span><br><span class="line">  <span class="keyword">thread</span> = <span class="literal">new</span> <span class="keyword">Thread</span>(this, <span class="string">"Async Block Report Generator"</span>);</span><br><span class="line">  <span class="keyword">thread</span><span class="built_in">.</span>setDaemon(<span class="literal">true</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>  线程主流程</p>
+  <figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line"><span class="annotation">@Override</span></span><br><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">void</span> <span class="title">run</span><span class="params">()</span> </span>&#123;</span><br><span class="line">  <span class="keyword">while</span> (shouldRun) &#123;</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">      waitForReportRequest();</span><br><span class="line">      <span class="keyword">assert</span> requested &amp;&amp; scan == <span class="keyword">null</span>;</span><br><span class="line">      </span><br><span class="line">      <span class="keyword">long</span> st = System.currentTimeMillis();</span><br><span class="line">      HashMap&lt;Block, File&gt; result = fsd.roughBlockScan();</span><br><span class="line">      DataNode.LOG.info(<span class="string">"Finished asynchronous block report scan in "</span> + (System.currentTimeMillis() - st) + <span class="string">"ms"</span>);</span><br><span class="line">      </span><br><span class="line">      <span class="keyword">synchronized</span> (<span class="keyword">this</span>) &#123;</span><br><span class="line">        <span class="keyword">assert</span> scan == <span class="keyword">null</span>;</span><br><span class="line">        <span class="keyword">this</span>.scan = result;</span><br><span class="line">      &#125;</span><br><span class="line">    &#125; <span class="keyword">catch</span> (InterruptedException ie) &#123;</span><br><span class="line">      <span class="comment">// interrupted to end scanner</span></span><br><span class="line">    &#125; <span class="keyword">catch</span> (Throwable t) &#123;</span><br><span class="line">      DataNode.LOG.<span class="keyword">error</span>(<span class="string">"Async Block Report thread caught exception"</span>, t);</span><br><span class="line">      <span class="keyword">try</span> &#123;</span><br><span class="line">        <span class="comment">// Avoid busy-looping in the case that we have entered some invalid</span></span><br><span class="line">        <span class="comment">// state -- don't want to flood the error log with exceptions.</span></span><br><span class="line">        Thread.sleep(<span class="number">2000</span>);</span><br><span class="line">      &#125; <span class="keyword">catch</span> (InterruptedException e) &#123;</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>  在能扫描前会一直等待</p>
+  <figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="keyword">synchronized</span> <span class="function"><span class="keyword">void</span> <span class="title">waitForReportRequest</span><span class="params">()</span> <span class="keyword">throws</span> InterruptedException </span>&#123;</span><br><span class="line">  <span class="keyword">while</span> (!(requested &amp;&amp; scan == <span class="keyword">null</span>)) &#123;</span><br><span class="line">    wait(<span class="number">5000</span>);</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>  如上，如果没有请求扫描或者当前扫描结果没有读取则不会开始下一轮扫描，扫描通过FSDataset的<code>roughBlockScan</code>扫描所有存储目录下的区块文件返回。</p>
+</li>
+<li><code>DISK_ERROR</code>，磁盘错误信息</li>
+</ul>
+<h3 id="3-2_FSDir">3.2 FSDir</h3><p>FSDir表示current目录或其子目录，可能包含blk*区块文件和元数据文件，sub*子目录，dncp*文件，在current目录下还有VERSION文件。  </p>
+<h4 id="3-2-1_成员属性">3.2.1 成员属性</h4><figure class="highlight nginx"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="title">class</span> FSDir &#123;</span><br><span class="line">    <span class="title">File</span> dir;</span><br><span class="line">    <span class="title">int</span> numBlocks = <span class="number">0</span>;</span><br><span class="line">    <span class="title">FSDir</span> children[];</span><br><span class="line">    <span class="title">int</span> <span class="built_in">last</span>ChildIdx = <span class="number">0</span>;</span><br></pre></td></tr></table></figure>
+<ul>
+<li><code>dir</code>，目录名</li>
+<li><code>numBlocks</code>，目录下的区块文件数目，不包括子目录下的区块</li>
+<li><code>children</code>，子目录</li>
+<li><code>lastChildIdx</code>,上次访问的子目录索引</li>
+</ul>
+<h4 id="3-2-2_构造">3.2.2 构造</h4><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="title">FSDir</span><span class="params">(File dir)</span> throws IOException </span>&#123;</span><br><span class="line">  <span class="keyword">this</span>.dir = dir;</span><br><span class="line">  <span class="keyword">this</span>.children = null;</span><br><span class="line">  <span class="keyword">if</span> (!dir.exists()) &#123;<span class="comment">//目录不存在，创建目录</span></span><br><span class="line">    <span class="keyword">if</span> (!dir.mkdirs()) &#123;</span><br><span class="line">      <span class="keyword">throw</span> <span class="keyword">new</span> IOException(<span class="string">"Mkdirs failed to create "</span> + dir.toString());</span><br><span class="line">    &#125;</span><br><span class="line">  &#125; <span class="keyword">else</span> &#123;<span class="comment">//目录存在，读取目录信息</span></span><br><span class="line">    File[] files = FileUtil.listFiles(dir);</span><br><span class="line">    <span class="keyword">int</span> numChildren = <span class="number">0</span>;</span><br><span class="line">    <span class="keyword">for</span> (<span class="keyword">int</span> idx = <span class="number">0</span>; idx &lt; files.length; idx++) &#123;</span><br><span class="line">      <span class="keyword">if</span> (files[idx].isDirectory()) &#123;</span><br><span class="line">        numChildren++;</span><br><span class="line">      &#125; <span class="keyword">else</span> <span class="keyword">if</span> (Block.isBlockFilename(files[idx])) &#123;<span class="comment">//目录中区块信息</span></span><br><span class="line">        numBlocks++;</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> (numChildren &gt; <span class="number">0</span>) &#123;</span><br><span class="line">      children = <span class="keyword">new</span> FSDir[numChildren];</span><br><span class="line">      <span class="keyword">int</span> curdir = <span class="number">0</span>;</span><br><span class="line">      <span class="keyword">for</span> (<span class="keyword">int</span> idx = <span class="number">0</span>; idx &lt; files.length; idx++) &#123;<span class="comment">//目录中子目录</span></span><br><span class="line">        <span class="keyword">if</span> (files[idx].isDirectory()) &#123;</span><br><span class="line">          children[curdir] = <span class="keyword">new</span> FSDir(files[idx]);</span><br><span class="line">          curdir++;</span><br><span class="line">        &#125;</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>如上，构造时，如果目录不存在则创建目录，否则读取目录下区块和子目录信息，初始化成员</p>
+<h4 id="3-2-3_添加新的区块">3.2.3 添加新的区块</h4><p>往目录中添加区块通过<code>addBlock</code>完成<br><figure class="highlight gradle"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">File</span> addBlock(Block b, <span class="keyword">File</span> src) <span class="keyword">throws</span> IOException &#123;</span><br><span class="line">  <span class="keyword">File</span> <span class="keyword">file</span> = addBlock(b, src, <span class="keyword">false</span>, <span class="keyword">false</span>);          </span><br><span class="line">  <span class="keyword">return</span> (<span class="keyword">file</span> != <span class="keyword">null</span>) ? <span class="keyword">file</span> : addBlock(b, src, <span class="keyword">true</span>, <span class="keyword">true</span>);</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">private</span> <span class="keyword">File</span> addBlock(Block b, <span class="keyword">File</span> src, <span class="keyword">boolean</span> createOk, <span class="keyword">boolean</span> resetIdx) <span class="keyword">throws</span> IOException &#123;</span><br><span class="line">  <span class="keyword">if</span> (numBlocks &lt; maxBlocksPerDir) &#123;<span class="comment">//当前目录区块数量小于限制，直接添加</span></span><br><span class="line">    <span class="keyword">File</span> dest = <span class="keyword">new</span> <span class="keyword">File</span>(dir, b.getBlockName());</span><br><span class="line">    <span class="keyword">File</span> metaData = getMetaFile( src, b );</span><br><span class="line">    <span class="keyword">File</span> newmeta = getMetaFile(dest, b);</span><br><span class="line">    <span class="keyword">if</span> ( ! metaData.renameTo( newmeta ) || ! src.renameTo( dest ) ) &#123;<span class="comment">//重命名元数据和区块文件</span></span><br><span class="line">      <span class="keyword">throw</span> <span class="keyword">new</span> IOException( <span class="string">"could not move files for "</span> + b +</span><br><span class="line">                             <span class="string">" from tmp to "</span> + dest.getAbsolutePath() );</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> (DataNode.LOG.isDebugEnabled()) &#123;</span><br><span class="line">      DataNode.LOG.debug(<span class="string">"addBlock: Moved "</span> + metaData + <span class="string">" to "</span> + newmeta);</span><br><span class="line">      DataNode.LOG.debug(<span class="string">"addBlock: Moved "</span> + src + <span class="string">" to "</span> + dest);</span><br><span class="line">    &#125;</span><br><span class="line">    numBlocks += <span class="number">1</span>;<span class="comment">//增加numBlocks</span></span><br><span class="line">    <span class="keyword">return</span> dest;</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="comment">//当前目录区块文件超出限制，添加到子目录</span></span><br><span class="line">  </span><br><span class="line">  <span class="keyword">if</span> (lastChildIdx &lt; <span class="number">0</span> &amp;&amp; resetIdx) &#123;</span><br><span class="line">    lastChildIdx = random.nextInt(children.length);              </span><br><span class="line">  &#125;</span><br><span class="line">  <span class="comment">//子目录存在，尝试添加到子目录中</span></span><br><span class="line">  <span class="keyword">if</span> (lastChildIdx &gt;= <span class="number">0</span> &amp;&amp; children != <span class="keyword">null</span>) &#123;</span><br><span class="line">    <span class="keyword">for</span> (<span class="keyword">int</span> i=<span class="number">0</span>; i &lt; children.length; i++) &#123;</span><br><span class="line">      <span class="keyword">int</span> idx = (lastChildIdx + i)%children.length;</span><br><span class="line">      <span class="keyword">File</span> <span class="keyword">file</span> = children[idx].addBlock(b, src, <span class="keyword">false</span>, resetIdx);<span class="comment">//尝试添加到子目录</span></span><br><span class="line">      <span class="keyword">if</span> (<span class="keyword">file</span> != <span class="keyword">null</span>) &#123;</span><br><span class="line">        lastChildIdx = idx;</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">file</span>; </span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    lastChildIdx = -<span class="number">1</span>;</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="comment">//所有子目录区块数量超出限制，需要添加到子目录的子目录中，或者子目录不存在需要创建子目录添加到子目录中</span></span><br><span class="line">  <span class="keyword">if</span> (!createOk) &#123;<span class="comment">//如果不允许创建子目录，返回</span></span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">null</span>;</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="comment">//子目录不存在，创建子目录</span></span><br><span class="line">  <span class="keyword">if</span> (children == <span class="keyword">null</span> || children.length == <span class="number">0</span>) &#123;</span><br><span class="line">    children = <span class="keyword">new</span> FSDir[maxBlocksPerDir];</span><br><span class="line">    <span class="keyword">for</span> (<span class="keyword">int</span> idx = <span class="number">0</span>; idx &lt; maxBlocksPerDir; idx++) &#123;</span><br><span class="line">      children[idx] = <span class="keyword">new</span> FSDir(<span class="keyword">new</span> <span class="keyword">File</span>(dir, DataStorage.BLOCK_SUBDIR_PREFIX+idx));</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="comment">//添加到子目录(可能添加到子目录的子目录中。。。)      </span></span><br><span class="line">  lastChildIdx = random.nextInt(children.length);</span><br><span class="line">  <span class="keyword">return</span> children[ lastChildIdx ].addBlock(b, src, <span class="keyword">true</span>, <span class="keyword">false</span>); </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，添加区块时，首先不允许创建新的子目录条件下添加该区块，会遍历当前目录及其子目录，只不过不会创建新的子目录。如果不能添加成功，即当前目录及其下面的所有目录区块都超过了限制，再尝试允许创建新的子目录，添加该区块。<br>添加区块时，首先看当前目录的区块数是否超过限制，没有的话可以添加到当前目录下，否则如果子目录存在，通过lastChildIdx选择下一个访问的子目录进行添加。而当子目录不存在且允许添加子目录时，创建最大允许数量的子目录，然后添加到新创建的子目录中。  </p>
+<h4 id="3-2-4_获取目录下所有区块信息">3.2.4 获取目录下所有区块信息</h4><p><strong>获取区块-文件信息</strong><br><figure class="highlight armasm"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="label">void</span> getBlockAndFileInfo(TreeSet&lt;<span class="keyword">BlockAndFile&gt; </span><span class="keyword">blockSet) </span>&#123;</span><br><span class="line">  <span class="preprocessor">if</span> (children != null) &#123;//递归获取子目录下的区块信息</span><br><span class="line">    for (int i = <span class="number">0</span><span class="comment">; i &lt; children.length; i++) &#123;</span></span><br><span class="line">      children[i].getBlockAndFileInfo(<span class="keyword">blockSet);</span><br><span class="line"></span>    &#125;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  File <span class="keyword">blockFiles[] </span>= dir.listFiles()<span class="comment">;</span></span><br><span class="line">  for (int i = <span class="number">0</span><span class="comment">; i &lt; blockFiles.length; i++) &#123;//子目录中区块添加完，添加目录中的区块</span></span><br><span class="line">    <span class="preprocessor">if</span> (<span class="keyword">Block.isBlockFilename(blockFiles[i])) </span>&#123;</span><br><span class="line">      long genStamp = FSDataset.getGenerationStampFromFile(<span class="keyword">blockFiles, </span><span class="keyword">blockFiles[i]);</span><br><span class="line"></span>      <span class="keyword">Block </span><span class="keyword">block </span>= new <span class="keyword">Block(blockFiles[i], </span><span class="keyword">blockFiles[i].length(), </span>genStamp)<span class="comment">;</span></span><br><span class="line">      <span class="keyword">blockSet.add(new </span><span class="keyword">BlockAndFile(blockFiles[i].getAbsoluteFile(), </span><span class="keyword">block));</span><br><span class="line"></span>    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，如果存在子目录，会递归的添加子目录中的区块信息，子目录中区块信息添加完后，添加目录中的区块信息。添加的区块信息为BlockAndFile类型<br><figure class="highlight gradle"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">static</span> <span class="keyword">class</span> BlockAndFile <span class="keyword">implements</span> Comparable&lt;BlockAndFile&gt; &#123;</span><br><span class="line">    <span class="keyword">final</span> Block block;</span><br><span class="line">    <span class="keyword">final</span> <span class="keyword">File</span> pathfile;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">int</span> <span class="keyword">compareTo</span>(BlockAndFile o)&#123; <span class="keyword">return</span> <span class="keyword">this</span>.block.<span class="keyword">compareTo</span>(o.block); &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>包含区块和其区块文件的绝对路径</p>
+<p><strong>获取区块-文件-存储目录信息</strong><br><figure class="highlight armasm"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="label">void</span> getVolumeMap(HashMap&lt;<span class="keyword">Block, </span>DatanodeBlockInfo&gt; volumeMap, FSVolume volume) &#123;</span><br><span class="line">  <span class="preprocessor">if</span> (children != null) &#123;</span><br><span class="line">    for (int i = <span class="number">0</span><span class="comment">; i &lt; children.length; i++) &#123;</span></span><br><span class="line">      children[i].getVolumeMap(volumeMap, volume)<span class="comment">;</span></span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  File <span class="keyword">blockFiles[] </span>= dir.listFiles()<span class="comment">;</span></span><br><span class="line">  <span class="preprocessor">if</span> (<span class="keyword">blockFiles </span>!= null) &#123;</span><br><span class="line">    for (int i = <span class="number">0</span><span class="comment">; i &lt; blockFiles.length; i++) &#123;</span></span><br><span class="line">      <span class="preprocessor">if</span> (<span class="keyword">Block.isBlockFilename(blockFiles[i])) </span>&#123;</span><br><span class="line">        long genStamp = FSDataset.getGenerationStampFromFile(<span class="keyword">blockFiles,</span><br><span class="line"></span>            <span class="keyword">blockFiles[i]);</span><br><span class="line"></span>        volumeMap.put(new <span class="keyword">Block(blockFiles[i], </span><span class="keyword">blockFiles[i].length(),</span><br><span class="line"></span>            genStamp), new DatanodeBlockInfo(volume, <span class="keyword">blockFiles[i]));</span><br><span class="line"></span>      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>与getBlockAndFileInfo类似，不过这里构造的为”区块-DatanodeBlockInfo”键值对，DatanodeBlockInfo存储了区块所属文件和所属存储目录FSVolume信息。  </p>
+<h4 id="3-2-5_检查目录健康性">3.2.5 检查目录健康性</h4><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">void</span> <span class="title">checkDirTree</span><span class="params">()</span> <span class="keyword">throws</span> DiskErrorException </span>&#123;</span><br><span class="line">  DiskChecker.checkDir(dir);</span><br><span class="line">  <span class="keyword">if</span> (children != <span class="keyword">null</span>) &#123;</span><br><span class="line">    <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; children.length; i++) &#123;</span><br><span class="line">      children[i].checkDirTree();</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> <span class="function"><span class="keyword">void</span> <span class="title">checkDir</span><span class="params">(File dir)</span> <span class="keyword">throws</span> DiskErrorException </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (!mkdirsWithExistsCheck(dir))</span><br><span class="line">      <span class="keyword">throw</span> <span class="keyword">new</span> DiskErrorException(<span class="string">"can not create directory: "</span> + dir.toString());</span><br><span class="line">        </span><br><span class="line">    <span class="keyword">if</span> (!dir.isDirectory())</span><br><span class="line">      <span class="keyword">throw</span> <span class="keyword">new</span> DiskErrorException(<span class="string">"not a directory: "</span> + dir.toString());</span><br><span class="line">            </span><br><span class="line">    <span class="keyword">if</span> (!dir.canRead())</span><br><span class="line">      <span class="keyword">throw</span> <span class="keyword">new</span> DiskErrorException(<span class="string">"directory is not readable: "</span> + dir.toString());</span><br><span class="line">            </span><br><span class="line">    <span class="keyword">if</span> (!dir.canWrite())</span><br><span class="line">      <span class="keyword">throw</span> <span class="keyword">new</span> DiskErrorException(<span class="string">"directory is not writable: "</span> + dir.toString());</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>如上，一次检查是否存在，是否为目录，是否可读可写。</p>
+<h3 id="3-3_FSVolume">3.3 FSVolume</h3><p>FSVolume对应为一个存储目录，即<code>dfs.data.dir</code>配置中的一个路径</p>
+<h4 id="3-3-1_成员属性">3.3.1 成员属性</h4><figure class="highlight gradle"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="keyword">File</span> currentDir;<span class="comment">//current目录</span></span><br><span class="line"><span class="keyword">private</span> FSDir dataDir;<span class="comment">//current目录的FSDir对象</span></span><br><span class="line"><span class="keyword">private</span> <span class="keyword">File</span> tmpDir;<span class="comment">//tmp目录</span></span><br><span class="line"><span class="keyword">private</span> <span class="keyword">File</span> blocksBeingWritten;</span><br><span class="line"><span class="keyword">private</span> <span class="keyword">File</span> detachDir;</span><br><span class="line"><span class="keyword">private</span> DF usage;</span><br><span class="line"><span class="keyword">private</span> DU dfsUsage;</span><br><span class="line"><span class="keyword">private</span> <span class="keyword">long</span> reserved;</span><br></pre></td></tr></table></figure>
+<ul>
+<li><code>currentDir</code>为current目录，<code>dataDir</code>为current目录对应的FSDir对象</li>
+<li><code>tmpDir</code>，保存着正在写的数据块，写操作是由数据块复制引发的，即数据来源为数据节点</li>
+<li><code>blocksBeingWritten</code>，保存着正在写的数据块，不过写操作是由客户端写操作引起的，数据来源为Client</li>
+<li><code>detach</code>，用于配合数据节点升级，供数据块分离操作保存临时工作文件</li>
+<li><code>usage</code>，空闲空间</li>
+<li><code>dfsUsage</code>，已使用空间</li>
+<li><code>reserved</code>，预留的空间，不能使用</li>
+</ul>
+<p>如上，FSVolume中主要有<code>current</code>，<code>blocksBeingWritten</code>，<code>tmp</code>三个目录。<br>当客户端往数据节点写数据时，会先写到blocksBeingWritten目录下，写完后提交到current目录中(如上FSDir分析，通过addBlock)。<br>而数据节点间的数据复制，会先写到tmp目录下，写完后提交到current目录中。<br>另外，已经提交的数据块可以重新打开，追加数据，这时又会被放到blocksBeingWritten目录下。  </p>
+<h4 id="3-3-2_构造">3.3.2 构造</h4><figure class="highlight gradle"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br></pre></td><td class="code"><pre><span class="line">FSVolume(<span class="keyword">File</span> currentDir, Configuration conf) <span class="keyword">throws</span> IOException &#123;</span><br><span class="line">  <span class="keyword">this</span>.reserved = conf.getLong(<span class="string">"dfs.datanode.du.reserved"</span>, <span class="number">0</span>);</span><br><span class="line">  <span class="keyword">this</span>.dataDir = <span class="keyword">new</span> FSDir(currentDir);<span class="comment">//current目录创建FSDir对象</span></span><br><span class="line">  <span class="keyword">this</span>.currentDir = currentDir;</span><br><span class="line">  <span class="keyword">boolean</span> durableSync = conf.getBoolean(<span class="string">"dfs.durable.sync"</span>, <span class="keyword">true</span>);</span><br><span class="line">  <span class="keyword">File</span> parent = currentDir.getParentFile();</span><br><span class="line"></span><br><span class="line">  <span class="keyword">this</span>.detachDir = <span class="keyword">new</span> <span class="keyword">File</span>(parent, <span class="string">"detach"</span>);</span><br><span class="line">  <span class="keyword">if</span> (detachDir.exists()) &#123;<span class="comment">//detach目录中文件在current不存在，重命名为current中的文件，否则直接删除detach中的文件</span></span><br><span class="line">    recoverDetachedBlocks(currentDir, detachDir);</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">this</span>.tmpDir = <span class="keyword">new</span> <span class="keyword">File</span>(parent, <span class="string">"tmp"</span>);</span><br><span class="line">  <span class="keyword">if</span> (tmpDir.exists()) &#123;<span class="comment">//tmp目录中文件直接删除</span></span><br><span class="line">    FileUtil.fullyDelete(tmpDir);</span><br><span class="line">  &#125;</span><br><span class="line">  </span><br><span class="line">  blocksBeingWritten = <span class="keyword">new</span> <span class="keyword">File</span>(parent, <span class="string">"blocksBeingWritten"</span>);</span><br><span class="line">  <span class="keyword">if</span> (blocksBeingWritten.exists()) &#123;</span><br><span class="line">    <span class="keyword">if</span> (durableSync) &#123;<span class="comment">//允许同步，blocksBeingWritten中文件信息重新添加到volumeMap和ongoingCreates</span></span><br><span class="line">      recoverBlocksBeingWritten(blocksBeingWritten);</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;<span class="comment">//不允许同步，直接删除</span></span><br><span class="line">      FileUtil.fullyDelete(blocksBeingWritten);</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">  </span><br><span class="line">  <span class="keyword">if</span> (!blocksBeingWritten.mkdirs()) &#123;</span><br><span class="line">    <span class="keyword">if</span> (!blocksBeingWritten.isDirectory()) &#123;</span><br><span class="line">      <span class="keyword">throw</span> <span class="keyword">new</span> IOException(<span class="string">"Mkdirs failed to create "</span> + blocksBeingWritten.toString());</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">if</span> (!tmpDir.mkdirs()) &#123;</span><br><span class="line">    <span class="keyword">if</span> (!tmpDir.isDirectory()) &#123;</span><br><span class="line">      <span class="keyword">throw</span> <span class="keyword">new</span> IOException(<span class="string">"Mkdirs failed to create "</span> + tmpDir.toString());</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">if</span> (!detachDir.mkdirs()) &#123;</span><br><span class="line">    <span class="keyword">if</span> (!detachDir.isDirectory()) &#123;</span><br><span class="line">      <span class="keyword">throw</span> <span class="keyword">new</span> IOException(<span class="string">"Mkdirs failed to create "</span> + detachDir.toString());</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">this</span>.usage = <span class="keyword">new</span> DF(parent, conf);<span class="comment">//创建DF对象</span></span><br><span class="line">  <span class="keyword">this</span>.dfsUsage = <span class="keyword">new</span> DU(parent, conf);<span class="comment">//创建DU线程启动</span></span><br><span class="line">  <span class="keyword">this</span>.dfsUsage.start();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>构造函数中，如果blocksBeingWritten中含有区块，根据配置进行删除或恢复。配置项<code>dfs.durable.sync</code>为true时，进行恢复，将blocksBeingWritten中的区块放到<code>volumeMap</code>和<code>ongoingCreates</code>中，等待写操作继续。<code>dfs.durable.sync</code>为false时，删除该目录。默认为true。<br>如果tmp中有文件，直接删除。<br>如果detach中有文件，根据需要进行恢复。如果detach中的文件在current中不存在，重命名到current中。否则删除detach中的该文件。  </p>
+<p>其他方法具体应用过程中具体分析。</p>
+<h3 id="3-4_FSVolumeSet">3.4 FSVolumeSet</h3><p>管理节点上可能的多个FSVolume存储目录，成员如下<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">FSVolume[] volumes = <span class="keyword">null</span>;</span><br><span class="line"><span class="keyword">int</span> curVolume = <span class="number">0</span>;</span><br></pre></td></tr></table></figure></p>
+<p>如上，<code>volumes</code>数组管理多个FSVolume对象，<code>curVolume</code>为当前FSVolume对象<br>构造<br><figure class="highlight roboconf"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="component">FSVolumeSet(FSVolume[] volumes) &#123; this<span class="string">.volumes</span> = volumes; &#125;</span></span><br></pre></td></tr></table></figure></p>
+<p>当要往存储目录中添加区块时，给定区块大小，要查找可用的FSVolume，使用<code>getNextVolume</code><br><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="function">synchronized FSVolume <span class="title">getNextVolume</span><span class="params">(<span class="keyword">long</span> blockSize)</span> throws IOException </span>&#123;</span><br><span class="line">  <span class="keyword">if</span>(volumes.length &lt; <span class="number">1</span>) &#123;</span><br><span class="line">    <span class="keyword">throw</span> <span class="keyword">new</span> DiskOutOfSpaceException(<span class="string">"No more available volumes"</span>);</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">if</span>(curVolume &gt;= volumes.length) &#123;</span><br><span class="line">    curVolume = <span class="number">0</span>;</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">int</span> startVolume = curVolume;</span><br><span class="line">  <span class="keyword">while</span> (<span class="literal">true</span>) &#123;</span><br><span class="line">    FSVolume volume = volumes[curVolume];</span><br><span class="line">    curVolume = (curVolume + <span class="number">1</span>) % volumes.length;</span><br><span class="line">    <span class="keyword">if</span> (volume.getAvailable() &gt; blockSize) &#123; <span class="keyword">return</span> volume; &#125;<span class="comment">//FSVlume中可用空间大于区块大小，返回该存储目录</span></span><br><span class="line">    <span class="keyword">if</span> (curVolume == startVolume) &#123;</span><br><span class="line">      <span class="keyword">throw</span> <span class="keyword">new</span> DiskOutOfSpaceException(<span class="string">"Insufficient space for an additional block"</span>);</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，根据curVolume循环遍历每个FSVolume对象，直到找到一个可用空间大于区块大小的存储目录返回。</p>
+<p>其他方法基本依赖于FSVolume类，如获取当前存储目录使用量<br><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">long</span> <span class="title">getDfsUsed</span><span class="params">()</span> throws IOException </span>&#123;</span><br><span class="line">  <span class="keyword">long</span> dfsUsed = <span class="number">0L</span>;</span><br><span class="line">  <span class="keyword">for</span> (<span class="keyword">int</span> idx = <span class="number">0</span>; idx &lt; volumes.length; idx++) &#123;</span><br><span class="line">    dfsUsed += volumes[idx].getDfsUsed();</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">return</span> dfsUsed;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>遍历管理的每个FSVolume，调用相应的方法得到结果，其他方法类似。 </p>
+<h3 id="3-5_FSDataset构造">3.5 FSDataset构造</h3><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="title">FSDataset</span><span class="params">(DataStorage storage, Configuration conf)</span> throws IOException </span>&#123;</span><br><span class="line">    <span class="keyword">this</span>.maxBlocksPerDir = conf.getInt(<span class="string">"dfs.datanode.numblocks"</span>, <span class="number">64</span>);</span><br><span class="line">    <span class="comment">//容忍的失效存储目录个数</span></span><br><span class="line">    final <span class="keyword">int</span> volFailuresTolerated = conf.getInt(<span class="string">"dfs.datanode.failed.volumes.tolerated"</span>, <span class="number">0</span>);</span><br><span class="line">    String[] dataDirs = conf.getStrings(DataNode.DATA_DIR_KEY);</span><br><span class="line">    <span class="keyword">int</span> volsConfigured=<span class="number">0</span>;</span><br><span class="line">    <span class="keyword">if</span>(dataDirs != null)</span><br><span class="line">       volsConfigured = dataDirs.length;</span><br><span class="line">    <span class="comment">//失效的存储目录为配置的总存储目录减去实际有效的存储目录</span></span><br><span class="line">    <span class="keyword">int</span> volsFailed =  volsConfigured - storage.getNumStorageDirs();</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">if</span>( volsFailed &lt; <span class="number">0</span> || volsFailed &gt; volFailuresTolerated ) &#123;</span><br><span class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> DiskErrorException(<span class="string">"Invalid value for volsFailed : "</span> </span><br><span class="line">        		+ volsFailed + <span class="string">" , Volumes tolerated : "</span> + volFailuresTolerated);</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">this</span>.validVolsRequired =  volsConfigured - volFailuresTolerated;</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">if</span> (validVolsRequired &lt; <span class="number">1</span> || validVolsRequired &gt; storage.getNumStorageDirs()) &#123;</span><br><span class="line">      <span class="keyword">throw</span> <span class="keyword">new</span> DiskErrorException(<span class="string">"Invalid value for validVolsRequired : "</span> </span><br><span class="line">    		  + validVolsRequired + <span class="string">" , Current valid volumes: "</span> + storage.getNumStorageDirs());</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    FSVolume[] volArray = <span class="keyword">new</span> FSVolume[storage.getNumStorageDirs()];</span><br><span class="line">    <span class="keyword">for</span> (<span class="keyword">int</span> idx = <span class="number">0</span>; idx &lt; storage.getNumStorageDirs(); idx++) &#123;<span class="comment">//创建FSVolume</span></span><br><span class="line">      volArray[idx] = <span class="keyword">new</span> FSVolume(storage.getStorageDir(idx).getCurrentDir(), conf);</span><br><span class="line">    &#125;</span><br><span class="line">    volumes = <span class="keyword">new</span> FSVolumeSet(volArray);<span class="comment">//创建FSVolumeSet</span></span><br><span class="line">    volumes.getVolumeMap(volumeMap);<span class="comment">//遍历所有FSVolume，初始化volumeMap</span></span><br><span class="line">    asyncBlockReport = <span class="keyword">new</span> AsyncBlockReport(<span class="keyword">this</span>);</span><br><span class="line">    asyncBlockReport.start();</span><br><span class="line">    File[] roots = <span class="keyword">new</span> File[storage.getNumStorageDirs()];</span><br><span class="line">    <span class="keyword">for</span> (<span class="keyword">int</span> idx = <span class="number">0</span>; idx &lt; storage.getNumStorageDirs(); idx++) &#123;</span><br><span class="line">      roots[idx] = storage.getStorageDir(idx).getCurrentDir();</span><br><span class="line">    &#125;</span><br><span class="line">    asyncDiskService = <span class="keyword">new</span> FSDatasetAsyncDiskService(roots);<span class="comment">//创建FSDatasetAsynchronousDiskService线程并启动，线程池的数目为有效存储目录数目</span></span><br><span class="line">    registerMBean(storage.getStorageID());</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>如上，默认允许失效的存储目录数为0，即DataStorage管理的存储目录数应该和<code>dfs.data.dir</code>配置的路径数一致。<br>同时可以看出，FSDataset中的<code>volumeMap</code>通过遍历所有FSVolume获得所有存储目录的区块信息，而<code>ongoingCreates</code>写区块时添加。</p>
+</span>
+      
+    </div>
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/DataNode/" rel="tag">#DataNode</a>
+          
+            <a href="/tags/DataNode源码阅读/" rel="tag">#DataNode源码阅读</a>
+          
+            <a href="/tags/HDFS/" rel="tag">#HDFS</a>
+          
+            <a href="/tags/Hadoop-1-2-1/" rel="tag">#Hadoop-1.2.1</a>
+          
+            <a href="/tags/Java/" rel="tag">#Java</a>
+          
+            <a href="/tags/源码阅读/" rel="tag">#源码阅读</a>
+          
+        </div>
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/CorruptMonitor/" rel="next" title="RaidNode源码阅读---损坏区块修复CorruptMonitor(LocalBlockIntegerityMonitor)">
+                <i class="fa fa-chevron-left"></i> RaidNode源码阅读---损坏区块修复CorruptMonitor(LocalBlockIntegerityMonitor)
+              </a>
+            
+          </div>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/DataNode流接口实现上篇/" rel="prev" title="DataNode实现源码分析---流接口实现上篇">
+                DataNode实现源码分析---流接口实现上篇 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </article>
+
+
+
+    <div class="post-spread">
+      
+        <!-- JiaThis Button BEGIN -->
+<div class="jiathis_style">
+  <a class="jiathis_button_tsina"></a>
+  <a class="jiathis_button_tqq"></a>
+  <a class="jiathis_button_weixin"></a>
+  <a class="jiathis_button_cqq"></a>
+  <a class="jiathis_button_douban"></a>
+  <a class="jiathis_button_renren"></a>
+  <a class="jiathis_button_qzone"></a>
+  <a class="jiathis_button_kaixin001"></a>
+  <a class="jiathis_button_copy"></a>
+  <a href="http://www.jiathis.com/share" class="jiathis jiathis_txt jiathis_separator jtico jtico_jiathis" target="_blank"></a>
+  <a class="jiathis_counter_style"></a>
+</div>
+<script type="text/javascript" >
+  var jiathis_config={
+    hideMore:false
+  }
+</script>
+<script type="text/javascript" src="http://v3.jiathis.com/code/jia.js" charset="utf-8"></script>
+<!-- JiaThis Button END -->
+
+      
+    </div>
+  </div>
+
+
+        </div>
+
+        
+
+
+        
+  <div class="comments" id="comments">
+    
+      <div class="ds-thread" data-thread-key="DataNode本地存储管理/"
+           data-title="DataNode本地存储管理" data-url="http://xiao-yun.github.io/DataNode本地存储管理/">
+      </div>
+    
+  </div>
+
+
+      </div>
+
+      
+        
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap" >
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel ">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+          <img class="site-author-image" src="/images/hero.jpg" alt="xiaoyun" itemprop="image"/>
+          <p class="site-author-name" itemprop="name">xiaoyun</p>
+        </div>
+        <p class="site-description motion-element" itemprop="description">学习笔记，网上资源摘要等</p>
+        <nav class="site-state motion-element">
+          <div class="site-state-item site-state-posts">
+            <a href="/archives">
+              <span class="site-state-item-count">34</span>
+              <span class="site-state-item-name">日志</span>
+            </a>
+          </div>
+
+          <div class="site-state-item site-state-categories">
+            <a href="/categories">
+              <span class="site-state-item-count">49</span>
+              <span class="site-state-item-name">分类</span>
+              </a>
+          </div>
+
+          <div class="site-state-item site-state-tags">
+            <a href="/tags">
+              <span class="site-state-item-count">25</span>
+              <span class="site-state-item-name">标签</span>
+              </a>
+          </div>
+
+        </nav>
+
+        
+
+        <div class="links-of-author motion-element">
+          
+            
+              <span class="links-of-author-item">
+                <a href="https://github.com/xiao-yun" target="_blank">
+                  
+                    <i class="fa fa-globe"></i> github
+                  
+                </a>
+              </span>
+            
+          
+        </div>
+
+        
+        
+
+        <div class="links-of-author motion-element">
+          
+        </div>
+
+      </section>
+
+      
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc-indicator-top post-toc-indicator">
+            <i class="fa fa-angle-double-up"></i>
+          </div>
+          <div class="post-toc">
+            
+              
+            
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#1_Storage"><span class="nav-number">1.</span> <span class="nav-text">1 Storage</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-1_成员，构造"><span class="nav-number">1.1.</span> <span class="nav-text">1.1 成员，构造</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-2_管理的文件目录"><span class="nav-number">1.2.</span> <span class="nav-text">1.2 管理的文件目录</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2_DataStorage"><span class="nav-number">2.</span> <span class="nav-text">2 DataStorage</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1_成员，构造"><span class="nav-number">2.1.</span> <span class="nav-text">2.1 成员，构造</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-2_格式化"><span class="nav-number">2.2.</span> <span class="nav-text">2.2 格式化</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-3_升级"><span class="nav-number">2.3.</span> <span class="nav-text">2.3 升级</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-4_回滚"><span class="nav-number">2.4.</span> <span class="nav-text">2.4 回滚</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-5_升级提交"><span class="nav-number">2.5.</span> <span class="nav-text">2.5 升级提交</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-6_存储空间状态(技术内幕)"><span class="nav-number">2.6.</span> <span class="nav-text">2.6 存储空间状态(技术内幕)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-7_当前状态"><span class="nav-number">2.7.</span> <span class="nav-text">2.7 当前状态</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-8_恢复到正常状态"><span class="nav-number">2.8.</span> <span class="nav-text">2.8 恢复到正常状态</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3_FSDataset"><span class="nav-number">3.</span> <span class="nav-text">3 FSDataset</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#3-1_FSDataset成员属性"><span class="nav-number">3.1.</span> <span class="nav-text">3.1 FSDataset成员属性</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-2_FSDir"><span class="nav-number">3.2.</span> <span class="nav-text">3.2 FSDir</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#3-2-1_成员属性"><span class="nav-number">3.2.1.</span> <span class="nav-text">3.2.1 成员属性</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-2-2_构造"><span class="nav-number">3.2.2.</span> <span class="nav-text">3.2.2 构造</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-2-3_添加新的区块"><span class="nav-number">3.2.3.</span> <span class="nav-text">3.2.3 添加新的区块</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-2-4_获取目录下所有区块信息"><span class="nav-number">3.2.4.</span> <span class="nav-text">3.2.4 获取目录下所有区块信息</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-2-5_检查目录健康性"><span class="nav-number">3.2.5.</span> <span class="nav-text">3.2.5 检查目录健康性</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-3_FSVolume"><span class="nav-number">3.3.</span> <span class="nav-text">3.3 FSVolume</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#3-3-1_成员属性"><span class="nav-number">3.3.1.</span> <span class="nav-text">3.3.1 成员属性</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-3-2_构造"><span class="nav-number">3.3.2.</span> <span class="nav-text">3.3.2 构造</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-4_FSVolumeSet"><span class="nav-number">3.4.</span> <span class="nav-text">3.4 FSVolumeSet</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-5_FSDataset构造"><span class="nav-number">3.5.</span> <span class="nav-text">3.5 FSDataset构造</span></a></li></ol></li></ol></div>
+            
+          </div>
+          <div class="post-toc-indicator-bottom post-toc-indicator">
+            <i class="fa fa-angle-double-down"></i>
+          </div>
+        </section>
+      
+
+    </div>
+  </aside>
+
+
+      
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright" >
+  
+  &copy; 
+  <span itemprop="copyrightYear">2016</span>
+  <span class="with-love">
+    <i class="icon-next-heart fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">xiaoyun</span>
+</div>
+
+<div class="powered-by">
+  由 <a class="theme-link" href="http://hexo.io">Hexo</a> 强力驱动
+</div>
+
+<div class="theme-info">
+  主题 -
+  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
+    NexT.Mist
+  </a>
+</div>
+
+
+
+      </div>
+    </footer>
+
+    <div class="back-to-top"></div>
+  </div>
+
+  <script type="text/javascript" src="/vendors/jquery/index.js?v=2.1.3"></script>
+
+  
+  
+
+  
+    
+
+  
+    
+  
+
+  <script type="text/javascript">
+    var duoshuoQuery = {short_name:"xiaoyuncom"};
+    (function() {
+      var ds = document.createElement('script');
+      ds.type = 'text/javascript';ds.async = true;
+      ds.id = 'duoshuo-script';
+      ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+      ds.charset = 'UTF-8';
+      (document.getElementsByTagName('head')[0]
+      || document.getElementsByTagName('body')[0]).appendChild(ds);
+    })();
+  </script>
+    
+     
+
+
+    
+  
+
+  
+  <script type="text/javascript" src="/vendors/fancybox/source/jquery.fancybox.pack.js"></script>
+  <script type="text/javascript" src="/js/fancy-box.js?v=0.4.5.2"></script>
+
+
+  <script type="text/javascript" src="/js/helpers.js?v=0.4.5.2"></script>
+  <script type="text/javascript" src="/vendors/velocity/velocity.min.js"></script>
+<script type="text/javascript" src="/vendors/velocity/velocity.ui.min.js"></script>
+
+<script type="text/javascript" src="/js/motion.js?v=0.4.5.2" id="motion.global"></script>
+
+
+  <script type="text/javascript" src="/vendors/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  <script type="text/javascript" src="/vendors/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  
+<script type="text/javascript" src="/js/bootstrap.scrollspy.js?v=0.4.5.2" id="bootstrap.scrollspy.custom"></script>
+
+
+<script type="text/javascript" id="sidebar.toc.highlight">
+  $(document).ready(function () {
+    var tocSelector = '.post-toc';
+    var $tocSelector = $(tocSelector);
+    var activeCurrentSelector = '.active-current';
+
+    $tocSelector
+      .on('activate.bs.scrollspy', function () {
+        var $currentActiveElement = $(tocSelector + ' .active').last();
+
+        removeCurrentActiveClass();
+        $currentActiveElement.addClass('active-current');
+
+        $tocSelector[0].scrollTop = $currentActiveElement.position().top;
+      })
+      .on('clear.bs.scrollspy', function () {
+        removeCurrentActiveClass();
+      });
+
+    function removeCurrentActiveClass () {
+      $(tocSelector + ' ' + activeCurrentSelector)
+        .removeClass(activeCurrentSelector.substring(1));
+    }
+
+    function processTOC () {
+      getTOCMaxHeight();
+      toggleTOCOverflowIndicators();
+    }
+
+    function getTOCMaxHeight () {
+      var height = $('.sidebar').height() -
+                   $tocSelector.position().top -
+                   $('.post-toc-indicator-bottom').height();
+
+      $tocSelector.css('height', height);
+
+      return height;
+    }
+
+    function toggleTOCOverflowIndicators () {
+      tocOverflowIndicator(
+        '.post-toc-indicator-top',
+        $tocSelector.scrollTop() > 0 ? 'show' : 'hide'
+      );
+
+      tocOverflowIndicator(
+        '.post-toc-indicator-bottom',
+        $tocSelector.scrollTop() >= $tocSelector.find('ol').height() - $tocSelector.height() ? 'hide' : 'show'
+      )
+    }
+
+    $(document).on('sidebar.motion.complete', function () {
+      processTOC();
+    });
+
+    $('body').scrollspy({ target: tocSelector });
+    $(window).on('resize', function () {
+      if ( $('.sidebar').hasClass('sidebar-active') ) {
+        processTOC();
+      }
+    });
+
+    onScroll($tocSelector);
+
+    function onScroll (element) {
+      element.on('mousewheel DOMMouseScroll', function (event) {
+          var oe = event.originalEvent;
+          var delta = oe.wheelDelta || -oe.detail;
+
+          this.scrollTop += ( delta < 0 ? 1 : -1 ) * 30;
+          event.preventDefault();
+
+          toggleTOCOverflowIndicators();
+      });
+    }
+
+    function tocOverflowIndicator (indicator, action) {
+      var $indicator = $(indicator);
+      var opacity = action === 'show' ? 1 : 0;
+      $indicator.velocity ?
+        $indicator.velocity('stop').velocity({
+          opacity: opacity
+        }, { duration: 100 }) :
+        $indicator.stop().animate({
+          opacity: opacity
+        }, 100);
+    }
+
+  });
+</script>
+
+<script type="text/javascript" id="sidebar.nav">
+  $(document).ready(function () {
+    var html = $('html');
+    var TAB_ANIMATE_DURATION = 200;
+    var hasVelocity = $.isFunction(html.velocity);
+
+    $('.sidebar-nav li').on('click', function () {
+      var item = $(this);
+      var activeTabClassName = 'sidebar-nav-active';
+      var activePanelClassName = 'sidebar-panel-active';
+      if (item.hasClass(activeTabClassName)) {
+        return;
+      }
+
+      var currentTarget = $('.' + activePanelClassName);
+      var target = $('.' + item.data('target'));
+
+      hasVelocity ?
+        currentTarget.velocity('transition.slideUpOut', TAB_ANIMATE_DURATION, function () {
+          target
+            .velocity('stop')
+            .velocity('transition.slideDownIn', TAB_ANIMATE_DURATION)
+            .addClass(activePanelClassName);
+        }) :
+        currentTarget.animate({ opacity: 0 }, TAB_ANIMATE_DURATION, function () {
+          currentTarget.hide();
+          target
+            .stop()
+            .css({'opacity': 0, 'display': 'block'})
+            .animate({ opacity: 1 }, TAB_ANIMATE_DURATION, function () {
+              currentTarget.removeClass(activePanelClassName);
+              target.addClass(activePanelClassName);
+            });
+        });
+
+      item.siblings().removeClass(activeTabClassName);
+      item.addClass(activeTabClassName);
+    });
+
+    $('.post-toc a').on('click', function (e) {
+      e.preventDefault();
+      var targetSelector = escapeSelector(this.getAttribute('href'));
+      var offset = $(targetSelector).offset().top;
+      hasVelocity ?
+        html.velocity('stop').velocity('scroll', {
+          offset: offset  + 'px',
+          mobileHA: false
+        }) :
+        $('html, body').stop().animate({
+          scrollTop: offset
+        }, 500);
+    });
+
+    // Expand sidebar on post detail page by default, when post has a toc.
+    motionMiddleWares.sidebar = function () {
+      var $tocContent = $('.post-toc-content');
+      if (CONFIG.sidebar === 'post') {
+        if ($tocContent.length > 0 && $tocContent.html().trim().length > 0) {
+          displaySidebar();
+        }
+      }
+    };
+  });
+</script>
+
+
+
+  <script type="text/javascript" src="/js/bootstrap.js"></script>
+
+  
+  
+
+  
+  
+
+</body>
+</html>

@@ -1,0 +1,893 @@
+<!doctype html>
+<html class="theme-next   use-motion ">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+  <link href="/vendors/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css"/>
+
+
+
+
+  <link href="//fonts.googleapis.com/css?family=Lato:300,400,700,400italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+
+
+
+<link href="/vendors/font-awesome/css/font-awesome.min.css?v=4.4.0" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=0.4.5.2" rel="stylesheet" type="text/css" />
+
+
+  <meta name="keywords" content="DataNode,DataNode源码阅读,HDFS,Hadoop-1.2.1,Java,源码阅读," />
+
+
+
+
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=0.4.5.2" />
+
+
+
+
+
+
+<meta name="description" content="Hadoop版本:Hadoop-1.2.1参考：《Hadoop技术内幕-深入解析Hadoop Common和HDFS架构设计与实现原理》  
+
+在DataNode启动时，会创建流服务Socket，绑定本地地址，然后开启DataXceiverServer线程接收到来的流操作连接请求。DataXceiverServer成员属性  
+
+ss，流服务Socket
+datanode，所属DataNode
+c">
+<meta property="og:type" content="article">
+<meta property="og:title" content="DataNode实现源码分析---流接口实现上篇">
+<meta property="og:url" content="http://xiao-yun.github.io/DataNode流接口实现上篇/index.html">
+<meta property="og:site_name" content="xiaoyun">
+<meta property="og:description" content="Hadoop版本:Hadoop-1.2.1参考：《Hadoop技术内幕-深入解析Hadoop Common和HDFS架构设计与实现原理》  
+
+在DataNode启动时，会创建流服务Socket，绑定本地地址，然后开启DataXceiverServer线程接收到来的流操作连接请求。DataXceiverServer成员属性  
+
+ss，流服务Socket
+datanode，所属DataNode
+c">
+<meta property="og:image" content="http://xiao-yun.github.io/../images/DataXceiverServer成员属性.png">
+<meta property="og:image" content="http://xiao-yun.github.io/../images/DataXceiver成员属性.png">
+<meta property="og:updated_time" content="2016-01-08T06:45:06.302Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="DataNode实现源码分析---流接口实现上篇">
+<meta name="twitter:description" content="Hadoop版本:Hadoop-1.2.1参考：《Hadoop技术内幕-深入解析Hadoop Common和HDFS架构设计与实现原理》  
+
+在DataNode启动时，会创建流服务Socket，绑定本地地址，然后开启DataXceiverServer线程接收到来的流操作连接请求。DataXceiverServer成员属性  
+
+ss，流服务Socket
+datanode，所属DataNode
+c">
+
+
+
+<script type="text/javascript" id="hexo.configuration">
+  var CONFIG = {
+    scheme: 'Mist',
+    sidebar: 'hide',
+    motion: true
+  };
+</script>
+
+  <title> DataNode实现源码分析---流接口实现上篇 | xiaoyun </title>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  <!--[if lte IE 8]>
+  <div style=' clear: both; height: 59px; padding:0 0 0 15px; position: relative;margin:0 auto;'>
+    <a href="http://windows.microsoft.com/en-US/internet-explorer/products/ie/home?ocid=ie6_countdown_bannercode">
+      <img src="http://7u2nvr.com1.z0.glb.clouddn.com/picouterie.jpg" border="0" height="42" width="820"
+           alt="You are using an outdated browser. For a faster, safer browsing experience, upgrade for free today or use other browser ,like chrome firefox safari."
+           style='margin-left:auto;margin-right:auto;display: block;'/>
+    </a>
+  </div>
+<![endif]-->
+  
+
+
+
+  <script type="text/javascript">
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "//hm.baidu.com/hm.js?caeb4129c91d1e6fb3d562d35fedef0d";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+  <div class="container one-column page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-meta ">
+  
+
+  <div class="custom-logo-site-title">
+    <a href="/"  class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <span class="site-title">xiaoyun</span>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+  <p class="site-subtitle"></p>
+</div>
+
+<div class="site-nav-toggle">
+  <button>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+  </button>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu ">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-home fa-fw"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives" rel="section">
+            
+              <i class="menu-item-icon fa fa-archive fa-fw"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories" rel="section">
+            
+              <i class="menu-item-icon fa fa-th fa-fw"></i> <br />
+            
+            分类
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+              <i class="menu-item-icon fa fa-tags fa-fw"></i> <br />
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about" rel="section">
+            
+              <i class="menu-item-icon fa fa-user fa-fw"></i> <br />
+            
+            关于
+          </a>
+        </li>
+      
+
+      
+      
+    </ul>
+  
+
+  
+</nav>
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div id="content" class="content">
+          
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                DataNode实现源码分析---流接口实现上篇
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            发表于
+            <time itemprop="dateCreated" datetime="2016-01-08T14:45:06+08:00" content="2016-01-08">
+              2016-01-08
+            </time>
+          </span>
+
+          
+            <span class="post-category" >
+              &nbsp; | &nbsp; 分类于
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Java/" itemprop="url" rel="index">
+                    <span itemprop="name">Java</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Java/Hadoop-1-2-1/" itemprop="url" rel="index">
+                    <span itemprop="name">Hadoop-1.2.1</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Java/Hadoop-1-2-1/HDFS/" itemprop="url" rel="index">
+                    <span itemprop="name">HDFS</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Java/Hadoop-1-2-1/HDFS/DataNode/" itemprop="url" rel="index">
+                    <span itemprop="name">DataNode</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Java/Hadoop-1-2-1/HDFS/DataNode/源码阅读/" itemprop="url" rel="index">
+                    <span itemprop="name">源码阅读</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Java/Hadoop-1-2-1/HDFS/DataNode/源码阅读/DataNode源码阅读/" itemprop="url" rel="index">
+                    <span itemprop="name">DataNode源码阅读</span>
+                  </a>
+                </span>
+
+                
+                
+
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                &nbsp; | &nbsp;
+                <a href="/DataNode流接口实现上篇/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="DataNode流接口实现上篇/" itemprop="commentsCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+
+        </div>
+      </header>
+    
+
+
+    <div class="post-body">
+
+      
+      
+
+      
+        <span itemprop="articleBody"><p>Hadoop版本:<a href="https://archive.apache.org/dist/hadoop/core/hadoop-1.2.1/" target="_blank" rel="external">Hadoop-1.2.1</a><br>参考：《Hadoop技术内幕-深入解析Hadoop Common和HDFS架构设计与实现原理》  </p>
+<hr>
+<p>在<a href="../DataNode启动">DataNode启动</a>时，会创建流服务Socket，绑定本地地址，然后开启DataXceiverServer线程接收到来的流操作连接请求。<br>DataXceiverServer成员属性<br><img src="../images/DataXceiverServer成员属性.png" alt="DataXceiverServer成员属性">  </p>
+<ul>
+<li><code>ss</code>，流服务Socket</li>
+<li><code>datanode</code>，所属DataNode</li>
+<li><code>childSockets</code>，accept的Socket，即现在服务的连接</li>
+<li><code>maxXceiverCount</code>，最大xceivers数目，即最大连接数，防止占用太多资源，每个连接都是一个线程，默认256。</li>
+<li><code>balanceThrottler</code>，带宽均衡器，限制区块传输的数量和使用的带宽</li>
+<li><code>estimateBlockSize</code>，预估的区块大小，默认64MB</li>
+</ul>
+<p>DataXceiverServer线程的主程序如下<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">void</span> <span class="title">run</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="keyword">while</span> (datanode.shouldRun) &#123;</span><br><span class="line">      <span class="keyword">try</span> &#123;</span><br><span class="line">        Socket s = ss.accept();<span class="comment">//accept到来的连接</span></span><br><span class="line">        s.setTcpNoDelay(<span class="keyword">true</span>);<span class="comment">//关闭Nagle算法</span></span><br><span class="line">        <span class="comment">//创建DataXceiver线程服务该连接上的操作</span></span><br><span class="line">        <span class="keyword">new</span> Daemon(datanode.threadGroup, <span class="keyword">new</span> DataXceiver(s, datanode, <span class="keyword">this</span>)).start();</span><br><span class="line">      &#125;...<span class="comment">//异常处理</span></span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">      ss.close();</span><br><span class="line">    &#125; <span class="keyword">catch</span> (IOException ie) &#123;</span><br><span class="line">      LOG.warn(datanode.dnRegistration + <span class="string">":DataXceiveServer: Close exception due to: "</span></span><br><span class="line">                               + StringUtils.stringifyException(ie));</span><br><span class="line">    &#125;</span><br><span class="line">    LOG.info(<span class="string">"Exiting DataXceiveServer"</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，对于到来的连接，accept一个Socket，将这个Socket封装在DataXceiver线程中服务到来的操作请求，线程所属的线程组与DataXceiverServer一样，还是DataNode中的那个线程组。<br>accept中的异常，涉及到DataNode的关闭，等待后面分析。在DataXceiverServer关闭时，关闭流服务的Socket。  </p>
+<p>DataXceiver成员属性<br><img src="../images/DataXceiver成员属性.png" alt="DataXceiver成员属性">  </p>
+<ul>
+<li><code>s</code>,连接的Socket，通过DataXceiverServer的Socket accept得到</li>
+<li><code>remoteAddress</code>，对端的地址</li>
+<li><code>localAddress</code>，本地地址</li>
+<li><code>datanode</code>，所属的DataNode</li>
+<li><code>dataXceiverServer</code>，所属的DataXceiverServer</li>
+</ul>
+<p>DataXceiver线程的主程序如下:<br><figure class="highlight groovy"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="typename">void</span> run() &#123;</span><br><span class="line">    DataInputStream <span class="keyword">in</span>=<span class="literal">null</span>; </span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">      <span class="keyword">in</span> = <span class="keyword">new</span> DataInputStream(<span class="keyword">new</span> BufferedInputStream(NetUtils.getInputStream(s),SMALL_BUFFER_SIZE));</span><br><span class="line">      <span class="typename">short</span> version = <span class="keyword">in</span>.readShort();<span class="comment">//读取对端DataTransferProtocol的版本号</span></span><br><span class="line">      <span class="keyword">if</span> ( version != DataTransferProtocol.DATA_TRANSFER_VERSION ) &#123;</span><br><span class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> IOException( <span class="string">"Version Mismatch"</span> );</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="typename">boolean</span> local = s.getInetAddress().equals(s.getLocalAddress());</span><br><span class="line">      <span class="typename">byte</span> op = <span class="keyword">in</span>.readByte();<span class="comment">//读取操作码</span></span><br><span class="line">      <span class="comment">//当前连接数(xceiver线程数)不能超过限制</span></span><br><span class="line">      <span class="typename">int</span> curXceiverCount = datanode.getXceiverCount();</span><br><span class="line">      <span class="keyword">if</span> (curXceiverCount &gt; dataXceiverServer.maxXceiverCount) &#123;</span><br><span class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> IOException(<span class="string">"xceiverCount "</span> + curXceiverCount</span><br><span class="line">                              + <span class="string">" exceeds the limit of concurrent xcievers "</span></span><br><span class="line">                              + dataXceiverServer.maxXceiverCount);</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="typename">long</span> startTime = DataNode.now();</span><br><span class="line">      <span class="keyword">switch</span> ( op ) &#123;</span><br><span class="line">          <span class="keyword">case</span> DataTransferProtocol.<span class="string">OP_READ_BLOCK:</span><span class="comment">//读请求</span></span><br><span class="line">            readBlock( <span class="keyword">in</span> );</span><br><span class="line">            datanode.myMetrics.addReadBlockOp(DataNode.now() - startTime);</span><br><span class="line">            <span class="keyword">if</span> (local)</span><br><span class="line">              datanode.myMetrics.incrReadsFromLocalClient();</span><br><span class="line">            <span class="keyword">else</span></span><br><span class="line">              datanode.myMetrics.incrReadsFromRemoteClient();</span><br><span class="line">            <span class="keyword">break</span>;</span><br><span class="line">          <span class="keyword">case</span> DataTransferProtocol.<span class="string">OP_WRITE_BLOCK:</span><span class="comment">//写请求</span></span><br><span class="line">            writeBlock( <span class="keyword">in</span> );</span><br><span class="line">            datanode.myMetrics.addWriteBlockOp(DataNode.now() - startTime);</span><br><span class="line">            <span class="keyword">if</span> (local)</span><br><span class="line">              datanode.myMetrics.incrWritesFromLocalClient();</span><br><span class="line">            <span class="keyword">else</span></span><br><span class="line">              datanode.myMetrics.incrWritesFromRemoteClient();</span><br><span class="line">            <span class="keyword">break</span>;</span><br><span class="line">          <span class="keyword">case</span> DataTransferProtocol.<span class="string">OP_REPLACE_BLOCK:</span> <span class="comment">//替换请求</span></span><br><span class="line">            replaceBlock(<span class="keyword">in</span>);</span><br><span class="line">            datanode.myMetrics.addReplaceBlockOp(DataNode.now() - startTime);</span><br><span class="line">            <span class="keyword">break</span>;</span><br><span class="line">          <span class="keyword">case</span> DataTransferProtocol.<span class="string">OP_COPY_BLOCK:</span><span class="comment">//复制请求</span></span><br><span class="line">            copyBlock(<span class="keyword">in</span>);</span><br><span class="line">            datanode.myMetrics.addCopyBlockOp(DataNode.now() - startTime);</span><br><span class="line">            <span class="keyword">break</span>;</span><br><span class="line">          <span class="keyword">case</span> DataTransferProtocol.<span class="string">OP_BLOCK_CHECKSUM:</span><span class="comment">//读取校验信息请求</span></span><br><span class="line">            getBlockChecksum(<span class="keyword">in</span>);</span><br><span class="line">            datanode.myMetrics.addBlockChecksumOp(DataNode.now() - startTime);</span><br><span class="line">            <span class="keyword">break</span>;</span><br><span class="line"><span class="label">          default:</span></span><br><span class="line">            <span class="keyword">throw</span> <span class="keyword">new</span> IOException(<span class="string">"Unknown opcode "</span> + op + <span class="string">" in data stream"</span>);</span><br><span class="line">      &#125;</span><br><span class="line">    &#125; <span class="keyword">catch</span> (Throwable t) &#123;</span><br><span class="line">      LOG.error(datanode.dnRegistration + <span class="string">":DataXceiver"</span>,t);</span><br><span class="line">    &#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">      LOG.debug(datanode.dnRegistration + <span class="string">":Number of active connections is: "</span></span><br><span class="line">                               + datanode.getXceiverCount());</span><br><span class="line">      IOUtils.closeStream(<span class="keyword">in</span>);</span><br><span class="line">      IOUtils.closeSocket(s);</span><br><span class="line">      dataXceiverServer.childSockets.remove(s);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，在<a href="../HDFS流接口">HDFS流接口</a>中分析过了有5中流操作，写数据块，读数据块，替换数据块，复制数据块，读取数据块的校验信息。每种操作的请求都会包含DataTransferProtocol的版本号以及操作对应的操作码。<br>因此通过socket获取输入流后首先读取版本号进行验证，然后读取操作码，根据不同的操作码执行不同的操作。  </p>
+<ul>
+<li>写数据块由<code>writeBlock(in)</code>负责</li>
+<li>读数据由<code>readBlock(in)</code>负责</li>
+<li>数据块替换由<code>replaceBlock(in)</code>负责</li>
+<li>数据块复制由<code>copyBlock(in)</code>负责</li>
+<li>获取数据块校验信息由<code>getBlockChecksum(in)</code>负责</li>
+</ul>
+<p>接下来分析各个操作的实现。  </p>
+<p>限于篇幅，本文分析写数据块的实现，后面的4中操作见<a href="../DataNode流接口实现下篇">下篇</a>  </p>
+<hr>
+<h1 id="写数据块">写数据块</h1><p>写数据通过<code>writeBlock</code>实现，如<a href="../HDFS流接口">HDFS流接口</a>中分析，写数据时会建立数据流管道。写请求后会等待应答，正常时数据流管道建立完成，才开始接收数据。<br>writeBlock代码比较长，根据流程分段分析  </p>
+<h2 id="1-_读写请求帧数据">1. 读写请求帧数据</h2><p>首先是读取写请求帧数据<br><figure class="highlight coffeescript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line">Block block = <span class="keyword">new</span> Block(<span class="keyword">in</span>.readLong(), dataXceiverServer.estimateBlockSize, <span class="keyword">in</span>.readLong());</span><br><span class="line">int pipelineSize = <span class="keyword">in</span>.readInt(); <span class="regexp">//</span> num <span class="keyword">of</span> datanodes <span class="keyword">in</span> entire pipeline</span><br><span class="line">boolean isRecovery = <span class="keyword">in</span>.readBoolean(); <span class="regexp">//</span> <span class="keyword">is</span> <span class="keyword">this</span> part <span class="keyword">of</span> recovery?</span><br><span class="line">String client = Text.readString(<span class="keyword">in</span>); <span class="regexp">//</span> working <span class="literal">on</span> behalf <span class="keyword">of</span> <span class="keyword">this</span> client</span><br><span class="line">boolean hasSrcDataNode = <span class="keyword">in</span>.readBoolean(); <span class="regexp">//</span> <span class="keyword">is</span> src node info present</span><br><span class="line"><span class="keyword">if</span> (hasSrcDataNode) &#123;</span><br><span class="line">  srcDataNode = <span class="keyword">new</span> DatanodeInfo();</span><br><span class="line">  srcDataNode.readFields(<span class="keyword">in</span>);</span><br><span class="line">&#125;</span><br><span class="line">int numTargets = <span class="keyword">in</span>.readInt();</span><br><span class="line"><span class="keyword">if</span> (numTargets &lt; <span class="number">0</span>) &#123;</span><br><span class="line">  <span class="keyword">throw</span> <span class="keyword">new</span> IOException(<span class="string">"Mislabelled incoming datastream."</span>);</span><br><span class="line">&#125;</span><br><span class="line">DatanodeInfo targets[] = <span class="keyword">new</span> DatanodeInfo[numTargets];</span><br><span class="line"><span class="keyword">for</span> (int i = <span class="number">0</span>; i &lt; targets.length; i++) &#123;</span><br><span class="line">  DatanodeInfo tmp = <span class="keyword">new</span> DatanodeInfo();</span><br><span class="line">  tmp.readFields(<span class="keyword">in</span>);</span><br><span class="line">  targets[i] = tmp;</span><br><span class="line">&#125;</span><br><span class="line">Token&lt;BlockTokenIdentifier&gt; accessToken = <span class="keyword">new</span> Token&lt;BlockTokenIdentifier&gt;();</span><br><span class="line">accessToken.readFields(<span class="keyword">in</span>);</span><br></pre></td></tr></table></figure></p>
+<p>如上，写请求帧格式见<a href="../HDFS流接口">HDFS流接口</a><br><code>client</code>不为空时为Client的写操作，否则为NameNode写指令或区块均衡器操作的写。<br><code>numTargets</code>大于0时，当前DataNode不是数据流管道的最后一个节点，需要建立到target[0]的连接并发送数据。  </p>
+<h2 id="2-_创建BlockReceiver对象">2. 创建BlockReceiver对象</h2><p>接收数据由<code>BlockReceiver</code>负责，构造BlockReceiver对象<br><figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br></pre></td><td class="code"><pre><span class="line">blockReceiver = <span class="keyword">new</span> BlockReceiver(block, <span class="keyword">in</span>, s.getRemoteSocketAddress().toString(),</span><br><span class="line">  s.getLocalSocketAddress().toString(), isRecovery, client, srcDataNode, datanode)</span><br><span class="line"> </span><br><span class="line">BlockReceiver(Block block, DataInputStream <span class="keyword">in</span>, String inAddr,</span><br><span class="line">                String myAddr, boolean isRecovery, String clientName, </span><br><span class="line">                DatanodeInfo srcDataNode, DataNode datanode) throws IOException &#123;</span><br><span class="line">    <span class="keyword">try</span>&#123;</span><br><span class="line">      <span class="keyword">this</span>.block = block;</span><br><span class="line">      <span class="keyword">this</span>.<span class="keyword">in</span> = <span class="keyword">in</span>;</span><br><span class="line">      <span class="keyword">this</span>.inAddr = inAddr;</span><br><span class="line">      <span class="keyword">this</span>.myAddr = myAddr;</span><br><span class="line">      <span class="keyword">this</span>.isRecovery = isRecovery;</span><br><span class="line">      <span class="keyword">this</span>.clientName = clientName;</span><br><span class="line">      <span class="keyword">this</span>.offsetInBlock = <span class="number">0</span>;</span><br><span class="line">      <span class="keyword">this</span>.srcDataNode = srcDataNode;</span><br><span class="line">      <span class="keyword">this</span>.datanode = datanode;</span><br><span class="line">      <span class="keyword">this</span>.checksum = DataChecksum.newDataChecksum(<span class="keyword">in</span>);</span><br><span class="line">      <span class="keyword">this</span>.bytesPerChecksum = checksum.getBytesPerChecksum();</span><br><span class="line">      <span class="keyword">this</span>.checksumSize = checksum.getChecksumSize();</span><br><span class="line">      <span class="keyword">this</span>.dropCacheBehindWrites = datanode.shouldDropCacheBehindWrites();</span><br><span class="line">      <span class="keyword">this</span>.syncBehindWrites = datanode.shouldSyncBehindWrites();</span><br><span class="line">      <span class="comment">//追加或创建本地区块文件和校验文件，创建文件输出流</span></span><br><span class="line">      streams = datanode.data.writeToBlock(block, isRecovery, clientName == <span class="keyword">null</span> || clientName.length() == <span class="number">0</span>);</span><br><span class="line">      <span class="keyword">this</span>.finalized = <span class="keyword">false</span>;</span><br><span class="line">      <span class="keyword">if</span> (streams != <span class="keyword">null</span>) &#123;</span><br><span class="line">        <span class="keyword">this</span>.<span class="keyword">out</span> = streams.dataOut;</span><br><span class="line">        <span class="keyword">this</span>.cout = streams.checksumOut;</span><br><span class="line">        <span class="keyword">if</span> (<span class="keyword">out</span> instanceof FileOutputStream) &#123;</span><br><span class="line">          <span class="keyword">this</span>.outFd = ((FileOutputStream) <span class="keyword">out</span>).getFD();</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">          LOG.warn(<span class="string">"Could not get file descriptor for outputstream of class "</span> + <span class="keyword">out</span>.getClass());</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">this</span>.checksumOut = <span class="keyword">new</span> DataOutputStream(<span class="keyword">new</span> BufferedOutputStream(streams.checksumOut, SMALL_BUFFER_SIZE));</span><br><span class="line">        <span class="comment">//如果是追加操作，则从区块扫描器中移除</span></span><br><span class="line">        <span class="keyword">if</span> (datanode.blockScanner != <span class="keyword">null</span> &amp;&amp; isRecovery) &#123;</span><br><span class="line">          datanode.blockScanner.deleteBlock(block);</span><br><span class="line">        &#125;</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    ...<span class="comment">//异常处理 </span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，初始化BlockReceiver中基本成员后，会通过DataNode FSDataset对象的<code>writeToBlock</code>打开要追加的区块文件或者创建新的区块文件以及校验文件，打开文件的输出流对象。如果对应的是追加操作，因为会改变现有区块，要从区块扫描器中移除。<br>其他成员这里不再列出。  </p>
+<h3 id="2-1_FSDataset-writeToBlock">2.1 FSDataset.writeToBlock</h3><p>writeToBlock如下<br><figure class="highlight gradle"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> BlockWriteStreams writeToBlock(Block b, <span class="keyword">boolean</span> isRecovery, <span class="keyword">boolean</span> replicationRequest) <span class="keyword">throws</span> IOException &#123;</span><br><span class="line">    <span class="keyword">if</span> (isValidBlock(b)) &#123;<span class="comment">//如果文件已经存在，则只能是修复操作，如追加</span></span><br><span class="line">      <span class="keyword">if</span> (!isRecovery) &#123;</span><br><span class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> BlockAlreadyExistsException(<span class="string">"Block "</span> + b + <span class="string">" is valid, and cannot be written to."</span>);</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="comment">//如果存在与该区块文件相关的硬链接，将文件与硬链接分离</span></span><br><span class="line">      detachBlock(b, <span class="number">1</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">long</span> blockSize = b.getNumBytes();</span><br><span class="line"></span><br><span class="line">    <span class="keyword">File</span> f = <span class="keyword">null</span>;</span><br><span class="line">    List&lt;Thread&gt; threads = <span class="keyword">null</span>;</span><br><span class="line">    <span class="keyword">synchronized</span> (<span class="keyword">this</span>) &#123;</span><br><span class="line">      ActiveFile activeFile = ongoingCreates.get(b);</span><br><span class="line">      <span class="keyword">if</span> (activeFile != <span class="keyword">null</span>) &#123;<span class="comment">//已经有其他线程创建了区块</span></span><br><span class="line">        f = activeFile.<span class="keyword">file</span>;</span><br><span class="line">        threads = activeFile.threads;</span><br><span class="line">        <span class="keyword">if</span> (!isRecovery) &#123;<span class="comment">//此时只允许恢复相关的操作</span></span><br><span class="line">          <span class="keyword">throw</span> <span class="keyword">new</span> BlockAlreadyExistsException(<span class="string">"Block "</span> + b +</span><br><span class="line">                                  <span class="string">" has already been started (though not completed), and thus cannot be created."</span>);</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">          <span class="keyword">for</span> (Thread thread:threads) &#123;<span class="comment">//中断其他创建线程</span></span><br><span class="line">            thread.interrupt();</span><br><span class="line">          &#125;</span><br><span class="line">        &#125;</span><br><span class="line">        ongoingCreates.remove(b);</span><br><span class="line">      &#125;</span><br><span class="line">      FSVolume v = <span class="keyword">null</span>;</span><br><span class="line">      <span class="keyword">if</span> (!isRecovery) &#123;<span class="comment">//非恢复操作</span></span><br><span class="line">        v = volumes.getNextVolume(blockSize);<span class="comment">//获取下一个可用存储目录</span></span><br><span class="line">        f = createTmpFile(v, b, replicationRequest);<span class="comment">//在存储目录中创建临时区块文件</span></span><br><span class="line">      &#125; <span class="keyword">else</span> <span class="keyword">if</span> (f != <span class="keyword">null</span>) &#123;<span class="comment">//恢复操作，文件已经创建了重用打开的文件</span></span><br><span class="line">        DataNode.LOG.info(<span class="string">"Reopen already-open Block for append "</span> + b);</span><br><span class="line">        v = volumeMap.get(b).getVolume();</span><br><span class="line">        volumeMap.put(b, <span class="keyword">new</span> DatanodeBlockInfo(v, f));</span><br><span class="line">      &#125; <span class="keyword">else</span> &#123;恢复操作，重新打开区块文件追加，打开的文件要放到临时目录中</span><br><span class="line">        DataNode.LOG.info(<span class="string">"Reopen for append "</span> + b);</span><br><span class="line">        v = volumeMap.get(b).getVolume();</span><br><span class="line">        f = createTmpFile(v, b, replicationRequest);<span class="comment">//blocksBeingWritten或tmp目录中</span></span><br><span class="line">        <span class="keyword">File</span> blkfile = getBlockFile(b);</span><br><span class="line">        <span class="keyword">File</span> oldmeta = getMetaFile(b);</span><br><span class="line">        <span class="keyword">File</span> newmeta = getMetaFile(f, b);</span><br><span class="line"></span><br><span class="line">        DataNode.LOG.debug(<span class="string">"Renaming "</span> + oldmeta + <span class="string">" to "</span> + newmeta);</span><br><span class="line">        <span class="keyword">if</span> (!oldmeta.renameTo(newmeta)) &#123;<span class="comment">//原来的校验文件重命名到临时目录中</span></span><br><span class="line">          <span class="keyword">throw</span> <span class="keyword">new</span> IOException(<span class="string">"Block "</span> + b + <span class="string">" reopen failed. "</span> +</span><br><span class="line">                <span class="string">" Unable to move meta file  "</span> + oldmeta + <span class="string">" to tmp dir "</span> + newmeta);</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">if</span> (!blkfile.renameTo(f)) &#123;<span class="comment">//区块文件重命名到临时目录中</span></span><br><span class="line">          <span class="keyword">if</span> (!f.<span class="keyword">delete</span>()) &#123;</span><br><span class="line">            <span class="keyword">throw</span> <span class="keyword">new</span> IOException(b + <span class="string">" reopen failed. "</span> + <span class="string">" Unable to remove file "</span> + f);</span><br><span class="line">          &#125;</span><br><span class="line">          <span class="keyword">if</span> (!blkfile.renameTo(f)) &#123;</span><br><span class="line">            <span class="keyword">throw</span> <span class="keyword">new</span> IOException(b + <span class="string">" reopen failed. "</span> + <span class="string">" Unable to move block file "</span> + blkfile + <span class="string">" to tmp dir "</span> + f);</span><br><span class="line">          &#125;</span><br><span class="line">        &#125;</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="keyword">if</span> (f == <span class="keyword">null</span>) &#123;</span><br><span class="line">        DataNode.LOG.warn(b + <span class="string">" reopen failed. Unable to locate tmp file"</span>);</span><br><span class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> IOException(<span class="string">"Block "</span> + b + <span class="string">" reopen failed "</span> + <span class="string">" Unable to locate tmp file."</span>);</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="comment">//更新volumeMap和ongoingCreates</span></span><br><span class="line">      <span class="comment">// If this is a replication request, then this is not a permanent</span></span><br><span class="line">      <span class="comment">// block yet, it could get removed if the datanode restarts. If this</span></span><br><span class="line">      <span class="comment">// is a write or append request, then it is a valid block.</span></span><br><span class="line">      <span class="keyword">if</span> (replicationRequest) &#123;</span><br><span class="line">        volumeMap.put(b, <span class="keyword">new</span> DatanodeBlockInfo(v));</span><br><span class="line">      &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        volumeMap.put(b, <span class="keyword">new</span> DatanodeBlockInfo(v, f));</span><br><span class="line">      &#125;</span><br><span class="line">      ongoingCreates.put(b, <span class="keyword">new</span> ActiveFile(f, threads));</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">try</span> &#123;<span class="comment">//等待之前创建线程结束</span></span><br><span class="line">      <span class="keyword">if</span> (threads != <span class="keyword">null</span>) &#123;</span><br><span class="line">        <span class="keyword">for</span> (Thread thread:threads) &#123;</span><br><span class="line">          thread.<span class="keyword">join</span>();</span><br><span class="line">        &#125;</span><br><span class="line">      &#125;</span><br><span class="line">    &#125; <span class="keyword">catch</span> (InterruptedException e) &#123;</span><br><span class="line">      <span class="keyword">throw</span> <span class="keyword">new</span> IOException(<span class="string">"Recovery waiting for thread interrupted."</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">File</span> metafile = getMetaFile(f, b);</span><br><span class="line">    DataNode.LOG.debug(<span class="string">"writeTo blockfile is "</span> + f + <span class="string">" of size "</span> + f.length());</span><br><span class="line">    DataNode.LOG.debug(<span class="string">"writeTo metafile is "</span> + metafile + <span class="string">" of size "</span> + metafile.length());</span><br><span class="line">    <span class="keyword">return</span> createBlockWriteStreams( f , metafile);<span class="comment">//创建区块文件和校验文件对应的输出流</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，如果区块文件已经存在，则只允许恢复操作如对区块的追加，不能创建同样的区块文件，此时如果存在硬链接需要分离，这样回滚到以前的版本时，对应的区块文件为原来的未更改的区块文件。<br>分离操作通过<code>detachBlock</code>完成</p>
+<h4 id="2-1-1_FSDataset-detach">2.1.1 FSDataset.detach</h4><figure class="highlight gradle"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="keyword">void</span> detachFile(<span class="keyword">File</span> <span class="keyword">file</span>, Block b) <span class="keyword">throws</span> IOException &#123;</span><br><span class="line">    <span class="keyword">File</span> tmpFile = volume.createDetachFile(b, <span class="keyword">file</span>.getName());<span class="comment">//detach目录下</span></span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">      <span class="comment">//数据拷贝到detach目录下文件中</span></span><br><span class="line">      IOUtils.copyBytes(<span class="keyword">new</span> FileInputStream(<span class="keyword">file</span>), <span class="keyword">new</span> FileOutputStream(tmpFile), <span class="number">16</span>*<span class="number">1024</span>, <span class="keyword">true</span>);</span><br><span class="line">      <span class="keyword">if</span> (<span class="keyword">file</span>.length() != tmpFile.length()) &#123;</span><br><span class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> IOException(<span class="string">"Copy of file "</span> + <span class="keyword">file</span> + <span class="string">" size "</span> + <span class="keyword">file</span>.length()+</span><br><span class="line">                              <span class="string">" into file "</span> + tmpFile +</span><br><span class="line">                              <span class="string">" resulted in a size of "</span> + tmpFile.length());</span><br><span class="line">      &#125;</span><br><span class="line">      FileUtil.replaceFile(tmpFile, <span class="keyword">file</span>);<span class="comment">//重命名</span></span><br><span class="line">    &#125; <span class="keyword">catch</span> (IOException e) &#123;</span><br><span class="line">      <span class="keyword">boolean</span> done = tmpFile.<span class="keyword">delete</span>();</span><br><span class="line">      <span class="keyword">if</span> (!done) &#123;</span><br><span class="line">        DataNode.LOG.info(<span class="string">"detachFile failed to delete temporary file "</span> +</span><br><span class="line">                          tmpFile);</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="keyword">throw</span> e;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>如上，省去了FSDataset.detach处理的中间过程，上面为<code>DatanodeBlockInfo</code>中的detachFile方法，在FSDataset.detach中会找到文件对应的校验文件，如果文件或校验文件需要detach，则会对文件或校验文件调用该方法。<br>总的来说，主要逻辑为:<br>如果区块b对应文件或者校验文件的硬连接大于1，即存在硬链接，将区块b对应的文件或校验文件和文件对应的硬链接分离。分离时，在detach目录下创建与待分离的文件名字一样的文件，然后将原来数据拷贝到detach目录下的文件中，最后重命名detach目录下的文件为源文件，此时文件的inode号与原来的inode号不一样，达到与其他硬链接文件分离的目的。  </p>
+<p>对于恢复操作，如果文件已经打开直接重用即可，否则重新打开区块文件，在临时目录中创建临时文件，重命名区块文件和校验文件到临时目录，临时目录根据是否为复制操作还是Client的写操作可能为<code>ongoingCreates</code>或<code>tmp</code>目录，具体逻辑在<code>createTmpFile</code>中</p>
+<h4 id="2-1-2_FSDataset-createTmpFile">2.1.2 FSDataset.createTmpFile</h4><figure class="highlight gradle"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">synchronized</span> <span class="keyword">File</span> createTmpFile( FSVolume vol, Block blk, <span class="keyword">boolean</span> replicationRequest) <span class="keyword">throws</span> IOException &#123;</span><br><span class="line">    <span class="keyword">if</span> ( vol == <span class="keyword">null</span> ) &#123;</span><br><span class="line">      vol = volumeMap.get( blk ).getVolume();</span><br><span class="line">      <span class="keyword">if</span> ( vol == <span class="keyword">null</span> ) &#123;</span><br><span class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> IOException(<span class="string">"Could not find volume for block "</span> + blk);</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> vol.createTmpFile(blk, replicationRequest);</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">File</span> createTmpFile(Block b, <span class="keyword">boolean</span> replicationRequest) <span class="keyword">throws</span> IOException &#123;</span><br><span class="line">  <span class="keyword">File</span> f= <span class="keyword">null</span>;</span><br><span class="line">  <span class="keyword">if</span> (!replicationRequest) &#123;</span><br><span class="line">    f = <span class="keyword">new</span> <span class="keyword">File</span>(blocksBeingWritten, b.getBlockName());</span><br><span class="line">  &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">    f = <span class="keyword">new</span> <span class="keyword">File</span>(tmpDir, b.getBlockName());</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">return</span> createTmpFile(b, f);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>如上，如果是复制请求对应的为非Client写数据，则临时目录为tmp，而Client写数据使用的临时目录为blocksBeingWritten。  </p>
+<p>如果不是恢复操作，直接在临时目录中创建相应的临时文件。不管是否为恢复操作，最终都要将区块对应信息添加到<code>ongoingCreates</code>和<code>volumeMap</code>中。<br>临时目录的文件只有在操作完成(数据写完)后才会提交到current目录中。<br>以上操作完成后，打开临时文件(区块文件和校验文件)的输出流，构造<code>BlockWriteStreams</code>对象。  </p>
+<p>回到BlockReceiver的构造方法中，BlockReceiver的<code>streams</code>成员保存着接收区块数据和校验数据的文件输出流，<code>checksumOut</code>成员将校验文件输出流封装成DataOutputStream。<br>再回到DataXceiver的writeBlock方法中，BlockReceiver对象构造完后，如果本DataNode之后还有下游数据节点，需要建立到下游节点的连接，同样的发送区块写请求</p>
+<h2 id="3-_建立数据流管道">3. 建立数据流管道</h2><figure class="highlight axapta"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (targets.length &gt; <span class="number">0</span>) &#123;</span><br><span class="line">    InetSocketAddress mirrorTarget = <span class="keyword">null</span>;</span><br><span class="line">    <span class="comment">//下游节点地址</span></span><br><span class="line">    <span class="keyword">final</span> String mirrorAddrString = targets[<span class="number">0</span>].getName(connectToDnViaHostname);</span><br><span class="line">    mirrorNode = targets[<span class="number">0</span>].getName();</span><br><span class="line">    mirrorTarget = NetUtils.createSocketAddr(mirrorAddrString);</span><br><span class="line">    mirrorSock = datanode.newSocket();<span class="comment">//创建新的Socket连接到下游节点</span></span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">      <span class="comment">//要连接到下游节点，更正连接超时，读操作超时，写操作超时</span></span><br><span class="line">      <span class="keyword">int</span> timeoutValue = datanode.socketTimeout +(HdfsConstants.READ_TIMEOUT_EXTENSION * numTargets);</span><br><span class="line">      <span class="keyword">int</span> writeTimeout = datanode.socketWriteTimeout +(HdfsConstants.WRITE_TIMEOUT_EXTENSION * numTargets);</span><br><span class="line">      LOG.debug(<span class="string">"Connecting to "</span> + mirrorAddrString);</span><br><span class="line">      NetUtils.connect(mirrorSock, mirrorTarget, timeoutValue);<span class="comment">//连接到下游节点</span></span><br><span class="line">      mirrorSock.setSoTimeout(timeoutValue);</span><br><span class="line">      mirrorSock.setSendBufferSize(DEFAULT_DATA_SOCKET_SIZE);</span><br><span class="line">      <span class="comment">//到下游节点输出流</span></span><br><span class="line">      mirrorOut = <span class="keyword">new</span> DataOutputStream(</span><br><span class="line">         <span class="keyword">new</span> BufferedOutputStream(NetUtils.getOutputStream(mirrorSock, writeTimeout), SMALL_BUFFER_SIZE));</span><br><span class="line">      mirrorIn = <span class="keyword">new</span> DataInputStream(NetUtils.getInputStream(mirrorSock));<span class="comment">//从下游节点读数据的输入流</span></span><br><span class="line">    </span><br><span class="line">      <span class="comment">//发送区块写请求，targets字段相应的做出改变</span></span><br><span class="line">      mirrorOut.writeShort( DataTransferProtocol.DATA_TRANSFER_VERSION );</span><br><span class="line">      mirrorOut.write( DataTransferProtocol.OP_WRITE_BLOCK );</span><br><span class="line">      mirrorOut.writeLong( block.getBlockId() );</span><br><span class="line">      mirrorOut.writeLong( block.getGenerationStamp() );</span><br><span class="line">      mirrorOut.writeInt( pipelineSize );</span><br><span class="line">      mirrorOut.writeBoolean( isRecovery );</span><br><span class="line">      Text.writeString( mirrorOut, <span class="keyword">client</span> );</span><br><span class="line">      mirrorOut.writeBoolean(hasSrcDataNode);</span><br><span class="line">      <span class="keyword">if</span> (hasSrcDataNode) &#123; <span class="comment">// pass src node information</span></span><br><span class="line">        srcDataNode.write(mirrorOut);</span><br><span class="line">      &#125;</span><br><span class="line">      mirrorOut.writeInt( targets.length - <span class="number">1</span> );</span><br><span class="line">      <span class="keyword">for</span> ( <span class="keyword">int</span> i = <span class="number">1</span>; i &lt; targets.length; i++ ) &#123;</span><br><span class="line">        targets[i].write( mirrorOut );</span><br><span class="line">      &#125;</span><br><span class="line">      accessToken.write(mirrorOut);</span><br><span class="line">      blockReceiver.writeChecksumHeader(mirrorOut);</span><br><span class="line">      mirrorOut.flush();</span><br><span class="line">    </span><br><span class="line">      <span class="comment">//如果是客户端写请求，要等待写应答，即等待数据流管道的建立</span></span><br><span class="line">      <span class="keyword">if</span> (<span class="keyword">client</span>.length() != <span class="number">0</span>) &#123;</span><br><span class="line">        mirrorInStatus = mirrorIn.readShort();</span><br><span class="line">        firstBadLink = Text.readString(mirrorIn);</span><br><span class="line">        <span class="keyword">if</span> (LOG.isDebugEnabled() || mirrorInStatus != DataTransferProtocol.OP_STATUS_SUCCESS) &#123;</span><br><span class="line">          LOG.info(<span class="string">"Datanode "</span> + targets.length +</span><br><span class="line">                   <span class="string">" got response for connect ack "</span> +</span><br><span class="line">                   <span class="string">" from downstream datanode with firstbadlink as "</span> +</span><br><span class="line">                   firstBadLink);</span><br><span class="line">        &#125;</span><br><span class="line">      &#125;</span><br><span class="line">    </span><br><span class="line">    &#125; <span class="keyword">catch</span> (IOException e) &#123;</span><br><span class="line">      <span class="comment">//如果是客户端写请求，这里对应连接下游节点超时或者读下游节点的写应答超时，往上游节点发送写应答，对应的状态为OP_STATUS_ERROR，</span></span><br><span class="line">      <span class="comment">//第一个未联系上的节点为本节点的下游节点</span></span><br><span class="line">      <span class="keyword">if</span> (<span class="keyword">client</span>.length() != <span class="number">0</span>) &#123;</span><br><span class="line">        replyOut.writeShort((<span class="keyword">short</span>)DataTransferProtocol.OP_STATUS_ERROR);</span><br><span class="line">        Text.writeString(replyOut, mirrorNode);</span><br><span class="line">        replyOut.flush();</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="comment">//关闭到下游节点的Socket流和Socket</span></span><br><span class="line">      IOUtils.closeStream(mirrorOut);</span><br><span class="line">      mirrorOut = <span class="keyword">null</span>;</span><br><span class="line">      IOUtils.closeStream(mirrorIn);</span><br><span class="line">      mirrorIn = <span class="keyword">null</span>;</span><br><span class="line">      IOUtils.closeSocket(mirrorSock);</span><br><span class="line">      mirrorSock = <span class="keyword">null</span>;</span><br><span class="line">      <span class="keyword">if</span> (<span class="keyword">client</span>.length() &gt; <span class="number">0</span>) &#123;<span class="comment">//客户端写请求建立数据流管道异常，抛出，终止后面的操作</span></span><br><span class="line">        <span class="keyword">throw</span> e;</span><br><span class="line">      &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        LOG.info(datanode.dnRegistration + <span class="string">":Exception transfering "</span> +</span><br><span class="line">                 block + <span class="string">" to mirror "</span> + mirrorNode +</span><br><span class="line">                 <span class="string">"- continuing without the mirror\n"</span> +</span><br><span class="line">                 StringUtils.stringifyException(e));</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">//接收到应答，往上游发送写请求响应到上游节点</span></span><br><span class="line"><span class="keyword">if</span> (<span class="keyword">client</span>.length() != <span class="number">0</span>) &#123;</span><br><span class="line">    <span class="keyword">if</span> (LOG.isDebugEnabled() || mirrorInStatus != DataTransferProtocol.OP_STATUS_SUCCESS) &#123;</span><br><span class="line">      LOG.info(<span class="string">"Datanode "</span> + targets.length +</span><br><span class="line">               <span class="string">" forwarding connect ack to upstream firstbadlink is "</span> +</span><br><span class="line">               firstBadLink);</span><br><span class="line">    &#125;</span><br><span class="line">    replyOut.writeShort(mirrorInStatus);</span><br><span class="line">    Text.writeString(replyOut, firstBadLink);</span><br><span class="line">    replyOut.flush();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>如上，连接到下游节点，注意的有以下几点:</p>
+<ul>
+<li>因为要建立数据流管道，数据流管道上的每个连接都对应可能连接超时，读超时，写超时，因此需要调整DataNode的相应超时时间，如果当前DataNode后面还有n个DataNode，则对于连接和读操作后面的每一个连接允许超时为3s，而对于写操作每个连接允许超时为5s。  </li>
+<li>连接到下游节点即targets[0]后，发送区块写请求，要减少targets节点，到管道上最后一个节点时，其接收到的targets数组长度为0。  </li>
+<li>如果是客户端写数据，向下游节点发送完区块写请求后，等待接收下游节点的写请求应答，包括状态和第一个联系不上的节点，接收到应答后，发送写请求响应到上游节点。<br>也就是说，数据流管道上的最后一个节点无需往下游节点发送写请求，则直接往上游节点发送写请求应答，上游节点收到下游节点应答后继续往上游发送应答，直到Client，一切正常数据流管道建立。<br>而如果某个节点连接到下游节点超时，或者说从下游节点接收写请求应答超时，则该节点的第一个联系不上的节点即为下游节点，此时往上游节点发送写请求应答，对应的状态为 OP_STATUS_ERROR，并发送第一个联系不上的节点即下游节点，抛出异常，终止后面的操作，此时数据流管道建立失败。</li>
+</ul>
+<p>往上游节点发送完写请求响应之后，便等待读取数据，如果实际数据流管道没有建立成功(如某节点接收到下游节点的响应为OP_STATUS_ERROR)，则该节点会在等待读取数据过程中超时。  </p>
+<h2 id="4-_接收数据，发送到下游节点">4. 接收数据，发送到下游节点</h2><figure class="highlight axapta"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">try</span>&#123;</span><br><span class="line">    ...<span class="comment">//包括上面的创建BlockReceiver，连接到下游节点，接收下游节点响应</span></span><br><span class="line">    String mirrorAddr = (mirrorSock == <span class="keyword">null</span>) ? <span class="keyword">null</span> : mirrorNode;</span><br><span class="line">    <span class="comment">//通过BlockReceiver接收区块</span></span><br><span class="line">    blockReceiver.receiveBlock(mirrorOut, mirrorIn, replyOut, mirrorAddr, <span class="keyword">null</span>, targets.length);</span><br><span class="line">    <span class="comment">//如果是DataNode间的区块复制(不是客户端写)，则放到receivedBlockList中，在DataNode的offerService中通知NameNode接收到区块数据</span></span><br><span class="line">    <span class="comment">//注意这里的hint为EMPTY_DEL_HINT，即不需要通知NameNode删除某数据节点的区块</span></span><br><span class="line">    <span class="comment">//Client端写的提交工作由PacketResponder负责</span></span><br><span class="line">    <span class="keyword">if</span> (<span class="keyword">client</span>.length() == <span class="number">0</span>) &#123;</span><br><span class="line">        datanode.notifyNamenodeReceivedBlock(block, DataNode.EMPTY_DEL_HINT);</span><br><span class="line">        LOG.info(<span class="string">"Received "</span> + block + <span class="string">" src: "</span> + remoteAddress + <span class="string">" dest: "</span> + localAddress + <span class="string">" size "</span> + block.getNumBytes());</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">//接收完区块，添加到区块扫描器中定期扫描</span></span><br><span class="line">    <span class="keyword">if</span> (datanode.blockScanner != <span class="keyword">null</span>) &#123;</span><br><span class="line">        datanode.blockScanner.addBlock(block);</span><br><span class="line">    &#125;</span><br><span class="line">&#125; <span class="keyword">catch</span> (IOException ioe) &#123;</span><br><span class="line">    LOG.info(<span class="string">"writeBlock "</span> + block + <span class="string">" received exception "</span> + ioe);</span><br><span class="line">    <span class="keyword">throw</span> ioe;</span><br><span class="line">&#125; <span class="keyword">finally</span> &#123;<span class="comment">//关闭所有打开的流</span></span><br><span class="line">    IOUtils.closeStream(mirrorOut);</span><br><span class="line">    IOUtils.closeStream(mirrorIn);</span><br><span class="line">    IOUtils.closeStream(replyOut);</span><br><span class="line">    IOUtils.closeSocket(mirrorSock);</span><br><span class="line">    IOUtils.closeStream(blockReceiver);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>如上，通过BlockReceiver的<code>receiveBlock</code>接收区块数据，接收完后，如果不是客户端写，则添加到receiveBlockList中，在DataNode的offerService中通知NameNode接收到新的区块数据，而Client写的提交工作由PacketResponder负责。同时添加区块到区块扫描器中，定期验证是否出错。<br>在整个过程中如果出现异常，抛出，写操作请求处理失败。最终会关闭所有打开的流。  </p>
+<h3 id="4-1_receiveBlock">4.1 receiveBlock</h3><p>receiveBlock实现如下<br><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">receiveBlock</span><span class="params">(</span><br><span class="line">      DataOutputStream mirrOut, <span class="comment">// output to next datanode</span></span><br><span class="line">      DataInputStream mirrIn,   <span class="comment">// input from next datanode</span></span><br><span class="line">      DataOutputStream replyOut,  <span class="comment">// output to previous datanode</span></span><br><span class="line">      String mirrAddr, DataTransferThrottler throttlerArg,</span><br><span class="line">      <span class="keyword">int</span> numTargets)</span> throws IOException </span>&#123;</span><br><span class="line"></span><br><span class="line">      mirrorOut = mirrOut;</span><br><span class="line">      mirrorAddr = mirrAddr;</span><br><span class="line">      throttler = throttlerArg;</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">      <span class="keyword">if</span> (!finalized) &#123;<span class="comment">//写校验文件头，包括2个字节的版本(1)，1个字节的校验类型，4个字节的校验块大小</span></span><br><span class="line">        BlockMetadataHeader.writeHeader(checksumOut, checksum);</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="keyword">if</span> (clientName.length() &gt; <span class="number">0</span>) &#123;<span class="comment">//如果是Client写，创建PacketResponder处理响应</span></span><br><span class="line">        responder = <span class="keyword">new</span> Daemon(datanode.threadGroup, </span><br><span class="line">           <span class="keyword">new</span> PacketResponder(<span class="keyword">this</span>, block, mirrIn, replyOut, numTargets, Thread.currentThread()));</span><br><span class="line">        responder.start(); </span><br><span class="line">      &#125;</span><br><span class="line"></span><br><span class="line">      <span class="keyword">while</span> (receivePacket() &gt; <span class="number">0</span>) &#123;&#125;<span class="comment">//循环接收包，写到本地文件和下游节点</span></span><br><span class="line">      <span class="keyword">if</span> (mirrorOut != null) &#123;</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">          mirrorOut.writeInt(<span class="number">0</span>); <span class="comment">// mark the end of the block</span></span><br><span class="line">          mirrorOut.flush();</span><br><span class="line">        &#125; <span class="keyword">catch</span> (IOException e) &#123;</span><br><span class="line">          handleMirrorOutError(e);</span><br><span class="line">        &#125;</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="comment">// wait for all outstanding packet responses. And then</span></span><br><span class="line">      <span class="comment">// indicate responder to gracefully shutdown.</span></span><br><span class="line">      <span class="keyword">if</span> (responder != null) &#123;</span><br><span class="line">        ((PacketResponder)responder.getRunnable()).close();</span><br><span class="line">      &#125;</span><br><span class="line"></span><br><span class="line">      <span class="comment">//非客户端写，提交临时文件到current中</span></span><br><span class="line">      <span class="keyword">if</span> (clientName.length() == <span class="number">0</span>) &#123;</span><br><span class="line">        <span class="comment">//关闭区块文件和校验文件</span></span><br><span class="line">        close();</span><br><span class="line">        block.setNumBytes(offsetInBlock);</span><br><span class="line">        datanode.data.finalizeBlock(block);</span><br><span class="line">        datanode.myMetrics.incrBlocksWritten();</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;...<span class="comment">//异常处理和最后的清理工作</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，先写校验文件头，包括版本号(1)，校验类型，校验块大小。如果是客户端写操作，创建PacketResponder线程并启动等待处理响应，实际的接收上游数据写到临时文件以及发送到下游节点是通过<code>receivePacket</code>完成的，receivePacket接收一个包并发送到下游节点，循环接收直到接受完。<br>先看PacketResponder</p>
+<h3 id="4-2_PacketResponder">4.2 PacketResponder</h3><p>PacketResponder线程成员如下:<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> LinkedList&lt;Packet&gt; ackQueue = <span class="keyword">new</span> LinkedList&lt;Packet&gt;();<span class="comment">//等待接收下游ACK的包</span></span><br><span class="line"><span class="keyword">private</span> <span class="keyword">volatile</span> <span class="keyword">boolean</span> running = <span class="keyword">true</span>;</span><br><span class="line"><span class="keyword">private</span> Block block;</span><br><span class="line">DataInputStream mirrorIn;   <span class="comment">//读取下游节点数据的输入流</span></span><br><span class="line">DataOutputStream replyOut;  <span class="comment">//往上游节点写响应的输出流</span></span><br><span class="line"><span class="keyword">private</span> <span class="keyword">int</span> numTargets;     <span class="comment">//下游节点数目包括本身</span></span><br><span class="line"><span class="keyword">private</span> BlockReceiver receiver; <span class="comment">//所属的区块接收器</span></span><br><span class="line"><span class="keyword">private</span> Thread receiverThread; <span class="comment">//创建该线程的线程，为区块接收器所属线程</span></span><br></pre></td></tr></table></figure></p>
+<p>如上，创建PacketResponder线程<br><figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">PacketResponder(BlockReceiver receiver, Block b, DataInputStream <span class="keyword">in</span>, </span><br><span class="line">                DataOutputStream <span class="keyword">out</span>, <span class="keyword">int</span> numTargets, Thread receiverThread) &#123;</span><br><span class="line">  <span class="keyword">this</span>.receiver = receiver;</span><br><span class="line">  <span class="keyword">this</span>.block = b;</span><br><span class="line">  mirrorIn = <span class="keyword">in</span>;</span><br><span class="line">  replyOut = <span class="keyword">out</span>;</span><br><span class="line">  <span class="keyword">this</span>.numTargets = numTargets;</span><br><span class="line">  <span class="keyword">this</span>.receiverThread = receiverThread;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>此时，ackQueue队列为空，会在线程主程序中等待，当发送一个包到下游节点时，会添加到ackQueue中，然后在线程中等待接收该包的ACK。接收ACK逻辑后面分析。  </p>
+<p>通过<code>receivePacket</code>接收一个包并发送到下游节点<br>在receivePacket中，首先通过<code>readNextPacket</code>读取一个完整的包到BlockReceiver的成员<code>buf</code>ByteBuffer中<br><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">int</span> payloadLen = readNextPacket();</span><br><span class="line"><span class="keyword">if</span> (payloadLen &lt;= <span class="number">0</span>) &#123;</span><br><span class="line">  <span class="keyword">return</span> payloadLen;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<h3 id="4-3_readNextPacket">4.3 readNextPacket</h3><p>readNextPacket实现如下<br><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">int</span> <span class="title">readNextPacket</span><span class="params">()</span> throws IOException </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (buf == null) &#123;<span class="comment">//分配缓冲区，最大为数据节点writePacketSize，调整能够接收整个包的大小</span></span><br><span class="line">      <span class="keyword">int</span> chunkSize = bytesPerChecksum + checksumSize;</span><br><span class="line">      <span class="keyword">int</span> chunksPerPacket = (datanode.writePacketSize - DataNode.PKT_HEADER_LEN - </span><br><span class="line">                             SIZE_OF_INTEGER + chunkSize - <span class="number">1</span>)/chunkSize;</span><br><span class="line">      buf = ByteBuffer.allocate(DataNode.PKT_HEADER_LEN + SIZE_OF_INTEGER +</span><br><span class="line">                                Math.max(chunksPerPacket, <span class="number">1</span>) * chunkSize);</span><br><span class="line">      buf.limit(<span class="number">0</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> (bufRead &gt; buf.limit()) &#123;</span><br><span class="line">      buf.limit(bufRead);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">while</span> (buf.remaining() &lt; SIZE_OF_INTEGER) &#123;<span class="comment">//缓冲区中没有足够剩余数据要读取数据</span></span><br><span class="line">      <span class="keyword">if</span> (buf.position() &gt; <span class="number">0</span>) &#123;<span class="comment">//当前缓冲区position大于0，将可用数据移到最前面重用缓冲区</span></span><br><span class="line">        shiftBufData();</span><br><span class="line">      &#125;</span><br><span class="line">      readToBuf(-<span class="number">1</span>);<span class="comment">//尝试读满缓冲区</span></span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">//到这里一般有完整的包的数据了，至少有一个int值</span></span><br><span class="line">    buf.mark();</span><br><span class="line">    <span class="keyword">int</span> payloadLen = buf.getInt();<span class="comment">//读取payloadLen</span></span><br><span class="line">    buf.reset();</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">if</span> (payloadLen == <span class="number">0</span>) &#123;<span class="comment">//接收完</span></span><br><span class="line">      buf.limit(buf.position() + SIZE_OF_INTEGER);</span><br><span class="line">      <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">// check corrupt values for pktLen, 100MB upper limit should be ok?</span></span><br><span class="line">    <span class="keyword">if</span> (payloadLen &lt; <span class="number">0</span> || payloadLen &gt; (<span class="number">100</span>*<span class="number">1024</span>*<span class="number">1024</span>)) &#123;</span><br><span class="line">      <span class="keyword">throw</span> <span class="keyword">new</span> IOException(<span class="string">"Incorrect value for packet payload : "</span> + payloadLen);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">int</span> pktSize = payloadLen + DataNode.PKT_HEADER_LEN;<span class="comment">//包大小</span></span><br><span class="line">    </span><br><span class="line">    <span class="keyword">if</span> (buf.remaining() &lt; pktSize) &#123;<span class="comment">//剩余可用数据不足一个包的大小，继续读取，需要的话扩充缓冲区</span></span><br><span class="line">      <span class="keyword">int</span> toRead = pktSize - buf.remaining();<span class="comment">//要读的数据</span></span><br><span class="line">      <span class="keyword">int</span> spaceLeft = buf.capacity() - buf.limit();<span class="comment">//缓冲区剩余空间</span></span><br><span class="line">      <span class="keyword">if</span> (toRead &gt; spaceLeft &amp;&amp; buf.position() &gt; <span class="number">0</span>) &#123;<span class="comment">//剩余空间不足且position大于0，将可用数据移到缓冲区最前端</span></span><br><span class="line">        shiftBufData();</span><br><span class="line">        spaceLeft = buf.capacity() - buf.limit();</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="keyword">if</span> (toRead &gt; spaceLeft) &#123;<span class="comment">//如果空间还是不足，重新分配缓冲区，拷贝原来的数据到新缓冲区</span></span><br><span class="line">        byte oldBuf[] = buf.<span class="built_in">array</span>();</span><br><span class="line">        <span class="keyword">int</span> toCopy = buf.limit();</span><br><span class="line">        buf = ByteBuffer.allocate(toCopy + toRead);</span><br><span class="line">        System.arraycopy(oldBuf, <span class="number">0</span>, buf.<span class="built_in">array</span>(), <span class="number">0</span>, toCopy);</span><br><span class="line">        buf.limit(toCopy);</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="comment">//至此缓冲区空间足够，读取数据，读满缓冲区</span></span><br><span class="line">      <span class="keyword">while</span> (toRead &gt; <span class="number">0</span>) &#123;</span><br><span class="line">        toRead -= readToBuf(toRead);</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> (buf.remaining() &gt; pktSize) &#123;<span class="comment">//调整limit的值</span></span><br><span class="line">      buf.limit(buf.position() + pktSize);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> (pktSize &gt; maxPacketReadLen) &#123;</span><br><span class="line">      maxPacketReadLen = pktSize;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> payloadLen;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，如果还没分配缓冲区，则分配预估大小的缓冲区，该值为DataNode的成员<code>writePacketSize</code>，默认64KB，调整到能够接收整个包的大小。<br>如果缓冲区中剩余至少4个字节的数据，这里4个字节是因为发送的包头第一个字段4个字节为有效负载长度，且如果发送结束，对端会发送一个4个字节的0标识，因此根据开始的4个字节能够判断是否读取结束。而如果缓冲区剩余数据不足4个字节，则需要读取数据，先将剩余数据移到缓冲区最前面，重用缓冲区，然后尝试读满整个缓冲区。<br>若还未结束是一个正常包，则根据负载长度和固定长度的包头算出该包的大小，如果缓冲区剩余数据不够该包大小，需要继续读取数据。读取时，如果空间不足，先将有效数据移到缓冲区最开始处，如果剩余空间还是不足，则分配新的缓冲区，将原来的剩余有效数据拷贝到新缓冲区。最终循环读取直到读满整个缓冲区。  </p>
+<p>通过<code>readNextPacket</code>读取了整个包数据后，读取包头，写数据的包格式和读数据的包格式一样，见<a href="../HDFS流接口">HDFS流接口</a><br><figure class="highlight verilog"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">buf</span><span class="typename">.mark</span>();</span><br><span class="line"><span class="keyword">buf</span><span class="typename">.getInt</span>(); <span class="comment">//负载长度</span></span><br><span class="line">offsetInBlock <span class="keyword">=</span> <span class="keyword">buf</span><span class="typename">.getLong</span>(); <span class="comment">//在区块中的偏移量</span></span><br><span class="line">long seqno <span class="keyword">=</span> <span class="keyword">buf</span><span class="typename">.getLong</span>();    <span class="comment">//包序号</span></span><br><span class="line">boolean lastPacketInBlock <span class="keyword">=</span> (<span class="keyword">buf</span><span class="typename">.get</span>() <span class="keyword">!</span><span class="keyword">=</span> <span class="number">0</span>);<span class="comment">//是否为最后一个包</span></span><br><span class="line">int endOfHeader <span class="keyword">=</span> <span class="keyword">buf</span><span class="typename">.position</span>();<span class="comment">//包头结束位置</span></span><br><span class="line"><span class="keyword">buf</span><span class="typename">.reset</span>();</span><br></pre></td></tr></table></figure></p>
+<p>然后根据发送过来的区块中偏移量offsetInBlock将临时文件输出流定位到该偏移量处<br><figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br></pre></td><td class="code"><pre><span class="line">setBlockPosition(offsetInBlock);</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">setBlockPosition</span>(<span class="params"><span class="keyword">long</span> offsetInBlock</span>) throws IOException </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (finalized) &#123;</span><br><span class="line">      <span class="keyword">if</span> (!isRecovery) &#123;</span><br><span class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> IOException(...);</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="keyword">if</span> (offsetInBlock &gt; datanode.data.getLength(block)) &#123;</span><br><span class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> IOException(...);</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="keyword">return</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (datanode.data.getChannelPosition(block, streams) == offsetInBlock) &#123;<span class="comment">//当前流位置刚好处于要求位置</span></span><br><span class="line">      <span class="keyword">return</span>;                  </span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">//计算校验文件中的偏移量</span></span><br><span class="line">    <span class="keyword">long</span> offsetInChecksum = BlockMetadataHeader.getHeaderSize() + offsetInBlock / bytesPerChecksum * checksumSize;</span><br><span class="line">    <span class="comment">//输出流数据刷新到文件</span></span><br><span class="line">    <span class="keyword">if</span> (<span class="keyword">out</span> != <span class="keyword">null</span>) &#123;</span><br><span class="line">     <span class="keyword">out</span>.flush();</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> (checksumOut != <span class="keyword">null</span>) &#123;</span><br><span class="line">      checksumOut.flush();</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">//如果是一个局部的块，需要验证现存的局部块数据是否正确</span></span><br><span class="line">    <span class="keyword">if</span> (offsetInBlock % bytesPerChecksum != <span class="number">0</span>) &#123;</span><br><span class="line">      ...</span><br><span class="line">      <span class="comment">//读取局部块数据计算校验和，与校验文件中对应的校验和比较看是否正确</span></span><br><span class="line">      computePartialChunkCrc(offsetInBlock, offsetInChecksum, bytesPerChecksum);</span><br><span class="line">    &#125;</span><br><span class="line">    ...</span><br><span class="line">    <span class="comment">//设置文件流的位置</span></span><br><span class="line">    datanode.data.setChannelPosition(block, streams, offsetInBlock, offsetInChecksum);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，值得注意的是，如果偏移量不是数据块的开始处，是个局部数据块，即本地保存了该数据块的部分数据，现在接收到了剩余部分数据，需要通过<code>computePartialChunkCrc</code>计算本地校验数据的校验和，计算的校验和保存在BlockReceiver的成员<code>partialCrc</code>中，然后与校验文件中校验和进行验证，代码不贴出来了。通过<code>setChannelPosition</code>定位到区块文件<code>offsetInBlock</code>，校验文件<code>offsetInChecksum</code>处。</p>
+<p>文件输出流定位到指定位置了，接下来便是写操作以及向下游节点的数据发送操作  </p>
+<h3 id="4-4_发送到下游节点">4.4 发送到下游节点</h3><p>首先发送到下游节点<br><figure class="highlight sml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (mirrorOut != null &amp;&amp; !mirrorError) &#123;</span><br><span class="line">  try &#123;</span><br><span class="line">    mirrorOut.write(buf.<span class="built_in">array</span><span class="literal">()</span>, buf.position<span class="literal">()</span>, buf.remaining<span class="literal">()</span>);</span><br><span class="line">    mirrorOut.flush<span class="literal">()</span>;</span><br><span class="line">  &#125; catch (<span class="type">IOException</span> e) &#123;</span><br><span class="line">    handleMirrorOutError(e);</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<h3 id="4-5_写数据到本地文件">4.5 写数据到本地文件</h3><p>然后写数据到本地文件<br><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br></pre></td><td class="code"><pre><span class="line">buf.position(endOfHeader);<span class="comment">//定位到有效负载</span></span><br><span class="line"><span class="typename">int</span> <span class="built_in">len</span> = buf.getInt();<span class="comment">//数据长度</span></span><br><span class="line">...<span class="comment">//len&lt;0异常处理</span></span><br><span class="line"><span class="keyword">if</span> (<span class="built_in">len</span> == <span class="number">0</span>) &#123;</span><br><span class="line">  LOG.debug(<span class="string">"Receiving empty packet for "</span> + block);</span><br><span class="line">&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">  offsetInBlock += <span class="built_in">len</span>;</span><br><span class="line">  <span class="comment">//根据数据长度计算校验和长度</span></span><br><span class="line">  <span class="typename">int</span> checksumLen = ((<span class="built_in">len</span> + bytesPerChecksum - <span class="number">1</span>)/bytesPerChecksum)* checksumSize;</span><br><span class="line">  <span class="keyword">if</span> ( buf.remaining() != (checksumLen + <span class="built_in">len</span>)) &#123;</span><br><span class="line">    throw <span class="built_in">new</span> IOException(<span class="string">"Data remaining in packet does not match "</span>+<span class="string">"sum of checksumLen and dataLen"</span>);</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="typename">int</span> checksumOff = buf.position();<span class="comment">//校验和数据偏移量</span></span><br><span class="line">  <span class="typename">int</span> dataOff = checksumOff + checksumLen;<span class="comment">//数据偏移量</span></span><br><span class="line">  <span class="typename">byte</span> pktBuf[] = buf.array();<span class="comment">//转换成字节数组</span></span><br><span class="line">  buf.position(buf.limit());<span class="comment">//接下来对字节数组操作，不会改变position的值，因此这里先设置 </span></span><br><span class="line"></span><br><span class="line">  <span class="comment">//如果不是Client写数据，则每个接收到数据的DataNode要验证，否则只有数据流管道最后一个节点进行验证</span></span><br><span class="line">  <span class="keyword">if</span> (mirrorOut == null || clientName.length() == <span class="number">0</span>) &#123;</span><br><span class="line">    verifyChunks(pktBuf, dataOff, <span class="built_in">len</span>, pktBuf, checksumOff);</span><br><span class="line">  &#125;</span><br><span class="line">  try &#123;</span><br><span class="line">    <span class="keyword">if</span> (!finalized) &#123;</span><br><span class="line">      <span class="comment">//数据写到临时文件中</span></span><br><span class="line">      out.write(pktBuf, dataOff, <span class="built_in">len</span>);</span><br><span class="line"></span><br><span class="line">      <span class="comment">//partialCrc不为null，对应为局部块数据</span></span><br><span class="line">      <span class="keyword">if</span> (partialCrc != null) &#123;</span><br><span class="line">        <span class="keyword">if</span> (<span class="built_in">len</span> &gt; bytesPerChecksum) &#123;<span class="comment">//局部块时，包中只有局部块剩余数据</span></span><br><span class="line">          throw <span class="built_in">new</span> IOException(<span class="string">"Got wrong length during writeBlock("</span> + </span><br><span class="line">                    block + <span class="string">") from "</span> + inAddr + <span class="string">" "</span> + <span class="string">"A packet can have only one partial chunk."</span>+</span><br><span class="line">                    <span class="string">" len = "</span> + <span class="built_in">len</span> + <span class="string">" bytesPerChecksum "</span> + bytesPerChecksum);</span><br><span class="line">        &#125;</span><br><span class="line">        partialCrc.update(pktBuf, dataOff, <span class="built_in">len</span>);<span class="comment">//更新局部块剩余数据到校验和对象</span></span><br><span class="line">        <span class="typename">byte</span>[] buf = FSOutputSummer.convertToByteStream(partialCrc, checksumSize);</span><br><span class="line">        checksumOut.write(buf);<span class="comment">//写新的校验和到校验文件中</span></span><br><span class="line">        LOG.debug(<span class="string">"Writing out partial crc for data len "</span> + <span class="built_in">len</span>);</span><br><span class="line">        partialCrc = null;<span class="comment">//重置partialCrc对象</span></span><br><span class="line">      &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        checksumOut.write(pktBuf, checksumOff, checksumLen);<span class="comment">//写校验数据</span></span><br><span class="line">      &#125;</span><br><span class="line">      datanode.myMetrics.incrBytesWritten(<span class="built_in">len</span>);</span><br><span class="line">      <span class="comment">///在发送ACK之前刷新整个包</span></span><br><span class="line">      flush();</span><br><span class="line">      datanode.data.setVisibleLength(block, offsetInBlock);<span class="comment">//更新区块的visible长度</span></span><br><span class="line">      dropOsCacheBehindWriter(offsetInBlock);</span><br><span class="line">    &#125;</span><br><span class="line">  &#125; catch (IOException iex) &#123;</span><br><span class="line">    datanode.checkDiskError(iex);</span><br><span class="line">    throw iex;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，通过数据长度计算出校验数据长度。将数据写到临时文件中，而对于局部块的情况，之前将本地局部块保存的局部数据更新到了partialCrc对象中，读取剩余的局部数据到该校验和对象中，重新计算该块的校验和写到校验文件中，如果是局部块，则该包只包含局部块的剩余数据。写完数据到流中后，刷新到本地文件，然后开始接收ACK，更新FSDataset中的区块可视长度。<br>另外，如果是Client写数据，则只有数据流管道的最后一个节点才需要验证接收到的区块校验和，否则每个接收到数据的数据节点都需要验证校验和。验证校验和通过<code>verifyChunks</code>，如上给定数据和校验数据字节数据，开始偏移量和长度，循环读取数据块进行验证即可，有任何一个数据块验证失败都会导致该区块验证失败，抛出异常。  </p>
+<p>接收完数据并发送到下游节点后，Client写数据的情况便等待接收ACK了，如果指定了节流器的话，通过节流器判断是否发的太快，应该休眠一会<br><figure class="highlight actionscript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (responder != <span class="literal">null</span>) &#123;</span><br><span class="line">  ((PacketResponder)responder.getRunnable()).enqueue(seqno, lastPacketInBlock); </span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> (throttler != <span class="literal">null</span>) &#123; <span class="comment">// throttle I/O</span></span><br><span class="line">  throttler.throttle(payloadLen);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>节流器在读请求时已经分析过了，这里分析PacketResponder接收ACK，如上发送完一个包到下游节点后，将该包入队列<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">synchronized</span> <span class="function"><span class="keyword">void</span> <span class="title">enqueue</span><span class="params">(<span class="keyword">long</span> seqno, <span class="keyword">boolean</span> lastPacketInBlock)</span> </span>&#123;</span><br><span class="line">  <span class="keyword">if</span> (running) &#123;</span><br><span class="line">    LOG.debug(<span class="string">"PacketResponder "</span> + numTargets + <span class="string">" adding seqno "</span> + seqno + <span class="string">" to ack queue."</span>);</span><br><span class="line">    ackQueue.addLast(<span class="keyword">new</span> Packet(seqno, lastPacketInBlock));</span><br><span class="line">    notifyAll();<span class="comment">//通知可能处于休眠等待状态的PacketResponder线程有待接收ACK的包</span></span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>创建Packet对象，Packet对象就是包含包序号和是否为最后一个包的简单对象，然后添加到PacketResponder的ackQueue队列尾，通知可能处于等待状态的PacketResponder线程。  </p>
+<h2 id="5-_接收下游ACK，往上游发送ACK">5. 接收下游ACK，往上游发送ACK</h2><p>PacketResponder线程主程序如下<br><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">run</span><span class="params">()</span> </span>&#123;</span><br><span class="line">  boolean lastPacketInBlock = <span class="literal">false</span>;</span><br><span class="line">  boolean isInterrupted = <span class="literal">false</span>;</span><br><span class="line">  final <span class="keyword">long</span> startTime = ClientTraceLog.isInfoEnabled() ? System.nanoTime() : <span class="number">0</span>;</span><br><span class="line">  <span class="keyword">while</span> (running &amp;&amp; datanode.shouldRun &amp;&amp; !lastPacketInBlock) &#123;</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">      <span class="comment">//当从下游节点读取ACK失败时，通过包序号为-2通知Client接收失败</span></span><br><span class="line">      <span class="keyword">long</span> expected = PipelineAck.UNKOWN_SEQNO;<span class="comment">//-2</span></span><br><span class="line">      <span class="keyword">long</span> seqno = PipelineAck.UNKOWN_SEQNO;;<span class="comment">//-2</span></span><br><span class="line">      PipelineAck ack = <span class="keyword">new</span> PipelineAck();</span><br><span class="line">      boolean localMirrorError = mirrorError;</span><br><span class="line">      <span class="keyword">try</span> &#123; </span><br><span class="line">        Packet pkt = null;</span><br><span class="line">        synchronized (<span class="keyword">this</span>) &#123;</span><br><span class="line">          <span class="keyword">while</span> (running &amp;&amp; datanode.shouldRun &amp;&amp; ackQueue.size() == <span class="number">0</span>) &#123;<span class="comment">//没有待接收ACK的包，等待</span></span><br><span class="line">              ...<span class="comment">//日志</span></span><br><span class="line">              wait();</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="keyword">if</span> (!running || !datanode.shouldRun) &#123;</span><br><span class="line">              <span class="keyword">break</span>;</span><br><span class="line">            &#125;</span><br><span class="line">            pkt = ackQueue.removeFirst();<span class="comment">//获取队列首元素</span></span><br><span class="line">            expected = pkt.seqno;</span><br><span class="line">            notifyAll();</span><br><span class="line">          &#125;</span><br><span class="line">          <span class="keyword">if</span> (numTargets &gt; <span class="number">0</span> &amp;&amp; !localMirrorError) &#123;<span class="comment">//如果不是最后一个节点需要接收下游ACK</span></span><br><span class="line">            <span class="comment">//从下游节点读一个ACK</span></span><br><span class="line">            ack.readFields(mirrorIn);</span><br><span class="line">            ...<span class="comment">//日志</span></span><br><span class="line">            seqno = ack.getSeqno();</span><br><span class="line">            <span class="keyword">if</span> (seqno != expected) &#123;</span><br><span class="line">              <span class="keyword">throw</span> <span class="keyword">new</span> IOException(<span class="string">"PacketResponder "</span> + numTargets + <span class="string">" for block "</span> + </span><br><span class="line">                    block + <span class="string">" expected seqno:"</span> + expected + <span class="string">" received:"</span> + seqno);</span><br><span class="line">            &#125;</span><br><span class="line">          &#125;</span><br><span class="line">          lastPacketInBlock = pkt.lastPacketInBlock;</span><br><span class="line">        &#125; <span class="keyword">catch</span> (InterruptedException ine) &#123;<span class="comment">//被中断，DataNode关闭</span></span><br><span class="line">          isInterrupted = <span class="literal">true</span>;</span><br><span class="line">        &#125; <span class="keyword">catch</span> (IOException ioe) &#123;</span><br><span class="line">          <span class="keyword">if</span> (Thread.interrupted()) &#123;</span><br><span class="line">            isInterrupted = <span class="literal">true</span>;</span><br><span class="line">          &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            <span class="comment">//mirrorError通知上游节点接收下游节点的ACK出错，最终Client会关闭整个数据流管道</span></span><br><span class="line">            mirrorError = <span class="literal">true</span>;</span><br><span class="line">            LOG.info(<span class="string">"PacketResponder "</span> + block + <span class="string">" "</span> + numTargets +</span><br><span class="line">                <span class="string">" Exception "</span> + StringUtils.stringifyException(ioe));</span><br><span class="line">          &#125;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> (Thread.interrupted() || isInterrupted) &#123;</span><br><span class="line">          <span class="comment">//接受线程关闭了该线程</span></span><br><span class="line">          LOG.info(<span class="string">"PacketResponder "</span> + block +  <span class="string">" "</span> + numTargets + <span class="string">" : Thread is interrupted."</span>);</span><br><span class="line">          <span class="keyword">break</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="comment">//如果是最后一个包，则在发送ACK之前，关闭文件并提交到current目录中</span></span><br><span class="line">        <span class="keyword">if</span> (lastPacketInBlock &amp;&amp; !receiver.finalized) &#123;</span><br><span class="line">          receiver.close();<span class="comment">//关闭BlockReceiver</span></span><br><span class="line">          final <span class="keyword">long</span> endTime = ClientTraceLog.isInfoEnabled() ? System.nanoTime() : <span class="number">0</span>;</span><br><span class="line">          block.setNumBytes(receiver.offsetInBlock);</span><br><span class="line">          datanode.data.finalizeBlock(block);<span class="comment">//提交区块到某个存储目录的current中</span></span><br><span class="line">          datanode.myMetrics.incrBlocksWritten();</span><br><span class="line">          <span class="comment">//添加到DataNode的receivedBlockList中，然后在offerService中向NameNode通知新接收到的区块</span></span><br><span class="line">          datanode.notifyNamenodeReceivedBlock(block, DataNode.EMPTY_DEL_HINT);</span><br><span class="line">          ...<span class="comment">//日志</span></span><br><span class="line">        &#125;</span><br><span class="line">        </span><br><span class="line">        <span class="keyword">short</span>[] replies = null;</span><br><span class="line">        <span class="keyword">if</span> (mirrorError) &#123; <span class="comment">//接收下游ACK出错，下游ACK对应为OP_STATUS_ERROR</span></span><br><span class="line">            replies = <span class="keyword">new</span> <span class="keyword">short</span>[<span class="number">2</span>];</span><br><span class="line">            replies[<span class="number">0</span>] = DataTransferProtocol.OP_STATUS_SUCCESS;</span><br><span class="line">            replies[<span class="number">1</span>] = DataTransferProtocol.OP_STATUS_ERROR;</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;<span class="comment">//正常情况，下游ACK加上本节点状态</span></span><br><span class="line">            <span class="keyword">short</span> ackLen = numTargets == <span class="number">0</span> ? <span class="number">0</span> : ack.getNumOfReplies();</span><br><span class="line">            replies = <span class="keyword">new</span> <span class="keyword">short</span>[<span class="number">1</span>+ackLen];</span><br><span class="line">            replies[<span class="number">0</span>] = DataTransferProtocol.OP_STATUS_SUCCESS;</span><br><span class="line">            <span class="keyword">for</span> (<span class="keyword">int</span> i=<span class="number">0</span>; i&lt;ackLen; i++) &#123;</span><br><span class="line">                replies[i+<span class="number">1</span>] = ack.getReply(i);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">        PipelineAck replyAck = <span class="keyword">new</span> PipelineAck(expected, replies);</span><br><span class="line">        replyAck.write(replyOut);<span class="comment">//发送到上游节点</span></span><br><span class="line">        replyOut.flush();</span><br><span class="line">        <span class="keyword">if</span> (LOG.isDebugEnabled()) &#123;</span><br><span class="line">          LOG.debug(<span class="string">"PacketResponder "</span> + numTargets + <span class="string">" for block "</span> + block + <span class="string">" responded an ack: "</span> + replyAck);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125; <span class="keyword">catch</span> (Throwable e) &#123;</span><br><span class="line">      LOG.warn(<span class="string">"IOException in BlockReceiver.run(): "</span>, e);</span><br><span class="line">      <span class="keyword">if</span> (running) &#123;</span><br><span class="line">        LOG.info(<span class="string">"PacketResponder "</span> + block + <span class="string">" "</span> + numTargets + </span><br><span class="line">                 <span class="string">" Exception "</span> + StringUtils.stringifyException(e));</span><br><span class="line">        running = <span class="literal">false</span>;</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="keyword">if</span> (!Thread.interrupted()) &#123; <span class="comment">// error not caused by interruption</span></span><br><span class="line">        receiverThread.interrupt();</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">  LOG.info(<span class="string">"PacketResponder "</span> + numTargets + <span class="string">" for "</span> + block +</span><br><span class="line">      <span class="string">" terminating"</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，在PacketResponder线程中，如果ackQueue中没有待接收ACK的包则等待，这对应上面往下游节点发送一个包后会将该包添加到ackQueue中，然后通知睡眠线程。<br>ackQueue队列中有待接收ACK的包，获取队列首元素，为要接收ACK的包，从下游节点输入流中接收一个ACK，如果接收ACK异常且不是被中断，则读取下游ACK失败，这时会往上游节点发送ACK时标记本节点的下游ACK状态为OP_STATUS_ERROR。<br>如果当前接收ACK的包是最后一个包，则需要将本地临时文件关闭，然后通过DataNode FSDataset的<code>finalizeBlock</code>提交到存储目录中<br><figure class="highlight gradle"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> finalizeBlock(Block b) <span class="keyword">throws</span> IOException &#123; finalizeBlockInternal(b, <span class="keyword">false</span>); &#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">private</span> <span class="keyword">synchronized</span> <span class="keyword">void</span> finalizeBlockInternal(Block b, <span class="keyword">boolean</span> reFinalizeOk) <span class="keyword">throws</span> IOException &#123;</span><br><span class="line">    ActiveFile activeFile = ongoingCreates.get(b);</span><br><span class="line">    <span class="keyword">if</span> (activeFile == <span class="keyword">null</span>) &#123;</span><br><span class="line">      <span class="keyword">if</span> (reFinalizeOk) &#123;</span><br><span class="line">        <span class="keyword">return</span>;</span><br><span class="line">      &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> IOException(<span class="string">"Block "</span> + b + <span class="string">" is already finalized."</span>);</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">File</span> f = activeFile.<span class="keyword">file</span>;</span><br><span class="line">    <span class="keyword">if</span> (f == <span class="keyword">null</span> || !f.exists()) &#123;</span><br><span class="line">      <span class="keyword">throw</span> <span class="keyword">new</span> IOException(<span class="string">"No temporary file "</span> + f + <span class="string">" for block "</span> + b);</span><br><span class="line">    &#125;</span><br><span class="line">    FSVolume v = volumeMap.get(b).getVolume();<span class="comment">//获取所属的存储目录</span></span><br><span class="line">    <span class="keyword">if</span> (v == <span class="keyword">null</span>) &#123;</span><br><span class="line">      <span class="keyword">throw</span> <span class="keyword">new</span> IOException(<span class="string">"No volume for temporary file "</span> + f + <span class="string">" for block "</span> + b);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">File</span> dest = <span class="keyword">null</span>;</span><br><span class="line">    dest = v.addBlock(b, f);<span class="comment">//提交，添加到current目录中</span></span><br><span class="line">    volumeMap.put(b, <span class="keyword">new</span> DatanodeBlockInfo(v, dest));</span><br><span class="line">    ongoingCreates.remove(b);</span><br><span class="line">  &#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，获取其所在的存储目录，然后通过FSVolume的<code>addBlock</code>添加到current目录中，该方法分析见<a href="../DataNode本地存储管理">DataNode本地存储管理</a>，从current目录下开始，如果没有达到目录下的最大区块文件限制则直接添加到该目录，否则到子目录(sub*)下面添加，会先尝试不创建子目录，所有子目录都没空间添加失败时才会创建子目录。<br>添加到current目录下后，在volumeMap中创建映射，删除ongoingCreates中的记录。  </p>
+<p>提交后，通过notifyNamenodeReceivedBlock将区块添加到DataNode的receivedBlockList中，然后在DataNode的offerService中通知NameNode接收到新区块。  </p>
+<p>往上游节点发送ACK时，如果读取下游节点ACK正常(mirrorError为false)，则连接下游节点的ACK，然后在数组首添加自己OP_STATUS_SUCCESS的状态，因此节点接收到ACK时，replies[0]为连接的下游节点ACK，replies[1]为连接的下游节点的下游节点，以此类推。<br>而如果接收下游节点ACK失败，则初始化下游节点ACK为OP_STATUS_ERROR，发送到上游节点。</p>
+</span>
+      
+    </div>
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/DataNode/" rel="tag">#DataNode</a>
+          
+            <a href="/tags/DataNode源码阅读/" rel="tag">#DataNode源码阅读</a>
+          
+            <a href="/tags/HDFS/" rel="tag">#HDFS</a>
+          
+            <a href="/tags/Hadoop-1-2-1/" rel="tag">#Hadoop-1.2.1</a>
+          
+            <a href="/tags/Java/" rel="tag">#Java</a>
+          
+            <a href="/tags/源码阅读/" rel="tag">#源码阅读</a>
+          
+        </div>
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/DataNode本地存储管理/" rel="next" title="DataNode本地存储管理">
+                <i class="fa fa-chevron-left"></i> DataNode本地存储管理
+              </a>
+            
+          </div>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/DataNode流接口实现下篇/" rel="prev" title="DataNode实现源码分析---流接口实现上篇">
+                DataNode实现源码分析---流接口实现上篇 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </article>
+
+
+
+    <div class="post-spread">
+      
+        <!-- JiaThis Button BEGIN -->
+<div class="jiathis_style">
+  <a class="jiathis_button_tsina"></a>
+  <a class="jiathis_button_tqq"></a>
+  <a class="jiathis_button_weixin"></a>
+  <a class="jiathis_button_cqq"></a>
+  <a class="jiathis_button_douban"></a>
+  <a class="jiathis_button_renren"></a>
+  <a class="jiathis_button_qzone"></a>
+  <a class="jiathis_button_kaixin001"></a>
+  <a class="jiathis_button_copy"></a>
+  <a href="http://www.jiathis.com/share" class="jiathis jiathis_txt jiathis_separator jtico jtico_jiathis" target="_blank"></a>
+  <a class="jiathis_counter_style"></a>
+</div>
+<script type="text/javascript" >
+  var jiathis_config={
+    hideMore:false
+  }
+</script>
+<script type="text/javascript" src="http://v3.jiathis.com/code/jia.js" charset="utf-8"></script>
+<!-- JiaThis Button END -->
+
+      
+    </div>
+  </div>
+
+
+        </div>
+
+        
+
+
+        
+  <div class="comments" id="comments">
+    
+      <div class="ds-thread" data-thread-key="DataNode流接口实现上篇/"
+           data-title="DataNode实现源码分析---流接口实现上篇" data-url="http://xiao-yun.github.io/DataNode流接口实现上篇/">
+      </div>
+    
+  </div>
+
+
+      </div>
+
+      
+        
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap" >
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel ">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+          <img class="site-author-image" src="/images/hero.jpg" alt="xiaoyun" itemprop="image"/>
+          <p class="site-author-name" itemprop="name">xiaoyun</p>
+        </div>
+        <p class="site-description motion-element" itemprop="description">学习笔记，网上资源摘要等</p>
+        <nav class="site-state motion-element">
+          <div class="site-state-item site-state-posts">
+            <a href="/archives">
+              <span class="site-state-item-count">34</span>
+              <span class="site-state-item-name">日志</span>
+            </a>
+          </div>
+
+          <div class="site-state-item site-state-categories">
+            <a href="/categories">
+              <span class="site-state-item-count">49</span>
+              <span class="site-state-item-name">分类</span>
+              </a>
+          </div>
+
+          <div class="site-state-item site-state-tags">
+            <a href="/tags">
+              <span class="site-state-item-count">25</span>
+              <span class="site-state-item-name">标签</span>
+              </a>
+          </div>
+
+        </nav>
+
+        
+
+        <div class="links-of-author motion-element">
+          
+            
+              <span class="links-of-author-item">
+                <a href="https://github.com/xiao-yun" target="_blank">
+                  
+                    <i class="fa fa-globe"></i> github
+                  
+                </a>
+              </span>
+            
+          
+        </div>
+
+        
+        
+
+        <div class="links-of-author motion-element">
+          
+        </div>
+
+      </section>
+
+      
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc-indicator-top post-toc-indicator">
+            <i class="fa fa-angle-double-up"></i>
+          </div>
+          <div class="post-toc">
+            
+              
+            
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#写数据块"><span class="nav-number">1.</span> <span class="nav-text">写数据块</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-_读写请求帧数据"><span class="nav-number">1.1.</span> <span class="nav-text">1. 读写请求帧数据</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-_创建BlockReceiver对象"><span class="nav-number">1.2.</span> <span class="nav-text">2. 创建BlockReceiver对象</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1_FSDataset-writeToBlock"><span class="nav-number">1.2.1.</span> <span class="nav-text">2.1 FSDataset.writeToBlock</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#2-1-1_FSDataset-detach"><span class="nav-number">1.2.1.1.</span> <span class="nav-text">2.1.1 FSDataset.detach</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-1-2_FSDataset-createTmpFile"><span class="nav-number">1.2.1.2.</span> <span class="nav-text">2.1.2 FSDataset.createTmpFile</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-_建立数据流管道"><span class="nav-number">1.3.</span> <span class="nav-text">3. 建立数据流管道</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-_接收数据，发送到下游节点"><span class="nav-number">1.4.</span> <span class="nav-text">4. 接收数据，发送到下游节点</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#4-1_receiveBlock"><span class="nav-number">1.4.1.</span> <span class="nav-text">4.1 receiveBlock</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-2_PacketResponder"><span class="nav-number">1.4.2.</span> <span class="nav-text">4.2 PacketResponder</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-3_readNextPacket"><span class="nav-number">1.4.3.</span> <span class="nav-text">4.3 readNextPacket</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-4_发送到下游节点"><span class="nav-number">1.4.4.</span> <span class="nav-text">4.4 发送到下游节点</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-5_写数据到本地文件"><span class="nav-number">1.4.5.</span> <span class="nav-text">4.5 写数据到本地文件</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#5-_接收下游ACK，往上游发送ACK"><span class="nav-number">1.5.</span> <span class="nav-text">5. 接收下游ACK，往上游发送ACK</span></a></li></ol></li></ol></div>
+            
+          </div>
+          <div class="post-toc-indicator-bottom post-toc-indicator">
+            <i class="fa fa-angle-double-down"></i>
+          </div>
+        </section>
+      
+
+    </div>
+  </aside>
+
+
+      
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright" >
+  
+  &copy; 
+  <span itemprop="copyrightYear">2016</span>
+  <span class="with-love">
+    <i class="icon-next-heart fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">xiaoyun</span>
+</div>
+
+<div class="powered-by">
+  由 <a class="theme-link" href="http://hexo.io">Hexo</a> 强力驱动
+</div>
+
+<div class="theme-info">
+  主题 -
+  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
+    NexT.Mist
+  </a>
+</div>
+
+
+
+      </div>
+    </footer>
+
+    <div class="back-to-top"></div>
+  </div>
+
+  <script type="text/javascript" src="/vendors/jquery/index.js?v=2.1.3"></script>
+
+  
+  
+
+  
+    
+
+  
+    
+  
+
+  <script type="text/javascript">
+    var duoshuoQuery = {short_name:"xiaoyuncom"};
+    (function() {
+      var ds = document.createElement('script');
+      ds.type = 'text/javascript';ds.async = true;
+      ds.id = 'duoshuo-script';
+      ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+      ds.charset = 'UTF-8';
+      (document.getElementsByTagName('head')[0]
+      || document.getElementsByTagName('body')[0]).appendChild(ds);
+    })();
+  </script>
+    
+     
+
+
+    
+  
+
+  
+  <script type="text/javascript" src="/vendors/fancybox/source/jquery.fancybox.pack.js"></script>
+  <script type="text/javascript" src="/js/fancy-box.js?v=0.4.5.2"></script>
+
+
+  <script type="text/javascript" src="/js/helpers.js?v=0.4.5.2"></script>
+  <script type="text/javascript" src="/vendors/velocity/velocity.min.js"></script>
+<script type="text/javascript" src="/vendors/velocity/velocity.ui.min.js"></script>
+
+<script type="text/javascript" src="/js/motion.js?v=0.4.5.2" id="motion.global"></script>
+
+
+  <script type="text/javascript" src="/vendors/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  <script type="text/javascript" src="/vendors/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  
+<script type="text/javascript" src="/js/bootstrap.scrollspy.js?v=0.4.5.2" id="bootstrap.scrollspy.custom"></script>
+
+
+<script type="text/javascript" id="sidebar.toc.highlight">
+  $(document).ready(function () {
+    var tocSelector = '.post-toc';
+    var $tocSelector = $(tocSelector);
+    var activeCurrentSelector = '.active-current';
+
+    $tocSelector
+      .on('activate.bs.scrollspy', function () {
+        var $currentActiveElement = $(tocSelector + ' .active').last();
+
+        removeCurrentActiveClass();
+        $currentActiveElement.addClass('active-current');
+
+        $tocSelector[0].scrollTop = $currentActiveElement.position().top;
+      })
+      .on('clear.bs.scrollspy', function () {
+        removeCurrentActiveClass();
+      });
+
+    function removeCurrentActiveClass () {
+      $(tocSelector + ' ' + activeCurrentSelector)
+        .removeClass(activeCurrentSelector.substring(1));
+    }
+
+    function processTOC () {
+      getTOCMaxHeight();
+      toggleTOCOverflowIndicators();
+    }
+
+    function getTOCMaxHeight () {
+      var height = $('.sidebar').height() -
+                   $tocSelector.position().top -
+                   $('.post-toc-indicator-bottom').height();
+
+      $tocSelector.css('height', height);
+
+      return height;
+    }
+
+    function toggleTOCOverflowIndicators () {
+      tocOverflowIndicator(
+        '.post-toc-indicator-top',
+        $tocSelector.scrollTop() > 0 ? 'show' : 'hide'
+      );
+
+      tocOverflowIndicator(
+        '.post-toc-indicator-bottom',
+        $tocSelector.scrollTop() >= $tocSelector.find('ol').height() - $tocSelector.height() ? 'hide' : 'show'
+      )
+    }
+
+    $(document).on('sidebar.motion.complete', function () {
+      processTOC();
+    });
+
+    $('body').scrollspy({ target: tocSelector });
+    $(window).on('resize', function () {
+      if ( $('.sidebar').hasClass('sidebar-active') ) {
+        processTOC();
+      }
+    });
+
+    onScroll($tocSelector);
+
+    function onScroll (element) {
+      element.on('mousewheel DOMMouseScroll', function (event) {
+          var oe = event.originalEvent;
+          var delta = oe.wheelDelta || -oe.detail;
+
+          this.scrollTop += ( delta < 0 ? 1 : -1 ) * 30;
+          event.preventDefault();
+
+          toggleTOCOverflowIndicators();
+      });
+    }
+
+    function tocOverflowIndicator (indicator, action) {
+      var $indicator = $(indicator);
+      var opacity = action === 'show' ? 1 : 0;
+      $indicator.velocity ?
+        $indicator.velocity('stop').velocity({
+          opacity: opacity
+        }, { duration: 100 }) :
+        $indicator.stop().animate({
+          opacity: opacity
+        }, 100);
+    }
+
+  });
+</script>
+
+<script type="text/javascript" id="sidebar.nav">
+  $(document).ready(function () {
+    var html = $('html');
+    var TAB_ANIMATE_DURATION = 200;
+    var hasVelocity = $.isFunction(html.velocity);
+
+    $('.sidebar-nav li').on('click', function () {
+      var item = $(this);
+      var activeTabClassName = 'sidebar-nav-active';
+      var activePanelClassName = 'sidebar-panel-active';
+      if (item.hasClass(activeTabClassName)) {
+        return;
+      }
+
+      var currentTarget = $('.' + activePanelClassName);
+      var target = $('.' + item.data('target'));
+
+      hasVelocity ?
+        currentTarget.velocity('transition.slideUpOut', TAB_ANIMATE_DURATION, function () {
+          target
+            .velocity('stop')
+            .velocity('transition.slideDownIn', TAB_ANIMATE_DURATION)
+            .addClass(activePanelClassName);
+        }) :
+        currentTarget.animate({ opacity: 0 }, TAB_ANIMATE_DURATION, function () {
+          currentTarget.hide();
+          target
+            .stop()
+            .css({'opacity': 0, 'display': 'block'})
+            .animate({ opacity: 1 }, TAB_ANIMATE_DURATION, function () {
+              currentTarget.removeClass(activePanelClassName);
+              target.addClass(activePanelClassName);
+            });
+        });
+
+      item.siblings().removeClass(activeTabClassName);
+      item.addClass(activeTabClassName);
+    });
+
+    $('.post-toc a').on('click', function (e) {
+      e.preventDefault();
+      var targetSelector = escapeSelector(this.getAttribute('href'));
+      var offset = $(targetSelector).offset().top;
+      hasVelocity ?
+        html.velocity('stop').velocity('scroll', {
+          offset: offset  + 'px',
+          mobileHA: false
+        }) :
+        $('html, body').stop().animate({
+          scrollTop: offset
+        }, 500);
+    });
+
+    // Expand sidebar on post detail page by default, when post has a toc.
+    motionMiddleWares.sidebar = function () {
+      var $tocContent = $('.post-toc-content');
+      if (CONFIG.sidebar === 'post') {
+        if ($tocContent.length > 0 && $tocContent.html().trim().length > 0) {
+          displaySidebar();
+        }
+      }
+    };
+  });
+</script>
+
+
+
+  <script type="text/javascript" src="/js/bootstrap.js"></script>
+
+  
+  
+
+  
+  
+
+</body>
+</html>

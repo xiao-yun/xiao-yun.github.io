@@ -35,7 +35,7 @@
 <link href="/css/main.css?v=0.4.5.2" rel="stylesheet" type="text/css" />
 
 
-  <meta name="keywords" content="Hadoop,Hadoop-1.2.1,配置," />
+  <meta name="keywords" content="HDFS,Hadoop-1.2.1,配置," />
 
 
 
@@ -53,6 +53,7 @@
 
 <meta name="description" content="Hadoop版本:Hadoop-1.2.1  
 
+说明:缺省值为N/A是指在程序中没有指定，而不是在datanode-default.xml中没有设置。
 FileSystem
 
 
@@ -70,16 +71,14 @@ FileSystem.get获取文件系统，默认为本地文件系统
 
 fs.%s.impl.disable.cache
 false
-其中%s为对应的URI协议，如file，hdfs等，对应相应的文件系统使用缓存，具体见Hadoop抽象文件系统
-
-
-f">
+其中%s为对应">
 <meta property="og:type" content="article">
 <meta property="og:title" content="Hadoop配置相关---HDFS">
 <meta property="og:url" content="http://xiao-yun.github.io/配置相关HDFS/index.html">
 <meta property="og:site_name" content="xiaoyun">
 <meta property="og:description" content="Hadoop版本:Hadoop-1.2.1  
 
+说明:缺省值为N/A是指在程序中没有指定，而不是在datanode-default.xml中没有设置。
 FileSystem
 
 
@@ -97,15 +96,13 @@ FileSystem.get获取文件系统，默认为本地文件系统
 
 fs.%s.impl.disable.cache
 false
-其中%s为对应的URI协议，如file，hdfs等，对应相应的文件系统使用缓存，具体见Hadoop抽象文件系统
-
-
-f">
-<meta property="og:updated_time" content="2015-12-29T07:45:28.591Z">
+其中%s为对应">
+<meta property="og:updated_time" content="2016-01-08T06:45:06.394Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="Hadoop配置相关---HDFS">
 <meta name="twitter:description" content="Hadoop版本:Hadoop-1.2.1  
 
+说明:缺省值为N/A是指在程序中没有指定，而不是在datanode-default.xml中没有设置。
 FileSystem
 
 
@@ -123,10 +120,7 @@ FileSystem.get获取文件系统，默认为本地文件系统
 
 fs.%s.impl.disable.cache
 false
-其中%s为对应的URI协议，如file，hdfs等，对应相应的文件系统使用缓存，具体见Hadoop抽象文件系统
-
-
-f">
+其中%s为对应">
 
 
 
@@ -297,8 +291,8 @@ f">
         <div class="post-meta">
           <span class="post-time">
             发表于
-            <time itemprop="dateCreated" datetime="2015-12-29T15:45:28+08:00" content="2015-12-29">
-              2015-12-29
+            <time itemprop="dateCreated" datetime="2016-01-08T14:45:06+08:00" content="2016-01-08">
+              2016-01-08
             </time>
           </span>
 
@@ -307,19 +301,7 @@ f">
               &nbsp; | &nbsp; 分类于
               
                 <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
-                  <a href="/categories/Hadoop/" itemprop="url" rel="index">
-                    <span itemprop="name">Hadoop</span>
-                  </a>
-                </span>
-
-                
-                
-                  ， 
-                
-
-              
-                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
-                  <a href="/categories/Hadoop/Hadoop-1-2-1/" itemprop="url" rel="index">
+                  <a href="/categories/Hadoop-1-2-1/" itemprop="url" rel="index">
                     <span itemprop="name">Hadoop-1.2.1</span>
                   </a>
                 </span>
@@ -331,8 +313,20 @@ f">
 
               
                 <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
-                  <a href="/categories/Hadoop/Hadoop-1-2-1/HDFS/" itemprop="url" rel="index">
+                  <a href="/categories/Hadoop-1-2-1/HDFS/" itemprop="url" rel="index">
                     <span itemprop="name">HDFS</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Hadoop-1-2-1/HDFS/配置/" itemprop="url" rel="index">
+                    <span itemprop="name">配置</span>
                   </a>
                 </span>
 
@@ -369,6 +363,7 @@ f">
       
         <span itemprop="articleBody"><p>Hadoop版本:<a href="https://archive.apache.org/dist/hadoop/core/hadoop-1.2.1/" target="_blank" rel="external">Hadoop-1.2.1</a>  </p>
 <hr>
+<p>说明:缺省值为N/A是指在程序中没有指定，而不是在datanode-default.xml中没有设置。</p>
 <h2 id="FileSystem">FileSystem</h2><table>
 <thead>
 <tr>
@@ -437,6 +432,172 @@ f">
 </tr>
 </tbody>
 </table>
+<h2 id="DataNode">DataNode</h2><table>
+<thead>
+<tr>
+<th style="text-align:center">属性</th>
+<th style="text-align:center">缺省值</th>
+<th style="text-align:center">说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">dfs.data.dir</td>
+<td style="text-align:center">N/A</td>
+<td style="text-align:center">DataNode存储目录，可以有多个目录以”,”分隔</td>
+</tr>
+<tr>
+<td style="text-align:center">dfs.datanode.data.dir.perm</td>
+<td style="text-align:center">755</td>
+<td style="text-align:center">DataNode存储目录的权限</td>
+</tr>
+<tr>
+<td style="text-align:center">dfs.datanode.numblocks</td>
+<td style="text-align:center">64</td>
+<td style="text-align:center">DataNode目录下区块文件最大的数目，超过时创建子目录</td>
+</tr>
+<tr>
+<td style="text-align:center">dfs.datanode.failed.volumes.tolerated</td>
+<td style="text-align:center">0</td>
+<td style="text-align:center">能够容忍失效存储目录的个数</td>
+</tr>
+<tr>
+<td style="text-align:center">dfs.datanode.du.reserved</td>
+<td style="text-align:center">0</td>
+<td style="text-align:center">存储目录预留空间</td>
+</tr>
+<tr>
+<td style="text-align:center">dfs.durable.sync</td>
+<td style="text-align:center">true</td>
+<td style="text-align:center">为true时，DataNode启动若发现blocksBeingWritten存在，将其中的区块信息更新到volumeMap和ongoingCreates中，否则删除</td>
+</tr>
+<tr>
+<td style="text-align:center">slave.host.name</td>
+<td style="text-align:center">N/A</td>
+<td style="text-align:center">DataNode机器名</td>
+</tr>
+<tr>
+<td style="text-align:center">dfs.datanode.dns.interface</td>
+<td style="text-align:center">default</td>
+<td style="text-align:center">DataNode通过slave.host.name获取机器名失败时，通过DNS查询机器名的网络接口，如eth0</td>
+</tr>
+<tr>
+<td style="text-align:center">dfs.datanode.dns.nameserver</td>
+<td style="text-align:center">default</td>
+<td style="text-align:center">DataNode通过DNS查询机器名的DNS服务器</td>
+</tr>
+<tr>
+<td style="text-align:center">dfs.namenode.servicerpc-address</td>
+<td style="text-align:center">N/A</td>
+<td style="text-align:center">NameNode的RPC地址</td>
+</tr>
+<tr>
+<td style="text-align:center">dfs.namenode.rpc-address</td>
+<td style="text-align:center">N/A</td>
+<td style="text-align:center">NameNode的RPC地址(过时的)</td>
+</tr>
+<tr>
+<td style="text-align:center">dfs.socket.timeout</td>
+<td style="text-align:center">60 * 1000(1min)</td>
+<td style="text-align:center">流操作连接或读超时时间</td>
+</tr>
+<tr>
+<td style="text-align:center">dfs.datanode.socket.write.timeout</td>
+<td style="text-align:center">8 <em> 60 </em> 1000(8min)</td>
+<td style="text-align:center">流操作写超时时间</td>
+</tr>
+<tr>
+<td style="text-align:center">dfs.datanode.transferTo.allowed</td>
+<td style="text-align:center">true</td>
+<td style="text-align:center">是否使用”零拷贝”传输</td>
+</tr>
+<tr>
+<td style="text-align:center">dfs.write.packet.size</td>
+<td style="text-align:center">64*1024(64KB)</td>
+<td style="text-align:center">写数据时一个包的大小</td>
+</tr>
+<tr>
+<td style="text-align:center">dfs.datanode.address</td>
+<td style="text-align:center">N/A</td>
+<td style="text-align:center">流服务地址(包括端口)</td>
+</tr>
+<tr>
+<td style="text-align:center">dfs.datanode.bindAddress</td>
+<td style="text-align:center">N/A</td>
+<td style="text-align:center">老的流服务地址(不包括端口)</td>
+</tr>
+<tr>
+<td style="text-align:center">dfs.datanode.port</td>
+<td style="text-align:center">N/A</td>
+<td style="text-align:center">老的流服务端口</td>
+</tr>
+<tr>
+<td style="text-align:center">dfs.datanode.startup</td>
+<td style="text-align:center">-regular</td>
+<td style="text-align:center">启动方式</td>
+</tr>
+<tr>
+<td style="text-align:center">dfs.datanode.max.xcievers</td>
+<td style="text-align:center">256</td>
+<td style="text-align:center">流服务最大线程数</td>
+</tr>
+<tr>
+<td style="text-align:center">dfs.balance.bandwidthPerSec</td>
+<td style="text-align:center">1024*1024(1MB/s)</td>
+<td style="text-align:center">流服务节流器带宽</td>
+</tr>
+<tr>
+<td style="text-align:center">dfs.blockreport.intervalMsec</td>
+<td style="text-align:center">60*60*1000(1h)</td>
+<td style="text-align:center">向NameNode报告区块信息的周期</td>
+</tr>
+<tr>
+<td style="text-align:center">dfs.blockreport.initialDelay</td>
+<td style="text-align:center">0(单位s)</td>
+<td style="text-align:center">第一次向NameNode报告区块信息的延时</td>
+</tr>
+<tr>
+<td style="text-align:center">dfs.heartbeat.interval</td>
+<td style="text-align:center">3(单位s)</td>
+<td style="text-align:center">向NameNode的心跳周期</td>
+</tr>
+<tr>
+<td style="text-align:center">dfs.datanode.scan.period.hours</td>
+<td style="text-align:center">0，小于等于0时为21*24h，3周</td>
+<td style="text-align:center">区块扫描器扫描周期</td>
+</tr>
+<tr>
+<td style="text-align:center">dfs.datanode.http.address</td>
+<td style="text-align:center">N/A</td>
+<td style="text-align:center">DataNode HTTP服务器地址(包括端口)</td>
+</tr>
+<tr>
+<td style="text-align:center">dfs.datanode.info.bindAddress</td>
+<td style="text-align:center">N/A</td>
+<td style="text-align:center">以前使用的DataNode HTTP服务器地址(不包括端口)</td>
+</tr>
+<tr>
+<td style="text-align:center">dfs.datanode.info.port</td>
+<td style="text-align:center">N/A</td>
+<td style="text-align:center">以前使用的Data HTTP服务器端口</td>
+</tr>
+<tr>
+<td style="text-align:center">dfs.datanode.ipc.address</td>
+<td style="text-align:center">N/A</td>
+<td style="text-align:center">DataNode对外(DataNode和Client)提供RPC服务的地址(包括端口)</td>
+</tr>
+<tr>
+<td style="text-align:center">dfs.datanode.handler.count</td>
+<td style="text-align:center">3</td>
+<td style="text-align:center">DataNode RPC服务中处理器线程数目</td>
+</tr>
+<tr>
+<td style="text-align:center">dfs.datanode.plugins</td>
+<td style="text-align:center">ServicePlugin</td>
+<td style="text-align:center">DataNode插件</td>
+</tr>
+</tbody>
+</table>
 </span>
       
     </div>
@@ -445,7 +606,7 @@ f">
       
         <div class="post-tags">
           
-            <a href="/tags/Hadoop/" rel="tag">#Hadoop</a>
+            <a href="/tags/HDFS/" rel="tag">#HDFS</a>
           
             <a href="/tags/Hadoop-1-2-1/" rel="tag">#Hadoop-1.2.1</a>
           
@@ -458,16 +619,16 @@ f">
         <div class="post-nav">
           <div class="post-nav-next post-nav-item">
             
-              <a href="/RawLocalFileSystem/" rel="next" title="Hadoop FileSystem实现---RawLocalFileSystem">
-                <i class="fa fa-chevron-left"></i> Hadoop FileSystem实现---RawLocalFileSystem
+              <a href="/压缩/" rel="next" title="Common源码阅读---压缩">
+                <i class="fa fa-chevron-left"></i> Common源码阅读---压缩
               </a>
             
           </div>
 
           <div class="post-nav-prev post-nav-item">
             
-              <a href="/InMemoryFileSystem/" rel="prev" title="Hadoop FileSystem实现---InMemoryFileSystem">
-                Hadoop FileSystem实现---InMemoryFileSystem <i class="fa fa-chevron-right"></i>
+              <a href="/DataNode RPC相关实现/" rel="prev" title="DataNode实现源码分析---RPC相关实现">
+                DataNode实现源码分析---RPC相关实现 <i class="fa fa-chevron-right"></i>
               </a>
             
           </div>
@@ -563,21 +724,21 @@ f">
         <nav class="site-state motion-element">
           <div class="site-state-item site-state-posts">
             <a href="/archives">
-              <span class="site-state-item-count">29</span>
+              <span class="site-state-item-count">34</span>
               <span class="site-state-item-name">日志</span>
             </a>
           </div>
 
           <div class="site-state-item site-state-categories">
             <a href="/categories">
-              <span class="site-state-item-count">24</span>
+              <span class="site-state-item-count">49</span>
               <span class="site-state-item-name">分类</span>
               </a>
           </div>
 
           <div class="site-state-item site-state-tags">
             <a href="/tags">
-              <span class="site-state-item-count">14</span>
+              <span class="site-state-item-count">25</span>
               <span class="site-state-item-name">标签</span>
               </a>
           </div>
@@ -619,7 +780,7 @@ f">
               
             
             
-              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#FileSystem"><span class="nav-number">1.</span> <span class="nav-text">FileSystem</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#ChecksumFileSystem"><span class="nav-number">2.</span> <span class="nav-text">ChecksumFileSystem</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#InMemoryFileSystem"><span class="nav-number">3.</span> <span class="nav-text">InMemoryFileSystem</span></a></li></ol></div>
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#FileSystem"><span class="nav-number">1.</span> <span class="nav-text">FileSystem</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#ChecksumFileSystem"><span class="nav-number">2.</span> <span class="nav-text">ChecksumFileSystem</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#InMemoryFileSystem"><span class="nav-number">3.</span> <span class="nav-text">InMemoryFileSystem</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#DataNode"><span class="nav-number">4.</span> <span class="nav-text">DataNode</span></a></li></ol></div>
             
           </div>
           <div class="post-toc-indicator-bottom post-toc-indicator">

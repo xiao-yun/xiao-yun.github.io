@@ -35,7 +35,7 @@
 <link href="/css/main.css?v=0.4.5.2" rel="stylesheet" type="text/css" />
 
 
-  <meta name="keywords" content="HDFS,Hadoop-1.2.1,Java," />
+  <meta name="keywords" content="HDFS,Hadoop-1.2.1,Java,源码阅读," />
 
 
 
@@ -61,7 +61,7 @@ LocalFileSystem作为ChecksumFileSystem的本地实现，底层的文件系统�
 <meta property="og:description" content="Hadoop版本:Hadoop-1.2.1  
 
 LocalFileSystem作为ChecksumFileSystem的本地实现，底层的文件系统为RawLocalFileSystem。是Hadoop中默认的文件系统(fs.default.name)。ChecksumFileSystem另见ChecksumFileSystemRawLocalFileSystem另见RawLocalFileSyst">
-<meta property="og:updated_time" content="2015-12-29T07:45:28.579Z">
+<meta property="og:updated_time" content="2016-01-08T06:45:06.330Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="Hadoop FileSystem实现---LocalFileSystem">
 <meta name="twitter:description" content="Hadoop版本:Hadoop-1.2.1  
@@ -237,8 +237,8 @@ LocalFileSystem作为ChecksumFileSystem的本地实现，底层的文件系统�
         <div class="post-meta">
           <span class="post-time">
             发表于
-            <time itemprop="dateCreated" datetime="2015-12-29T15:45:28+08:00" content="2015-12-29">
-              2015-12-29
+            <time itemprop="dateCreated" datetime="2016-01-08T14:45:06+08:00" content="2016-01-08">
+              2016-01-08
             </time>
           </span>
 
@@ -323,7 +323,7 @@ LocalFileSystem作为ChecksumFileSystem的本地实现，底层的文件系统�
 <hr>
 <p>LocalFileSystem作为ChecksumFileSystem的本地实现，底层的文件系统为<code>RawLocalFileSystem</code>。是Hadoop中默认的文件系统(fs.default.name)。<br>ChecksumFileSystem另见<a href="../ChecksumFileSystem">ChecksumFileSystem</a><br>RawLocalFileSystem另见<a href="../RawLocalFileSystem">RawLocalFileSystem</a><br><figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">public <span class="class"><span class="keyword">class</span> <span class="title">LocalFileSystem</span> <span class="keyword"><span class="keyword">extends</span></span> <span class="title">ChecksumFileSystem</span></span></span><br></pre></td></tr></table></figure></p>
 <hr>
-<h2 id="1_成员，构造">1 成员，构造</h2><figure class="highlight actionscript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">static</span> <span class="keyword">final</span> URI NAME = URI.create(<span class="string">"file:///"</span>);</span><br><span class="line"><span class="keyword">static</span> <span class="keyword">private</span> Random rand = <span class="keyword">new</span> Random();</span><br><span class="line">FileSystem rfs;</span><br></pre></td></tr></table></figure>
+<h2 id="1-_成员，构造">1. 成员，构造</h2><figure class="highlight actionscript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">static</span> <span class="keyword">final</span> URI NAME = URI.create(<span class="string">"file:///"</span>);</span><br><span class="line"><span class="keyword">static</span> <span class="keyword">private</span> Random rand = <span class="keyword">new</span> Random();</span><br><span class="line">FileSystem rfs;</span><br></pre></td></tr></table></figure>
 <ul>
 <li><code>NAME</code>，LocalFileSystem的URI，模式为file</li>
 <li><code>rand</code>，随机数对象</li>
@@ -332,7 +332,7 @@ LocalFileSystem作为ChecksumFileSystem的本地实现，底层的文件系统�
 <p>构造如下:<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="title">LocalFileSystem</span><span class="params">()</span> </span>&#123; <span class="keyword">this</span>(<span class="keyword">new</span> RawLocalFileSystem()); &#125;</span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="title">LocalFileSystem</span><span class="params">(FileSystem rawLocalFileSystem)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">super</span>(rawLocalFileSystem);</span><br><span class="line">    rfs = rawLocalFileSystem;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
 <p>如上，底层文件系统为RawLocalFileSystem，调用父类ChecksumFileSystem的构造函数。  </p>
 <hr>
-<h2 id="2_对ChecksumFileSystem中一些过程的解析">2 对ChecksumFileSystem中一些过程的解析</h2><p>如<a href="../ChecksumFileSystem">ChecksumFileSystem</a>分析，一些操作依赖于底层文件系统的相关实现，下面对主要的一些方法进行解析</p>
+<h2 id="2-_对ChecksumFileSystem中一些过程的解析">2. 对ChecksumFileSystem中一些过程的解析</h2><p>如<a href="../ChecksumFileSystem">ChecksumFileSystem</a>分析，一些操作依赖于底层文件系统的相关实现，下面对主要的一些方法进行解析</p>
 <h3 id="2-1_数据流">2.1 数据流</h3><p>ChecksumFileSystem中输出流为ChecksumFSOutputSummer，包含成员datas和sums，从这里可以看出实际对应为RawLocalFileSystem中的输出流对象LocalFSFileOutputStream，内部为文件输出流FileOutputStream。<br>ChecksumFileSystem中输入流为ChecksumFSInputChecker，包含成员datas和sums，因此这两个流实际对应为RawLocalFileSystem中的输入流对象LocalFSFileInputStream，内部为TrackingFileInputStream，即在读取数据的过程中会更新统计信息。  </p>
 <h3 id="2-2_seek操作">2.2 seek操作</h3><p>ChecksumFileSystem中的seek操作依赖于父类FSInputChecker的seek方法，如果不在当前缓冲buf中，设置chunkPos后在下次读取数据时会将datas以及sums定位到chunkPos处，即使用datas和sums的seek方法，这样实际是LocalFSFileInputStream的seek方法，使用文件输入流获取通道，然后通过通道的position设置流的位置。  </p>
 <h3 id="2-3_数据读写">2.3 数据读写</h3><p>ChecksumFileSystem中数据读取从内部缓冲buf中读取数据，不足时从datas，sums中读取，因此最终对应的是文件输入流中读取数据。<br>ChecksumFileSystem中数据写操作先写到内部缓冲中，满足刷新要求时，刷新到datas，sums中，因此最终对应的是文件输出流的写操作。  </p>
@@ -340,7 +340,7 @@ LocalFileSystem作为ChecksumFileSystem的本地实现，底层的文件系统�
 <h3 id="2-5_文件系统的关闭">2.5 文件系统的关闭</h3><p>ChecksumFileSystem文件系统关闭close方法继承自FilterFileSystem的close方法，即完全依赖于底层文件系统的close方法，这里为RawLocalFileSystem的close方法。<br>而RawLocalFileSystem的close方法直接为父类FileSystem的close方法，即最终删除标记为在文件系统关闭时删除的文件，然后从CACHE中移除。</p>
 <h3 id="定位到其他源">定位到其他源</h3><p>ChecksumFileSystem输入流的seekToNewSource方法在读数据失败时使用，通过文件系统的reportChecksumFailure方法报告校验和失败后，通过datas和sums的seekToNewSource方法分别将源文件输入流和校验文件输入流定位到新的源，而两个流为LocalFSFileInputStream对象，直接返回false，即不能定位到新的源。<br>本来RawLocalFileSystem的备份数为1，也就是说失败一次就抛出异常，不会尝试定位到新的源继续读取。  </p>
 <hr>
-<h2 id="3_其他方法">3 其他方法</h2><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">boolean</span> <span class="title">exists</span><span class="params">(Path f)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">    File path = pathToFile(f);</span><br><span class="line">    <span class="keyword">if</span> (path.exists()) &#123;</span><br><span class="line">      <span class="keyword">return</span> <span class="keyword">true</span>;</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">      <span class="keyword">return</span> <span class="keyword">false</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h2 id="3-_其他方法">3. 其他方法</h2><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">boolean</span> <span class="title">exists</span><span class="params">(Path f)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">    File path = pathToFile(f);</span><br><span class="line">    <span class="keyword">if</span> (path.exists()) &#123;</span><br><span class="line">      <span class="keyword">return</span> <span class="keyword">true</span>;</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">      <span class="keyword">return</span> <span class="keyword">false</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 <p>路径存在性通过File对象判断<br><figure class="highlight gradle"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">boolean</span> reportChecksumFailure(Path p, FSDataInputStream in, <span class="keyword">long</span> inPos, FSDataInputStream sums, <span class="keyword">long</span> sumsPos) &#123;</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">      <span class="comment">// canonicalize f</span></span><br><span class="line">      <span class="keyword">File</span> f = ((RawLocalFileSystem)fs).pathToFile(p).getCanonicalFile();</span><br><span class="line">      </span><br><span class="line">      <span class="comment">// find highest writable parent dir of f on the same device</span></span><br><span class="line">      String device = <span class="keyword">new</span> DF(f, getConf()).getMount();</span><br><span class="line">      <span class="keyword">File</span> parent = f.getParentFile();</span><br><span class="line">      <span class="keyword">File</span> dir = <span class="keyword">null</span>;</span><br><span class="line">      <span class="keyword">while</span> (parent!=<span class="keyword">null</span> &amp;&amp; parent.canWrite() &amp;&amp; parent.toString().startsWith(device)) &#123;</span><br><span class="line">        dir = parent;</span><br><span class="line">        parent = parent.getParentFile();</span><br><span class="line">      &#125;</span><br><span class="line"></span><br><span class="line">      <span class="keyword">if</span> (dir==<span class="keyword">null</span>) &#123;</span><br><span class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> IOException( <span class="string">"not able to find the highest writable parent dir"</span>);</span><br><span class="line">      &#125;</span><br><span class="line">        </span><br><span class="line">      <span class="comment">// move the file there</span></span><br><span class="line">      <span class="keyword">File</span> badDir = <span class="keyword">new</span> <span class="keyword">File</span>(dir, <span class="string">"bad_files"</span>);</span><br><span class="line">      <span class="keyword">if</span> (!badDir.mkdirs()) &#123;<span class="comment">//创建报告目录</span></span><br><span class="line">        <span class="keyword">if</span> (!badDir.isDirectory()) &#123;<span class="comment">//创建失败且目录不存在抛出异常</span></span><br><span class="line">          <span class="keyword">throw</span> <span class="keyword">new</span> IOException(<span class="string">"Mkdirs failed to create "</span> + badDir.toString());</span><br><span class="line">        &#125;</span><br><span class="line">      &#125;</span><br><span class="line">      String suffix = <span class="string">"."</span> + rand.nextInt();</span><br><span class="line">      <span class="keyword">File</span> badFile = <span class="keyword">new</span> <span class="keyword">File</span>(badDir, f.getName()+suffix);</span><br><span class="line">      LOG.warn(<span class="string">"Moving bad file "</span> + f + <span class="string">" to "</span> + badFile);</span><br><span class="line">      <span class="comment">//LocalFileSystem不支持定位到其他源，因此这里直接关闭源文件输入流</span></span><br><span class="line">      in.close();                               <span class="comment">// close it first</span></span><br><span class="line">      <span class="comment">//将校验失败的源文件重命名为badFile</span></span><br><span class="line">      f.renameTo(badFile);                      <span class="comment">// rename it</span></span><br><span class="line"></span><br><span class="line">      <span class="comment">// move checksum file too</span></span><br><span class="line">      <span class="keyword">File</span> checkFile = ((RawLocalFileSystem)fs).pathToFile(getChecksumFile(p));</span><br><span class="line">      checkFile.renameTo(<span class="keyword">new</span> <span class="keyword">File</span>(badDir, checkFile.getName()+suffix));</span><br><span class="line"></span><br><span class="line">    &#125; <span class="keyword">catch</span> (IOException e) &#123;</span><br><span class="line">      LOG.warn(<span class="string">"Error moving bad file "</span> + p + <span class="string">": "</span> + e);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">false</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
 <p>该方法在seekToNewSource方法中定位到其他源前被调用，报告校验错误。在源文件根目录(/)下创建一个”bad_files”目录记录校验失败的源文件和校验文件。将源文件拷贝到”bad_files”目录下命名为”srcName.rand”，srcName为源文件名，rand为一个随机整数，校验文件拷贝到该目录下命名为”parName.rand”，parName为校验文件名，rand为与源文件对应的随机数。  </p>
 <p>因此，LocalFileSystem读数据校验和验证失败时，通过seekToNewSource尝试定位到其他源，而LocalFileSystem的底层文件系统RawLocalFileSystem不支持定位到其他源，只是在源文件的跟目录下创建一个”bad_files”目录记录所有的校验失败源文件和校验文件。</p>
@@ -358,6 +358,8 @@ LocalFileSystem作为ChecksumFileSystem的本地实现，底层的文件系统�
           
             <a href="/tags/Java/" rel="tag">#Java</a>
           
+            <a href="/tags/源码阅读/" rel="tag">#源码阅读</a>
+          
         </div>
       
 
@@ -365,16 +367,16 @@ LocalFileSystem作为ChecksumFileSystem的本地实现，底层的文件系统�
         <div class="post-nav">
           <div class="post-nav-next post-nav-item">
             
-              <a href="/InMemoryFile/" rel="next" title="Hadoop FileSystem实现---InMemoryFileSystem">
-                <i class="fa fa-chevron-left"></i> Hadoop FileSystem实现---InMemoryFileSystem
+              <a href="/Java流/" rel="next" title="Java流">
+                <i class="fa fa-chevron-left"></i> Java流
               </a>
             
           </div>
 
           <div class="post-nav-prev post-nav-item">
             
-              <a href="/RawLocalFileSystem/" rel="prev" title="Hadoop FileSystem实现---RawLocalFileSystem">
-                Hadoop FileSystem实现---RawLocalFileSystem <i class="fa fa-chevron-right"></i>
+              <a href="/raidFiles/" rel="prev" title="RaidNode源码阅读---RaidNode编码过程下篇编码操作(LocalRaidNode)">
+                RaidNode源码阅读---RaidNode编码过程下篇编码操作(LocalRaidNode) <i class="fa fa-chevron-right"></i>
               </a>
             
           </div>
@@ -470,21 +472,21 @@ LocalFileSystem作为ChecksumFileSystem的本地实现，底层的文件系统�
         <nav class="site-state motion-element">
           <div class="site-state-item site-state-posts">
             <a href="/archives">
-              <span class="site-state-item-count">29</span>
+              <span class="site-state-item-count">34</span>
               <span class="site-state-item-name">日志</span>
             </a>
           </div>
 
           <div class="site-state-item site-state-categories">
             <a href="/categories">
-              <span class="site-state-item-count">24</span>
+              <span class="site-state-item-count">49</span>
               <span class="site-state-item-name">分类</span>
               </a>
           </div>
 
           <div class="site-state-item site-state-tags">
             <a href="/tags">
-              <span class="site-state-item-count">14</span>
+              <span class="site-state-item-count">25</span>
               <span class="site-state-item-name">标签</span>
               </a>
           </div>
@@ -526,7 +528,7 @@ LocalFileSystem作为ChecksumFileSystem的本地实现，底层的文件系统�
               
             
             
-              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#1_成员，构造"><span class="nav-number">1.</span> <span class="nav-text">1 成员，构造</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2_对ChecksumFileSystem中一些过程的解析"><span class="nav-number">2.</span> <span class="nav-text">2 对ChecksumFileSystem中一些过程的解析</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1_数据流"><span class="nav-number">2.1.</span> <span class="nav-text">2.1 数据流</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-2_seek操作"><span class="nav-number">2.2.</span> <span class="nav-text">2.2 seek操作</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-3_数据读写"><span class="nav-number">2.3.</span> <span class="nav-text">2.3 数据读写</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-4_流的关闭"><span class="nav-number">2.4.</span> <span class="nav-text">2.4 流的关闭</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-5_文件系统的关闭"><span class="nav-number">2.5.</span> <span class="nav-text">2.5 文件系统的关闭</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#定位到其他源"><span class="nav-number">2.6.</span> <span class="nav-text">定位到其他源</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3_其他方法"><span class="nav-number">3.</span> <span class="nav-text">3 其他方法</span></a></li></ol></div>
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-_成员，构造"><span class="nav-number">1.</span> <span class="nav-text">1. 成员，构造</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-_对ChecksumFileSystem中一些过程的解析"><span class="nav-number">2.</span> <span class="nav-text">2. 对ChecksumFileSystem中一些过程的解析</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1_数据流"><span class="nav-number">2.1.</span> <span class="nav-text">2.1 数据流</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-2_seek操作"><span class="nav-number">2.2.</span> <span class="nav-text">2.2 seek操作</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-3_数据读写"><span class="nav-number">2.3.</span> <span class="nav-text">2.3 数据读写</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-4_流的关闭"><span class="nav-number">2.4.</span> <span class="nav-text">2.4 流的关闭</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-5_文件系统的关闭"><span class="nav-number">2.5.</span> <span class="nav-text">2.5 文件系统的关闭</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#定位到其他源"><span class="nav-number">2.6.</span> <span class="nav-text">定位到其他源</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-_其他方法"><span class="nav-number">3.</span> <span class="nav-text">3. 其他方法</span></a></li></ol></div>
             
           </div>
           <div class="post-toc-indicator-bottom post-toc-indicator">

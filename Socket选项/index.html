@@ -59,7 +59,7 @@
 <meta property="og:site_name" content="xiaoyun">
 <meta property="og:description" content="SO_KEEPALIVE(参考SO_KEEPALIVE)socket保活选项。  
 设置该选项后，服务器在保活定时器时间到达(tcp_keepalive_time设置，默认2h,期间任何一方没有数据交换，有交换时定时器重置)时，会向客户端发送一定次数(tcp_keepalive_probes设置，默认9次)的保活探测包，每次发送探测包的间隔通过tcp_keepalive_intvl设置，默认75s">
-<meta property="og:updated_time" content="2015-12-18T02:34:47.376Z">
+<meta property="og:updated_time" content="2016-01-08T06:45:06.374Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="TCP Socket选项">
 <meta name="twitter:description" content="SO_KEEPALIVE(参考SO_KEEPALIVE)socket保活选项。  
@@ -234,8 +234,8 @@
         <div class="post-meta">
           <span class="post-time">
             发表于
-            <time itemprop="dateCreated" datetime="2015-12-18T10:34:47+08:00" content="2015-12-18">
-              2015-12-18
+            <time itemprop="dateCreated" datetime="2016-01-08T14:45:06+08:00" content="2016-01-08">
+              2016-01-08
             </time>
           </span>
 
@@ -244,7 +244,19 @@
               &nbsp; | &nbsp; 分类于
               
                 <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
-                  <a href="/categories/网络编程/" itemprop="url" rel="index">
+                  <a href="/categories/TCP/" itemprop="url" rel="index">
+                    <span itemprop="name">TCP</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/TCP/网络编程/" itemprop="url" rel="index">
                     <span itemprop="name">网络编程</span>
                   </a>
                 </span>
@@ -281,19 +293,19 @@
 
       
         <span itemprop="articleBody"><h2 id="SO_KEEPALIVE(参考SO_KEEPALIVE)">SO_KEEPALIVE(参考<a href="http://elf8848.iteye.com/blog/1961192" target="_blank" rel="external">SO_KEEPALIVE</a>)</h2><p>socket保活选项。  </p>
-<p>设置该选项后，服务器在保活定时器时间到达(tcp_keepalive_time设置，默认2h,期间任何一方没有数据交换，有交换时定时器重置)时，会向客户端<br>发送一定次数(tcp_keepalive_probes设置，默认9次)的保活探测包，每次发送探测包的间隔通过tcp_keepalive_intvl设置，默认75s。<br>而对每一个保活探测包，客户端可能有三种响应:  </p>
+<p>设置该选项后，服务器在保活定时器时间到达(tcp_keepalive_time设置，默认2h,期间任何一方没有数据交换，有交换时定时器重置)时，会向客户端发送一定次数(tcp_keepalive_probes设置，默认9次)的保活探测包，每次发送探测包的间隔通过tcp_keepalive_intvl设置，默认75s。<br>而对每一个保活探测包，客户端可能有三种响应:  </p>
 <ul>
 <li>双方连接仍然建立，对方接收正常，响应正常ACK，服务器端收到正常ACK后重置保活定时器；</li>
 <li>对方已崩溃并重新启动，以RST响应，socket的待处理错误被设置为ECONNRESET，套接口被关闭；</li>
-<li>对方无任何相应，则过75s后再发送保活探测包，发送了8次后还是没响应则放弃，套接口待处理错误被设置为ETIMEOUT，套接口被关闭。而如果此过程中<br>获取到”主机不可达”的ICMP包，说明客户端并不是崩溃了，但是不可达,待处理错误被设置为EHOSTUNREACH。  </li>
+<li>对方无任何相应，则过75s后再发送保活探测包，发送了8次后还是没响应则放弃，套接口待处理错误被设置为ETIMEOUT，套接口被关闭。而如果此过程中获取到”主机不可达”的ICMP包，说明客户端并不是崩溃了，但是不可达,待处理错误被设置为EHOSTUNREACH。  </li>
 </ul>
-<p>该选项，主要是用来在长时间没有数据连接时探测客户端是否已经异常断开了(崩溃)，默认情况下，从双方最后一次通信后，客户端崩溃，则服务器要经过<br>“2h+9*75s”即2小时11分15秒才能获知客户端崩溃，然后断开socket连接。而如果2小时内客户端没崩溃，只是暂时没通信，则会重置保活定时器。  </p>
+<p>该选项，主要是用来在长时间没有数据连接时探测客户端是否已经异常断开了(崩溃)，默认情况下，从双方最后一次通信后，客户端崩溃，则服务器要经过”2h+9*75s”即2小时11分15秒才能获知客户端崩溃，然后断开socket连接。而如果2小时内客户端没崩溃，只是暂时没通信，则会重置保活定时器。  </p>
 <h2 id="SO_LINGER(参考SO_LINGER)">SO_LINGER(参考<a href="http://blog.csdn.net/factor2000/article/details/3929816" target="_blank" rel="external">SO_LINGER</a>)</h2><p>socket linger选项，设置socket的close行为<br>使用如下数据结构:<br><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">struct</span> linger &#123;</span><br><span class="line">     <span class="keyword">int</span> l_onoff; <span class="comment">/* 0 = off, nozero = on */</span></span><br><span class="line">     <span class="keyword">int</span> l_linger; <span class="comment">/* linger time */</span></span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure></p>
 <p>有三种情况:</p>
 <ol>
 <li>l_onoff为0，linger选项关闭，l_linger无效,为内核缺省情况，close调用会立即返回给调用者，会将未发送数据送达对端(优雅关闭)</li>
 <li>l_onoff为非0值，l_linger为0，close时将丢弃保存在发送缓冲区中的任何数据并发送给对端一个RST，而不是通常的4次挥手，避免了TIME_WAIT状态(强制关闭)</li>
-<li>l_onoff为非0值，l_linger为非0值。close时内核将拖延一段时间(l_linger决定),如果发送缓冲区有残留数据，进程将处于休眠状态，直到<br> (a). 所有数据发送完，且被对方确认，之后进行正常的终止序列(4次挥手)<br> (b). 延迟时间到<br> 这种情况下，应用程序需要检查close的返回值，如果在发送缓冲区数据发送并确认前延迟时间到，close将返回EWOULDBLOCK错误，且发送缓冲区<br> 中的任何数据将丢失，close的成功返回仅告诉我们发送的数据(和FIN)已由对方TCP确认，并不能告诉我们对方应用进程是否已经读取了数据。  </li>
+<li>l_onoff为非0值，l_linger为非0值。close时内核将拖延一段时间(l_linger决定),如果发送缓冲区有残留数据，进程将处于休眠状态，直到<br> (a). 所有数据发送完，且被对方确认，之后进行正常的终止序列(4次挥手)<br> (b). 延迟时间到<br> 这种情况下，应用程序需要检查close的返回值，如果在发送缓冲区数据发送并确认前延迟时间到，close将返回EWOULDBLOCK错误，且发送缓冲区中的任何数据将丢失，close的成功返回仅告诉我们发送的数据(和FIN)已由对方TCP确认，并不能告诉我们对方应用进程是否已经读取了数据。  </li>
 </ol>
 <p>l_linger的单位依赖于具体实现</p>
 </span>
@@ -315,16 +327,16 @@
         <div class="post-nav">
           <div class="post-nav-next post-nav-item">
             
-              <a href="/Raid文件选取/" rel="next" title="RaidNode源码阅读---编码过程之上篇Raid文件选取(LocalRaidNode)">
-                <i class="fa fa-chevron-left"></i> RaidNode源码阅读---编码过程之上篇Raid文件选取(LocalRaidNode)
+              <a href="/RPC源码分析下篇/" rel="next" title="RPC源码阅读---源码分析下篇">
+                <i class="fa fa-chevron-left"></i> RPC源码阅读---源码分析下篇
               </a>
             
           </div>
 
           <div class="post-nav-prev post-nav-item">
             
-              <a href="/Configuration/" rel="prev" title="Common源码阅读---Configuration">
-                Common源码阅读---Configuration <i class="fa fa-chevron-right"></i>
+              <a href="/缓冲区/" rel="prev" title="Java NIO---缓冲区">
+                Java NIO---缓冲区 <i class="fa fa-chevron-right"></i>
               </a>
             
           </div>
@@ -420,21 +432,21 @@
         <nav class="site-state motion-element">
           <div class="site-state-item site-state-posts">
             <a href="/archives">
-              <span class="site-state-item-count">29</span>
+              <span class="site-state-item-count">34</span>
               <span class="site-state-item-name">日志</span>
             </a>
           </div>
 
           <div class="site-state-item site-state-categories">
             <a href="/categories">
-              <span class="site-state-item-count">24</span>
+              <span class="site-state-item-count">49</span>
               <span class="site-state-item-name">分类</span>
               </a>
           </div>
 
           <div class="site-state-item site-state-tags">
             <a href="/tags">
-              <span class="site-state-item-count">14</span>
+              <span class="site-state-item-count">25</span>
               <span class="site-state-item-name">标签</span>
               </a>
           </div>

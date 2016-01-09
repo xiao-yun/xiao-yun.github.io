@@ -207,15 +207,6 @@
 
     
     
-      
-      
-        
-        
-        
-      
-
-      
-    
 
     
       
@@ -239,8 +230,8 @@
             
               
                 
-                <a class="post-title-link" href="/Hadoop抽象文件系统/" itemprop="url">
-                  Hadoop抽象文件系统
+                <a class="post-title-link" href="/DataNode本地存储管理/" itemprop="url">
+                  DataNode实现源码分析---本地存储管理
                 </a>
               
             
@@ -250,8 +241,8 @@
         <div class="post-meta">
           <span class="post-time">
             发表于
-            <time itemprop="dateCreated" datetime="2016-01-08T14:59:57+08:00" content="2016-01-08">
-              2016-01-08
+            <time itemprop="dateCreated" datetime="2016-01-09T10:31:59+08:00" content="2016-01-09">
+              2016-01-09
             </time>
           </span>
 
@@ -296,8 +287,32 @@
 
               
                 <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
-                  <a href="/categories/Java/Hadoop-1-2-1/HDFS/源码阅读/" itemprop="url" rel="index">
+                  <a href="/categories/Java/Hadoop-1-2-1/HDFS/DataNode/" itemprop="url" rel="index">
+                    <span itemprop="name">DataNode</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Java/Hadoop-1-2-1/HDFS/DataNode/源码阅读/" itemprop="url" rel="index">
                     <span itemprop="name">源码阅读</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Java/Hadoop-1-2-1/HDFS/DataNode/源码阅读/DataNode源码阅读/" itemprop="url" rel="index">
+                    <span itemprop="name">DataNode源码阅读</span>
                   </a>
                 </span>
 
@@ -312,8 +327,346 @@
             
               <span class="post-comments-count">
                 &nbsp; | &nbsp;
-                <a href="/Hadoop抽象文件系统/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="Hadoop抽象文件系统/" itemprop="commentsCount"></span>
+                <a href="/DataNode本地存储管理/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="DataNode本地存储管理/" itemprop="commentsCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+
+        </div>
+      </header>
+    
+
+
+    <div class="post-body">
+
+      
+      
+
+      
+        
+          <span itemprop="articleBody">
+            
+            Hadoop版本:Hadoop-1.2.1参考：《Hadoop技术内幕-深入解析Hadoop Common和HDFS架构设计与实现原理》
+
+DataNode的本地存储由DataStorage和FSDataset负责，本地存储目录通过dfs.data.dir配置，可配置多个存储目录。每个目录下有多个目
+            ...
+          </span>
+          <div class="post-more-link text-center">
+            <a class="btn" href="/DataNode本地存储管理/#more" rel="contents">
+              阅读全文 &raquo;
+            </a>
+          </div>
+        
+      
+    </div>
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </article>
+
+
+    
+      
+
+  
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                
+                <a class="post-title-link" href="/DataNode实现源码分析/" itemprop="url">
+                  DataNode实现源码分析
+                </a>
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            发表于
+            <time itemprop="dateCreated" datetime="2016-01-09T10:24:40+08:00" content="2016-01-09">
+              2016-01-09
+            </time>
+          </span>
+
+          
+            <span class="post-category" >
+              &nbsp; | &nbsp; 分类于
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Java/" itemprop="url" rel="index">
+                    <span itemprop="name">Java</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Java/Hadoop-1-2-1/" itemprop="url" rel="index">
+                    <span itemprop="name">Hadoop-1.2.1</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Java/Hadoop-1-2-1/HDFS/" itemprop="url" rel="index">
+                    <span itemprop="name">HDFS</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Java/Hadoop-1-2-1/HDFS/DataNode/" itemprop="url" rel="index">
+                    <span itemprop="name">DataNode</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Java/Hadoop-1-2-1/HDFS/DataNode/源码阅读/" itemprop="url" rel="index">
+                    <span itemprop="name">源码阅读</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Java/Hadoop-1-2-1/HDFS/DataNode/源码阅读/DataNode源码阅读/" itemprop="url" rel="index">
+                    <span itemprop="name">DataNode源码阅读</span>
+                  </a>
+                </span>
+
+                
+                
+
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                &nbsp; | &nbsp;
+                <a href="/DataNode实现源码分析/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="DataNode实现源码分析/" itemprop="commentsCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+
+        </div>
+      </header>
+    
+
+
+    <div class="post-body">
+
+      
+      
+
+      
+        
+          <span itemprop="articleBody">
+            
+            DataNode源码分析系列文章有DataNode启动，DataNode本地存储管理，DataNode流接口实现上篇，DataNode流接口实现下篇，本文也属于其中一篇，是对上述的补充。  
+
+1. 数据块恢复在HDFS节点的VersionedProtocol实现中已经分析过了，与DataNode有
+            ...
+          </span>
+          <div class="post-more-link text-center">
+            <a class="btn" href="/DataNode实现源码分析/#more" rel="contents">
+              阅读全文 &raquo;
+            </a>
+          </div>
+        
+      
+    </div>
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </article>
+
+
+    
+      
+
+  
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                
+                <a class="post-title-link" href="/DataNode启动/" itemprop="url">
+                  DataNode实现源码分析---DataNode启动
+                </a>
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            发表于
+            <time itemprop="dateCreated" datetime="2016-01-09T10:24:40+08:00" content="2016-01-09">
+              2016-01-09
+            </time>
+          </span>
+
+          
+            <span class="post-category" >
+              &nbsp; | &nbsp; 分类于
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Java/" itemprop="url" rel="index">
+                    <span itemprop="name">Java</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Java/Hadoop-1-2-1/" itemprop="url" rel="index">
+                    <span itemprop="name">Hadoop-1.2.1</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Java/Hadoop-1-2-1/HDFS/" itemprop="url" rel="index">
+                    <span itemprop="name">HDFS</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Java/Hadoop-1-2-1/HDFS/DataNode/" itemprop="url" rel="index">
+                    <span itemprop="name">DataNode</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Java/Hadoop-1-2-1/HDFS/DataNode/源码阅读/" itemprop="url" rel="index">
+                    <span itemprop="name">源码阅读</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Java/Hadoop-1-2-1/HDFS/DataNode/源码阅读/DataNode源码阅读/" itemprop="url" rel="index">
+                    <span itemprop="name">DataNode源码阅读</span>
+                  </a>
+                </span>
+
+                
+                
+
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                &nbsp; | &nbsp;
+                <a href="/DataNode启动/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="DataNode启动/" itemprop="commentsCount"></span>
                 </a>
               </span>
             
@@ -337,14 +690,11 @@
             
             Hadoop版本:Hadoop-1.2.1参考：《Hadoop技术内幕-深入解析Hadoop Common和HDFS架构设计与实现原理》  
 
-1. 成员属性成员属性如下:  
-
-FS_DEFAULT_NAME_KEY，配置项fs.default.name，缺省文件系统uri
-CACHE，静态成员，
+当通过start-dfs.sh或者start-all.sh等方式启动DataNode时，最终会调用DataNode的main方法，这中间过程不再分析。123
             ...
           </span>
           <div class="post-more-link text-center">
-            <a class="btn" href="/Hadoop抽象文件系统/#more" rel="contents">
+            <a class="btn" href="/DataNode启动/#more" rel="contents">
               阅读全文 &raquo;
             </a>
           </div>
@@ -532,8 +882,8 @@ HDFS中有NameNode节点，DataNode节点，Secondary
             
               
                 
-                <a class="post-title-link" href="/ChecksumFileSystem/" itemprop="url">
-                  Hadoop FileSystem实现---ChecksumFileSystem
+                <a class="post-title-link" href="/Hadoop抽象文件系统/" itemprop="url">
+                  Hadoop抽象文件系统
                 </a>
               
             
@@ -543,7 +893,7 @@ HDFS中有NameNode节点，DataNode节点，Secondary
         <div class="post-meta">
           <span class="post-time">
             发表于
-            <time itemprop="dateCreated" datetime="2016-01-08T14:47:48+08:00" content="2016-01-08">
+            <time itemprop="dateCreated" datetime="2016-01-08T14:59:57+08:00" content="2016-01-08">
               2016-01-08
             </time>
           </span>
@@ -596,18 +946,6 @@ HDFS中有NameNode节点，DataNode节点，Secondary
 
                 
                 
-                  ， 
-                
-
-              
-                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
-                  <a href="/categories/Java/Hadoop-1-2-1/HDFS/源码阅读/HDFS源码阅读/" itemprop="url" rel="index">
-                    <span itemprop="name">HDFS源码阅读</span>
-                  </a>
-                </span>
-
-                
-                
 
               
             </span>
@@ -617,8 +955,8 @@ HDFS中有NameNode节点，DataNode节点，Secondary
             
               <span class="post-comments-count">
                 &nbsp; | &nbsp;
-                <a href="/ChecksumFileSystem/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="ChecksumFileSystem/" itemprop="commentsCount"></span>
+                <a href="/Hadoop抽象文件系统/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="Hadoop抽象文件系统/" itemprop="commentsCount"></span>
                 </a>
               </span>
             
@@ -640,326 +978,16 @@ HDFS中有NameNode节点，DataNode节点，Secondary
         
           <span itemprop="articleBody">
             
-            Hadoop版本:Hadoop-1.2.1  
+            Hadoop版本:Hadoop-1.2.1参考：《Hadoop技术内幕-深入解析Hadoop Common和HDFS架构设计与实现原理》  
 
-ChecksumFilesystem继承自FilterFileSystem，FilterInputStream和FilterInputStream类似，在提供的底层文件系统上增加了新的功能，底层文件系统在构造时由传入的参数初始化，所有的方法直接依赖于
+1. 成员属性成员属性如下:  
+
+FS_DEFAULT_NAME_KEY，配置项fs.default.name，缺省文件系统uri
+CACHE，静态成员，
             ...
           </span>
           <div class="post-more-link text-center">
-            <a class="btn" href="/ChecksumFileSystem/#more" rel="contents">
-              阅读全文 &raquo;
-            </a>
-          </div>
-        
-      
-    </div>
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </article>
-
-
-    
-      
-
-  
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-            
-            
-              
-                
-                <a class="post-title-link" href="/DataNode RPC相关实现/" itemprop="url">
-                  DataNode实现源码分析---RPC相关实现
-                </a>
-              
-            
-          </h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            发表于
-            <time itemprop="dateCreated" datetime="2016-01-08T14:47:48+08:00" content="2016-01-08">
-              2016-01-08
-            </time>
-          </span>
-
-          
-            <span class="post-category" >
-              &nbsp; | &nbsp; 分类于
-              
-                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
-                  <a href="/categories/Java/" itemprop="url" rel="index">
-                    <span itemprop="name">Java</span>
-                  </a>
-                </span>
-
-                
-                
-                  ， 
-                
-
-              
-                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
-                  <a href="/categories/Java/Hadoop-1-2-1/" itemprop="url" rel="index">
-                    <span itemprop="name">Hadoop-1.2.1</span>
-                  </a>
-                </span>
-
-                
-                
-                  ， 
-                
-
-              
-                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
-                  <a href="/categories/Java/Hadoop-1-2-1/HDFS/" itemprop="url" rel="index">
-                    <span itemprop="name">HDFS</span>
-                  </a>
-                </span>
-
-                
-                
-                  ， 
-                
-
-              
-                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
-                  <a href="/categories/Java/Hadoop-1-2-1/HDFS/DataNode/" itemprop="url" rel="index">
-                    <span itemprop="name">DataNode</span>
-                  </a>
-                </span>
-
-                
-                
-                  ， 
-                
-
-              
-                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
-                  <a href="/categories/Java/Hadoop-1-2-1/HDFS/DataNode/源码阅读/" itemprop="url" rel="index">
-                    <span itemprop="name">源码阅读</span>
-                  </a>
-                </span>
-
-                
-                
-                  ， 
-                
-
-              
-                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
-                  <a href="/categories/Java/Hadoop-1-2-1/HDFS/DataNode/源码阅读/DataNode源码阅读/" itemprop="url" rel="index">
-                    <span itemprop="name">DataNode源码阅读</span>
-                  </a>
-                </span>
-
-                
-                
-
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                &nbsp; | &nbsp;
-                <a href="/DataNode RPC相关实现/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="DataNode RPC相关实现/" itemprop="commentsCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-
-        </div>
-      </header>
-    
-
-
-    <div class="post-body">
-
-      
-      
-
-      
-        
-          <span itemprop="articleBody">
-            
-            
-            
-          </span>
-          <div class="post-more-link text-center">
-            <a class="btn" href="/DataNode RPC相关实现/#more" rel="contents">
-              阅读全文 &raquo;
-            </a>
-          </div>
-        
-      
-    </div>
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </article>
-
-
-    
-      
-
-  
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-            
-            
-              
-                
-                <a class="post-title-link" href="/配置相关HDFS/" itemprop="url">
-                  Hadoop配置相关---HDFS
-                </a>
-              
-            
-          </h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            发表于
-            <time itemprop="dateCreated" datetime="2016-01-08T14:45:06+08:00" content="2016-01-08">
-              2016-01-08
-            </time>
-          </span>
-
-          
-            <span class="post-category" >
-              &nbsp; | &nbsp; 分类于
-              
-                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
-                  <a href="/categories/Hadoop-1-2-1/" itemprop="url" rel="index">
-                    <span itemprop="name">Hadoop-1.2.1</span>
-                  </a>
-                </span>
-
-                
-                
-                  ， 
-                
-
-              
-                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
-                  <a href="/categories/Hadoop-1-2-1/HDFS/" itemprop="url" rel="index">
-                    <span itemprop="name">HDFS</span>
-                  </a>
-                </span>
-
-                
-                
-                  ， 
-                
-
-              
-                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
-                  <a href="/categories/Hadoop-1-2-1/HDFS/配置/" itemprop="url" rel="index">
-                    <span itemprop="name">配置</span>
-                  </a>
-                </span>
-
-                
-                
-
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                &nbsp; | &nbsp;
-                <a href="/配置相关HDFS/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="配置相关HDFS/" itemprop="commentsCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-
-        </div>
-      </header>
-    
-
-
-    <div class="post-body">
-
-      
-      
-
-      
-        
-          <span itemprop="articleBody">
-            
-            Hadoop版本:Hadoop-1.2.1  
-
-说明:缺省值为N/A是指在程序中没有指定，而不是在datanode-default.xml中没有设置。
-FileSystem
-
-
-属性
-缺省值
-说明
-
-
-
-
-fs.default.name
-file:///
-FileSystem.get获取文件系统，
-            ...
-          </span>
-          <div class="post-more-link text-center">
-            <a class="btn" href="/配置相关HDFS/#more" rel="contents">
+            <a class="btn" href="/Hadoop抽象文件系统/#more" rel="contents">
               阅读全文 &raquo;
             </a>
           </div>
@@ -1027,21 +1055,21 @@ FileSystem.get获取文件系统，
         <nav class="site-state motion-element">
           <div class="site-state-item site-state-posts">
             <a href="/archives">
-              <span class="site-state-item-count">34</span>
+              <span class="site-state-item-count">35</span>
               <span class="site-state-item-name">日志</span>
             </a>
           </div>
 
           <div class="site-state-item site-state-categories">
             <a href="/categories">
-              <span class="site-state-item-count">49</span>
+              <span class="site-state-item-count">37</span>
               <span class="site-state-item-name">分类</span>
               </a>
           </div>
 
           <div class="site-state-item site-state-tags">
             <a href="/tags">
-              <span class="site-state-item-count">25</span>
+              <span class="site-state-item-count">19</span>
               <span class="site-state-item-name">标签</span>
               </a>
           </div>

@@ -1,0 +1,878 @@
+<!doctype html>
+<html class="theme-next   use-motion ">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+  <link href="/vendors/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css"/>
+
+
+
+
+  <link href="//fonts.googleapis.com/css?family=Lato:300,400,700,400italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+
+
+
+<link href="/vendors/font-awesome/css/font-awesome.min.css?v=4.4.0" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=0.4.5.2" rel="stylesheet" type="text/css" />
+
+
+  <meta name="keywords" content="DataNode,DataNode源码阅读,HDFS,Hadoop-1.2.1,Java,源码阅读," />
+
+
+
+
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=0.4.5.2" />
+
+
+
+
+
+
+<meta name="description" content="DataNode源码分析系列文章有DataNode启动，DataNode本地存储管理，DataNode流接口实现上篇，DataNode流接口实现下篇，本文也属于其中一篇，是对上述的补充。  
+
+1. 数据块恢复在HDFS节点的VersionedProtocol实现中已经分析过了，与DataNode有关的RPC协议有:DatanodeProtocol(数据节点和名字节点)，InterDatanode">
+<meta property="og:type" content="article">
+<meta property="og:title" content="DataNode实现源码分析">
+<meta property="og:url" content="http://xiao-yun.github.io/DataNode实现源码分析/index.html">
+<meta property="og:site_name" content="xiaoyun">
+<meta property="og:description" content="DataNode源码分析系列文章有DataNode启动，DataNode本地存储管理，DataNode流接口实现上篇，DataNode流接口实现下篇，本文也属于其中一篇，是对上述的补充。  
+
+1. 数据块恢复在HDFS节点的VersionedProtocol实现中已经分析过了，与DataNode有关的RPC协议有:DatanodeProtocol(数据节点和名字节点)，InterDatanode">
+<meta property="og:updated_time" content="2016-01-09T02:24:40.736Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="DataNode实现源码分析">
+<meta name="twitter:description" content="DataNode源码分析系列文章有DataNode启动，DataNode本地存储管理，DataNode流接口实现上篇，DataNode流接口实现下篇，本文也属于其中一篇，是对上述的补充。  
+
+1. 数据块恢复在HDFS节点的VersionedProtocol实现中已经分析过了，与DataNode有关的RPC协议有:DatanodeProtocol(数据节点和名字节点)，InterDatanode">
+
+
+
+<script type="text/javascript" id="hexo.configuration">
+  var CONFIG = {
+    scheme: 'Mist',
+    sidebar: 'hide',
+    motion: true
+  };
+</script>
+
+  <title> DataNode实现源码分析 | xiaoyun </title>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  <!--[if lte IE 8]>
+  <div style=' clear: both; height: 59px; padding:0 0 0 15px; position: relative;margin:0 auto;'>
+    <a href="http://windows.microsoft.com/en-US/internet-explorer/products/ie/home?ocid=ie6_countdown_bannercode">
+      <img src="http://7u2nvr.com1.z0.glb.clouddn.com/picouterie.jpg" border="0" height="42" width="820"
+           alt="You are using an outdated browser. For a faster, safer browsing experience, upgrade for free today or use other browser ,like chrome firefox safari."
+           style='margin-left:auto;margin-right:auto;display: block;'/>
+    </a>
+  </div>
+<![endif]-->
+  
+
+
+
+  <script type="text/javascript">
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "//hm.baidu.com/hm.js?caeb4129c91d1e6fb3d562d35fedef0d";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+  <div class="container one-column page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-meta ">
+  
+
+  <div class="custom-logo-site-title">
+    <a href="/"  class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <span class="site-title">xiaoyun</span>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+  <p class="site-subtitle"></p>
+</div>
+
+<div class="site-nav-toggle">
+  <button>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+  </button>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu ">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-home fa-fw"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives" rel="section">
+            
+              <i class="menu-item-icon fa fa-archive fa-fw"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories" rel="section">
+            
+              <i class="menu-item-icon fa fa-th fa-fw"></i> <br />
+            
+            分类
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+              <i class="menu-item-icon fa fa-tags fa-fw"></i> <br />
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about" rel="section">
+            
+              <i class="menu-item-icon fa fa-user fa-fw"></i> <br />
+            
+            关于
+          </a>
+        </li>
+      
+
+      
+      
+    </ul>
+  
+
+  
+</nav>
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div id="content" class="content">
+          
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                DataNode实现源码分析
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            发表于
+            <time itemprop="dateCreated" datetime="2016-01-09T10:24:40+08:00" content="2016-01-09">
+              2016-01-09
+            </time>
+          </span>
+
+          
+            <span class="post-category" >
+              &nbsp; | &nbsp; 分类于
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Java/" itemprop="url" rel="index">
+                    <span itemprop="name">Java</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Java/Hadoop-1-2-1/" itemprop="url" rel="index">
+                    <span itemprop="name">Hadoop-1.2.1</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Java/Hadoop-1-2-1/HDFS/" itemprop="url" rel="index">
+                    <span itemprop="name">HDFS</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Java/Hadoop-1-2-1/HDFS/DataNode/" itemprop="url" rel="index">
+                    <span itemprop="name">DataNode</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Java/Hadoop-1-2-1/HDFS/DataNode/源码阅读/" itemprop="url" rel="index">
+                    <span itemprop="name">源码阅读</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Java/Hadoop-1-2-1/HDFS/DataNode/源码阅读/DataNode源码阅读/" itemprop="url" rel="index">
+                    <span itemprop="name">DataNode源码阅读</span>
+                  </a>
+                </span>
+
+                
+                
+
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                &nbsp; | &nbsp;
+                <a href="/DataNode实现源码分析/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="DataNode实现源码分析/" itemprop="commentsCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+
+        </div>
+      </header>
+    
+
+
+    <div class="post-body">
+
+      
+      
+
+      
+        <span itemprop="articleBody"><p>DataNode源码分析系列文章有<a href="../DataNode启动">DataNode启动</a>，<a href="../DataNode本地存储管理">DataNode本地存储管理</a>，<a href="../DataNode流接口实现上篇">DataNode流接口实现上篇</a>，<a href="../DataNode流接口实现下篇">DataNode流接口实现下篇</a>，本文也属于其中一篇，是对上述的补充。  </p>
+<hr>
+<h2 id="1-_数据块恢复">1. 数据块恢复</h2><p>在<a href="../HDFS VersionedProtocol">HDFS节点的VersionedProtocol实现</a>中已经分析过了，与DataNode有关的RPC协议有:DatanodeProtocol(数据节点和名字节点)，InterDatanodeProtocol(数据节点之间)，ClientDatanodeProtocol(Client和数据节点之间)。<br>DataProtocol为数据节点和名字节点间通信使用，NameNode使用。因此在DataNode中实现InterDatanodeProtocol和ClientDatanodeProtocol两个协议，分别为其他数据节点和Client提供服务。<br>由<a href="../HDFS VersionedProtocol">HDFS节点的VersionedProtocol实现</a>可知，InterDatanodeProtocol和ClientDatanodeProtocol提供了简单的几个方法，都与数据块恢复有关。<br>因为在DataXceiver和BlockReceiver的实现中，没有对写数据过程中出现的异常情况进行过多的处理，一般来说，关闭到上游节点的Socket连接，由上游节点检测错误并发送携带错误信息的确认包。这样简化了数据节点写请求处理的实现，但把故障恢复工作转移给了客户端或名字节点，当它们发现某次写操作出现错误以后，需要进行数据块恢复。(参考技术内幕P309)  </p>
+<p>当客户端发现写操作异常，进行错误恢复时，选择一个主数据节点，通过ClientDatanodeProtocol中的recoverBlock方法开始错误恢复，recoverBlock在DataNode中的实现如下<br><figure class="highlight scss"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">public LocatedBlock <span class="function">recoverBlock</span>(<span class="value">Block</span> <span class="value">block</span>, boolean keepLength, DatanodeInfo<span class="attr_selector">[]</span> targets) throws IOException &#123;</span><br><span class="line">    <span class="function">logRecoverBlock</span>("Client", <span class="value">block</span>, targets);<span class="comment">//记录日志</span></span><br><span class="line">    <span class="function">checkBlockToken</span>(<span class="value">block</span>, BlockTokenSecretManager<span class="class">.AccessMode</span><span class="class">.WRITE</span>);<span class="comment">//检查是否有权执行该操作</span></span><br><span class="line">    return <span class="function">recoverBlock</span>(<span class="value">block</span>, keepLength, targets, false);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，记录日志并检查访问权限后，通过4参数的recoverBlock进行恢复<br>首先检查该区块是否正在修复过程中，因为客户端和NameNode都可能对区块进行修复<br><figure class="highlight processing"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">synchronized</span> (ongoingRecovery) &#123;</span><br><span class="line">  <span class="keyword">if</span> (ongoingRecovery.<span class="built_in">get</span>(block.getWithWildcardGS()) != <span class="keyword">null</span>) &#123;</span><br><span class="line">    <span class="keyword">String</span> msg = block + <span class="string">" is already being recovered, "</span> + <span class="string">" ignoring this request to recover it."</span>;</span><br><span class="line">    LOG.info(msg);</span><br><span class="line">    <span class="keyword">throw</span> <span class="keyword">new</span> IOException(msg);</span><br><span class="line">  &#125;</span><br><span class="line">  ongoingRecovery.put(block, block);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，正在恢复的区块保存在DataNode成员<code>ongoingRecovery</code>中，如果没有则添加到该成员中。<br>然后读取targets指定的各DataNode上对应的区块信息，targets包含本节点，对于非本节点的DataNode创建InterDatanodeProtocol代理，通过代理调用<code>startBlockRecovery</code>方法获取其他DataNode上恢复区块的信息<br><figure class="highlight armasm"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br></pre></td><td class="code"><pre><span class="line"><span class="label">int</span> errorCount = <span class="number">0</span><span class="comment">;</span></span><br><span class="line"><span class="label">int</span> rbwCount = <span class="number">0</span><span class="comment">;</span></span><br><span class="line"><span class="label">int</span> rwrCount = <span class="number">0</span><span class="comment">;</span></span><br><span class="line"></span><br><span class="line"><span class="label">List</span>&lt;<span class="keyword">BlockRecord&gt; </span><span class="keyword">blockRecords </span>= new ArrayList&lt;<span class="keyword">BlockRecord&gt;();</span><br><span class="line"></span><span class="label">for</span> (DatanodeInfo id : targets) &#123;</span><br><span class="line">    try &#123;</span><br><span class="line">      //其他节点创建InterDatanodeProtocol代理</span><br><span class="line">      InterDatanodeProtocol datanode = dnRegistration.equals(id) ? this </span><br><span class="line">        : DataNode.createInterDataNodeProtocolProxy(id, getConf(), socketTimeout, connectToDnViaHostname)<span class="comment">;</span></span><br><span class="line">      //通过startBlockRecovery获得所有参与恢复的DataNode上的区块信息</span><br><span class="line">      <span class="keyword">BlockRecoveryInfo </span><span class="preprocessor">info</span> = datanode.startBlockRecovery(<span class="keyword">block);</span><br><span class="line"></span>      <span class="preprocessor">if</span> (<span class="preprocessor">info</span> == null) &#123;//不存在，该节点将不参与后续的恢复过程</span><br><span class="line">        LOG.info(<span class="string">"No block metadata found for "</span> + <span class="keyword">block </span>+ <span class="string">" on datanode "</span>+ id)<span class="comment">;</span></span><br><span class="line">        continue<span class="comment">;</span></span><br><span class="line">      &#125;</span><br><span class="line">      <span class="preprocessor">if</span> (<span class="preprocessor">info</span>.getBlock().getGenerationStamp() &lt; <span class="keyword">block.getGenerationStamp()) </span>&#123;</span><br><span class="line">        LOG.info(<span class="string">"Only old generation stamp "</span> + <span class="preprocessor">info</span>.getBlock().getGenerationStamp()</span><br><span class="line">            + <span class="string">" found on datanode "</span> + id + <span class="string">" (needed block="</span> + <span class="keyword">block </span>+ <span class="string">")"</span>)<span class="comment">;</span></span><br><span class="line">        continue<span class="comment">;</span></span><br><span class="line">      &#125;</span><br><span class="line">      <span class="keyword">blockRecords.add(new </span><span class="keyword">BlockRecord(id, </span>datanode, <span class="preprocessor">info</span>))<span class="comment">;</span></span><br><span class="line">      <span class="preprocessor">if</span> (<span class="preprocessor">info</span>.wasRecoveredOnStartup()) &#123;</span><br><span class="line">        rwrCount++<span class="comment">;</span></span><br><span class="line">      &#125; <span class="preprocessor">else</span> &#123;</span><br><span class="line">        rbwCount++<span class="comment">;</span></span><br><span class="line">      &#125;</span><br><span class="line">    &#125; catch (IOException e) &#123;</span><br><span class="line">      ++errorCount<span class="comment">;</span></span><br><span class="line">      InterDatanodeProtocol.LOG.warn(<span class="string">"Failed to getBlockMetaDataInfo for block (="</span> + <span class="keyword">block </span></span><br><span class="line">          + <span class="string">") from datanode (="</span> + id + <span class="string">")"</span>, e)<span class="comment">;</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，通过startBlockRecovery方法获取各节点待修复区块的信息，如果不是本节点需要通过RPC获取其他节点上的区块信息，对于不存在或者不符合要求的数据节点，讲不会参与到后续的区块修复过程中。符合要求的数据节点和区块信息创建BlockRecord对象添加到列表中。BlockRecord对象存储了数据节点以及对应的区块信息，比较简单。  </p>
+<h3 id="1-1_startBlockRecovery">1.1 startBlockRecovery</h3><p>startBlockRecovery是InterDatanodeProtocol中的方法，如上创建代理获取其他节点上关于待修复区块的信息，实现如下<br><figure class="highlight armasm"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="label">public</span> <span class="keyword">BlockRecoveryInfo </span>startBlockRecovery(<span class="keyword">Block </span><span class="keyword">block) </span>throws IOException &#123; </span><br><span class="line">    return <span class="preprocessor">data</span>.startBlockRecovery(<span class="keyword">block.getBlockId());</span><br><span class="line"></span>&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，通过FSDataset对象的startBlockRecovery方法获取区块恢复信息<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="annotation">@Override</span></span><br><span class="line"><span class="keyword">public</span> <span class="function">BlockRecoveryInfo <span class="title">startBlockRecovery</span><span class="params">(<span class="keyword">long</span> blockId)</span> <span class="keyword">throws</span> IOException </span>&#123;    </span><br><span class="line">    Block stored = getStoredBlock(blockId);<span class="comment">//获取Block</span></span><br><span class="line">    <span class="keyword">if</span> (stored == <span class="keyword">null</span>) &#123; <span class="keyword">return</span> <span class="keyword">null</span>; &#125;<span class="comment">//如果不存在直接返回null</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">//如果目前该区块上有活动线程，中断并等待返回</span></span><br><span class="line">    <span class="keyword">while</span> (<span class="keyword">true</span>) &#123;</span><br><span class="line">      DataNode.LOG.debug(<span class="string">"Interrupting active writer threads for block "</span> + stored);</span><br><span class="line">      List&lt;Thread&gt; activeThreads = getActiveThreads(stored);</span><br><span class="line">      <span class="keyword">if</span> (activeThreads == <span class="keyword">null</span>) <span class="keyword">break</span>;</span><br><span class="line">      <span class="keyword">if</span> (interruptAndJoinThreads(activeThreads))</span><br><span class="line">        <span class="keyword">break</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">synchronized</span> (<span class="keyword">this</span>) &#123;</span><br><span class="line">      ActiveFile activeFile = ongoingCreates.get(stored);</span><br><span class="line">      <span class="keyword">boolean</span> isRecovery = (activeFile != <span class="keyword">null</span>) &amp;&amp; activeFile.wasRecoveredOnStartup;</span><br><span class="line">      </span><br><span class="line">      BlockRecoveryInfo info = <span class="keyword">new</span> BlockRecoveryInfo(stored, isRecovery);</span><br><span class="line">      ...<span class="comment">//日志记录</span></span><br><span class="line">      <span class="comment">//对该区块进行验证</span></span><br><span class="line">      validateBlockMetadata(stored);</span><br><span class="line">      <span class="keyword">return</span> info;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，首先获取Block对象，不存在该区块直接返回null。<br>存在该区块的话，如果当前有活动的线程在对该区块进行操作，中断并等待线程返回。这些活动的线程应该是该数据块的写数据线程，BlockReceiver对应的线程，区块修复时必须中断这些线程并等待它们退出，保证后续的修复操作不受写操作影响。<br>然后便能根据区块信息创建BlockRecoveryInfo对象，其中的wasRecoveredOnStartup字段和Linux Ext3文件系统日志相关，Linux系统重启，文件系统恢复过程中，非正常关闭的处于写入过程中的文件可能会被截断，wasRecoverOnStartup用于标记这种情况。(技术内幕P311)<br>处于恢复状态的数据块文件和校验文件可能处于不一致的状态，因此需要通过<code>validateBlockMetadata</code>进行验证，validateBlockMetadata具体代码不再分析，不过它不会重新计算区块文件每个数据块的校验和与校验文件比较，而是简便的看文件是否存在，时间戳是否匹配，文件长度是否匹配来判断两个文件是否一致。  </p>
+<p>获取了参与修复过程中符合条件数据节点上区块信息后，要根据recoverBlock传入的第二个参数<code>keepLength</code>重新计算恢复后区块的长度。<br>如果keepLength为true，则只有区块长度和待修复区块长度一致的数据节点才会继续参与修复，否则修复后区块长度为所有符合条件数据节点区块长度最短值，即截断到最小区块长度。<br><figure class="highlight armasm"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">boolean </span>shouldRecoverRwrs = (rbwCount == <span class="number">0</span>)<span class="comment">;</span></span><br><span class="line"><span class="label">List</span>&lt;<span class="keyword">BlockRecord&gt; </span>syncList = new ArrayList&lt;<span class="keyword">BlockRecord&gt;();</span><br><span class="line"></span><span class="label">long</span> minlength = Long.MAX_VALUE<span class="comment">;</span></span><br><span class="line"></span><br><span class="line"><span class="label">for</span> (<span class="keyword">BlockRecord </span>record : <span class="keyword">blockRecords) </span>&#123;</span><br><span class="line">    <span class="keyword">BlockRecoveryInfo </span><span class="preprocessor">info</span> = record.info<span class="comment">;</span></span><br><span class="line">    <span class="preprocessor">assert</span> (<span class="preprocessor">info</span> != null &amp;&amp; <span class="preprocessor">info</span>.getBlock().getGenerationStamp() &gt;= <span class="keyword">block.getGenerationStamp());</span><br><span class="line"></span>    <span class="preprocessor">if</span> (!shouldRecoverRwrs &amp;&amp; <span class="preprocessor">info</span>.wasRecoveredOnStartup()) &#123;</span><br><span class="line">      LOG.info(<span class="string">"Not recovering replica "</span> + record + <span class="string">" since it was recovered on "</span></span><br><span class="line">          + <span class="string">"startup and we have better replicas"</span>)<span class="comment">;</span></span><br><span class="line">      continue<span class="comment">;</span></span><br><span class="line">    &#125;</span><br><span class="line">    <span class="preprocessor">if</span> (keepLength) &#123;//如果keepLength，则只有区块长度一致的DataNode才参与修复</span><br><span class="line">      <span class="preprocessor">if</span> (<span class="preprocessor">info</span>.getBlock().getNumBytes() == <span class="keyword">block.getNumBytes()) </span>&#123;</span><br><span class="line">        syncList.<span class="keyword">add(record);</span><br><span class="line"></span>      &#125;</span><br><span class="line">    &#125; <span class="preprocessor">else</span> &#123;//keepLength为false，截断到最短长度          </span><br><span class="line">      syncList.<span class="keyword">add(record);</span><br><span class="line"></span>      <span class="preprocessor">if</span> (<span class="preprocessor">info</span>.getBlock().getNumBytes() &lt; minlength) &#123;</span><br><span class="line">        minlength = <span class="preprocessor">info</span>.getBlock().getNumBytes()<span class="comment">;</span></span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如果满足条件的数据节点数不存在，且在通过startBlockRecovery获取区块信息的过程中抛出了异常(最后的验证阶段，即区块已损坏)，则抛出异常，修复失败<br><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (syncList.isEmpty() &amp;&amp; errorCount &gt; <span class="number">0</span>) &#123;</span><br><span class="line">    <span class="keyword">throw</span> <span class="keyword">new</span> IOException(<span class="string">"All datanodes failed: block="</span> + block</span><br><span class="line">        + <span class="string">", datanodeids="</span> + Arrays.asList(targets));</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>否则，通过重新计算的区块长度更新待修复区块长度，然后<code>syncBlock</code>方法同步满足条件的数据节点上该区块，最后从ongoingRecovery中移除该区块记录<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (!keepLength) &#123;</span><br><span class="line">    block.setNumBytes(minlength);</span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">return</span> <span class="title">syncBlock</span><span class="params">(block, syncList, targets, closeFile)</span></span>;</span><br><span class="line">...</span><br><span class="line"><span class="keyword">finally</span> &#123;</span><br><span class="line">  <span class="keyword">synchronized</span> (ongoingRecovery) &#123;</span><br><span class="line">    ongoingRecovery.remove(block);</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<h3 id="1-2_syncBlock">1.2 syncBlock</h3><p>首先，判断参与同步的节点数是否为0，如果没有参与同步的节点，则表明该区块应该被删除了，通知NameNode删除该区块<br><figure class="highlight armasm"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="label">if</span> (syncList.isEmpty()) &#123;</span><br><span class="line">  namenode.commitBlockSynchronization(<span class="keyword">block, </span><span class="number">0</span>, <span class="number">0</span>, closeFile, true, DatanodeID.EMPTY_ARRAY)<span class="comment">;</span></span><br><span class="line">  //always return a new access token even <span class="preprocessor">if</span> everything <span class="preprocessor">else</span> stays the same</span><br><span class="line">  LocatedBlock <span class="keyword">b </span>= new LocatedBlock(<span class="keyword">block, </span>targets)<span class="comment">;</span></span><br><span class="line">  <span class="preprocessor">if</span> (<span class="keyword">isBlockTokenEnabled) </span>&#123;</span><br><span class="line">    <span class="keyword">b.setBlockToken(blockTokenSecretManager.generateToken(null, </span><span class="keyword">b.getBlock(), </span></span><br><span class="line">        EnumSet.of(<span class="keyword">BlockTokenSecretManager.AccessMode.WRITE)));</span><br><span class="line"></span>  &#125;</span><br><span class="line">  return <span class="keyword">b;</span><br><span class="line"></span>&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，通过NameNode代理调用<code>commitBlockSynchronization</code>通知名字节点删除该节点，参数依次为:block(要删除的节点)，0(newgenerationstamp)，0(newlength)，closeFile，true(deleteblock),DataNodeID.EMPTY_ARRAY(newtargets)，因此对应的操作为通知NameNode删除该区块。  </p>
+<p>如果有参与同步的数据节点，则首先向名字节点申请一个新的generationStamp，作为恢复后数据块的版本号，新的版本号可以防止出现故障的数据节点重新启动后，上报过时的数据块。<br>根据之前更新的数据块长度和申请到的generationStamp构建新的Block，然后通过InterDatanodeProtocol代理调用<code>updateBLock</code>方法在所有参与同步的数据节点上更新该区块。<br>如下<br><figure class="highlight groovy"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">List&lt;DatanodeID&gt; successList = <span class="keyword">new</span> ArrayList&lt;DatanodeID&gt;();</span><br><span class="line"><span class="typename">long</span> generationstamp = namenode.nextGenerationStamp(block, closeFile);<span class="comment">//申请新的generationStamp</span></span><br><span class="line">Block newblock = <span class="keyword">new</span> Block(block.getBlockId(), block.getNumBytes(), generationstamp);<span class="comment">//构建新的Block</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">for</span>(BlockRecord <span class="string">r :</span> syncList) &#123;</span><br><span class="line">  <span class="keyword">try</span> &#123;</span><br><span class="line">    r.datanode.updateBlock(r.info.getBlock(), newblock, closeFile);<span class="comment">//在所有参与同步的DataNode中更新区块</span></span><br><span class="line">    successList.add(r.id);</span><br><span class="line">  &#125; <span class="keyword">catch</span> (IOException e) &#123;</span><br><span class="line">    InterDatanodeProtocol.LOG.warn(<span class="string">"Failed to updateBlock (newblock="</span> + newblock + <span class="string">", datanode="</span> + r.id + <span class="string">")"</span>, e);</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如果有任何节点更新成功，则通知NameNode该区块已经更新，并创建该区块的LocatedBlock对象返回，包含目前最新的该区块所在的数据节点信息，而如果所有参与同步的节点都更新失败，则抛出异常，修复失败<br><figure class="highlight gradle"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (!successList.isEmpty()) &#123;</span><br><span class="line">  DatanodeID[] nlist = successList.toArray(<span class="keyword">new</span> DatanodeID[successList.<span class="keyword">size</span>()]);</span><br><span class="line">  <span class="comment">//通知名字节点节点更新，包含新的区块generationStamp，新的长度，新的数据节点</span></span><br><span class="line">  namenode.commitBlockSynchronization(block,</span><br><span class="line">      newblock.getGenerationStamp(), newblock.getNumBytes(), closeFile, <span class="keyword">false</span>, nlist);</span><br><span class="line">  DatanodeInfo[] info = <span class="keyword">new</span> DatanodeInfo[nlist.length];</span><br><span class="line">  <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; nlist.length; i++) &#123;<span class="comment">//创建新的DatanodeInfo</span></span><br><span class="line">    info[i] = <span class="keyword">new</span> DatanodeInfo(nlist[i]);</span><br><span class="line">  &#125;</span><br><span class="line">  LocatedBlock b = <span class="keyword">new</span> LocatedBlock(newblock, info); <span class="comment">//创建新的LocatedBlock对象，包含新的数据节点位置</span></span><br><span class="line">  <span class="keyword">if</span> (isBlockTokenEnabled) &#123;</span><br><span class="line">    b.setBlockToken(blockTokenSecretManager.generateToken(<span class="keyword">null</span>, b.getBlock(), </span><br><span class="line">        EnumSet.of(BlockTokenSecretManager.AccessMode.<span class="keyword">WRITE</span>)));</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">return</span> b;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">//失败，抛出异常，修复失败</span></span><br><span class="line">StringBuilder b = <span class="keyword">new</span> StringBuilder();</span><br><span class="line"><span class="keyword">for</span>(BlockRecord r : syncList) &#123;</span><br><span class="line">  b.<span class="keyword">append</span>(<span class="string">"\n  "</span> + r.id);</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">throw</span> <span class="keyword">new</span> IOException(<span class="string">"Cannot recover "</span> + block + <span class="string">", none of these "</span></span><br><span class="line">    + syncList.<span class="keyword">size</span>() + <span class="string">" datanodes success &#123;"</span> + b + <span class="string">"\n&#125;"</span>);</span><br></pre></td></tr></table></figure></p>
+<p>如上，这里的<code>commitBlockSynchronization</code>可与上面通知NameNode删除进行对比，发送给了NameNode新的generationStamp，新的长度，新的数据节点位置。<br>更新成功后，创建新的LocatedBlock对象，保存该区块所在DataNode的信息。  </p>
+<h3 id="1-3_updateBlock">1.3 updateBlock</h3><figure class="highlight lasso"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="literal">void</span> updateBlock(Block oldblock, Block newblock, <span class="built_in">boolean</span> finalize) throws IOException &#123;</span><br><span class="line">    <span class="attribute">...</span>/日志记录</span><br><span class="line">    <span class="built_in">data</span><span class="built_in">.</span>updateBlock(oldblock, newblock);</span><br><span class="line">    <span class="keyword">if</span> (finalize) &#123;</span><br><span class="line">      <span class="built_in">data</span><span class="built_in">.</span>finalizeBlockIfNeeded(newblock);</span><br><span class="line">      myMetrics<span class="built_in">.</span>incrBlocksWritten();</span><br><span class="line">      notifyNamenodeReceivedBlock(newblock, EMPTY_DEL_HINT);</span><br><span class="line">      <span class="keyword">LOG</span><span class="built_in">.</span>info(<span class="string">"Received "</span> + newblock + <span class="string">" of size "</span> + newblock<span class="built_in">.</span>getNumBytes() +</span><br><span class="line">                <span class="string">" as part of lease recovery"</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>如上，通过FSDataset更新区块，根据传入的参数<code>closeFile</code>来决定是否提交到current目录中，提交后将区块加入到DataNode的receivedBlockList中，在offerService中通知NameNode接收到新的区块<br>FSDataset中的updateBlock如下<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">void</span> <span class="title">updateBlock</span><span class="params">(Block oldblock, Block newblock)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">    ...<span class="comment">//检查合法性，要求Id一致，且新的generationStamp不能小于旧的generationStamp</span></span><br><span class="line">    <span class="comment">//如果两者generationStamp一样则大小也要一样，不合法抛出异常，不能更新</span></span><br><span class="line">    <span class="keyword">for</span>(;;) &#123;</span><br><span class="line">      <span class="keyword">final</span> List&lt;Thread&gt; threads = tryUpdateBlock(oldblock, newblock);</span><br><span class="line">      <span class="keyword">if</span> (threads == <span class="keyword">null</span>) &#123;</span><br><span class="line">        <span class="keyword">return</span>;</span><br><span class="line">      &#125;</span><br><span class="line">      interruptAndJoinThreads(threads);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，首先检查合法性，然后通过tryUpdateBlock执行更新操作，如果旧的区块有活动的线程正在处理，会直接返回活动的线程不进行更新操作，因此返回活动线程后等待线程结束。而没有活动线程在处理旧区块时，会进行更新操作，更新完成返回null<br><figure class="highlight gradle"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="keyword">synchronized</span> List&lt;Thread&gt; tryUpdateBlock(Block oldblock, Block newblock) <span class="keyword">throws</span> IOException &#123;</span><br><span class="line">    <span class="comment">//如果有活动线程在处理旧区块，返回活动线程，不进行更新操作</span></span><br><span class="line">    ArrayList&lt;Thread&gt; activeThreads = getActiveThreads(oldblock);</span><br><span class="line">    <span class="keyword">if</span> (activeThreads != <span class="keyword">null</span>) &#123;</span><br><span class="line">      <span class="keyword">return</span> activeThreads;</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">//No ongoing create threads is alive.  Update block.</span></span><br><span class="line">    <span class="comment">//查找对应的区块文件，先通过ongoingCreates查找活动文件(即在临时目录中)，没有通过volumeMap查找提交的文件</span></span><br><span class="line">    <span class="keyword">File</span> blockFile = findBlockFile(oldblock.getBlockId());</span><br><span class="line">    <span class="keyword">if</span> (blockFile == <span class="keyword">null</span>) &#123;</span><br><span class="line">      <span class="keyword">throw</span> <span class="keyword">new</span> IOException(<span class="string">"Block "</span> + oldblock + <span class="string">" does not exist."</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">File</span> oldMetaFile = findMetaFile(blockFile);<span class="comment">//对应的校验文件</span></span><br><span class="line">    <span class="keyword">long</span> oldgs = parseGenerationStamp(blockFile, oldMetaFile);</span><br><span class="line">    </span><br><span class="line">    ...<span class="comment">//更新操作的合法性检验，要求旧的generationStamp不能大于新的generationStamp，新的区块长度不能大于旧的区块</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">//将校验文件重命名为一个临时文件</span></span><br><span class="line">    <span class="keyword">File</span> tmpMetaFile = <span class="keyword">new</span> <span class="keyword">File</span>(oldMetaFile.getParent(),</span><br><span class="line">        oldMetaFile.getName()+<span class="string">"_tmp"</span> + newblock.getGenerationStamp());</span><br><span class="line">    <span class="keyword">if</span> (!oldMetaFile.renameTo(tmpMetaFile))&#123;</span><br><span class="line">      <span class="keyword">throw</span> <span class="keyword">new</span> IOException(<span class="string">"Cannot rename block meta file to "</span> + tmpMetaFile);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">//如果新区块长度小于旧区块，截断区块文件和校验文件，使得符合新区块长度</span></span><br><span class="line">    <span class="keyword">if</span> (newblock.getNumBytes() &lt; oldblock.getNumBytes()) &#123;</span><br><span class="line">      truncateBlock(blockFile, tmpMetaFile, oldblock.getNumBytes(), newblock.getNumBytes());</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">//重命名临时文件回新的校验文件</span></span><br><span class="line">    <span class="keyword">File</span> newMetaFile = getMetaFile(blockFile, newblock);</span><br><span class="line">    <span class="keyword">if</span> (!tmpMetaFile.renameTo(newMetaFile)) &#123;</span><br><span class="line">      <span class="keyword">throw</span> <span class="keyword">new</span> IOException(<span class="string">"Cannot rename tmp meta file to "</span> + newMetaFile);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">//更新ongoingCreates和volumeMap中记录</span></span><br><span class="line">    updateBlockMap(ongoingCreates, oldblock, newblock);</span><br><span class="line">    updateBlockMap(volumeMap, oldblock, newblock);</span><br><span class="line">    <span class="comment">//验证新的区块文件和校验文件是否一致(主要检查长度，不会重新计算校验和)</span></span><br><span class="line">    validateBlockMetadata(newblock);</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">null</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，更新的过程，其实最多就是截断，因为新的区块文件不会小于旧的区块文件，长度一致时不需要操作，否则进行截断操作。更新后要相应的更新ongoingCreates和volumeMap中的记录。  </p>
+<hr>
+<h2 id="2-_数据节点和名字节点交互">2. 数据节点和名字节点交互</h2><p>数据节点通过DatanodeProtocol和名字节点交互，在DataNode中有DatanodeProtocol接口的代理成员<code>namenode</code>，通过该代理调用NameNode方法执行交互。<br>在目前DataNode的实现分析过程中，已经涉及到了很多交互过程  </p>
+<ul>
+<li><code>blockReceived</code>，Client写数据块或者数据块拷贝，数据块修复等过程中接收到新的数据块后会添加到DataNode的成员receivedBlockList中，在DataNode线程主服务程序offerService中上报给NameNode，见<a href="../DataNode启动">DataNode启动</a></li>
+<li><code>reportedBadBlocks</code>，在流接口数据操作等过程或者区块扫描器发现区块损坏时，报告给NameNode</li>
+<li><code>commitBlockSynchronization</code>，如本文中前面数据块修复过程中，通知NameNode删除区块或通知NameNode区块更新</li>
+<li><code>nextGenerationStamp</code>，如本问前面数据块修复过程中，需要申请新的generationStamp作为修复后区块的generationStamp信息，还有在Client写区块时创建新的区块也要申请generationStamp</li>
+<li><code>versionRequest</code>，在<a href="../DataNode启动">DataNode启动</a>开始时，向NameNode握手，<code>handshake</code>方法中获取NameNode版本信息(startDataNode)</li>
+<li><code>register</code>，还是在<a href="../DataNode启动">DataNode启动</a>中，创建完DataNode对象后，启动服务线程之前，向NameNode注册，具体在runDatanodeDaemon方法中</li>
+<li><code>blocksBeingWrittenReport</code>，<a href="../DataNode启动">DataNode启动</a>时，在向NameNode的注册过程中，如果允许同步blocksBeingWritten目录下的区块(配置项dfs.durable.sync，默认true)，则通过该方法向NameNode报告该目录下的区块</li>
+<li><code>sendHeartbeat</code>，在DataNode的主服务offerService中定期向NameNode发送心跳信息，包括DataNode注册信息(标识报告者身份)，总容量，已使用容量，剩余容量，xceiver线程数目等信息</li>
+<li><code>blockReport</code>，在offerService中定期向NameNode报告当前区块信息，报告周期为成员blockReportInterval(配置项dfs.blockreport.intervalMsec，默认1h)，而本地的区块通过FSDataset中的AsyncBlockReport线程负责扫描，关于AsyncBlockReport见<a href="../DataNode本地存储管理">DataNode本地存储管理</a>  </li>
+<li><code>errorReport</code>，handshake时，从NameNode获取到的版本信息与DataNode不匹配，或者读本地区块发现不存在或磁盘错误时，都需要向NameNode报告错误</li>
+</ul>
+<h3 id="2-1_processCommand">2.1 processCommand</h3><p>此外，对于像<code>sendHeartbeat</code>，<code>blockReport</code>向NameNode报告信息后，DataNode需要根据NameNode返回的<code>DatanodeCommand</code>执行相应的命令，在offerService中通过<code>processCommand</code>方法处理到来的命令<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="function"><span class="keyword">boolean</span> <span class="title">processCommand</span><span class="params">(DatanodeCommand[] cmds)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (cmds != <span class="keyword">null</span>) &#123;</span><br><span class="line">      <span class="keyword">for</span> (DatanodeCommand cmd : cmds) &#123;</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">          <span class="keyword">if</span> (processCommand(cmd) == <span class="keyword">false</span>) &#123;</span><br><span class="line">            <span class="keyword">return</span> <span class="keyword">false</span>;</span><br><span class="line">          &#125;</span><br><span class="line">        &#125; <span class="keyword">catch</span> (IOException ioe) &#123;</span><br><span class="line">          LOG.warn(<span class="string">"Error processing datanode Command"</span>, ioe);</span><br><span class="line">        &#125;</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">true</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>DatanodeCommand有多种实现，具体见<a href="../HDFS相关实体对象">HDFS相关实体对象</a><br>processCommand重载，处理一个命令<br><figure class="highlight groovy"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="typename">boolean</span> processCommand(DatanodeCommand cmd) <span class="keyword">throws</span> IOException &#123;</span><br><span class="line">    <span class="keyword">if</span> (cmd == <span class="literal">null</span>)</span><br><span class="line">      <span class="keyword">return</span> <span class="literal">true</span>;</span><br><span class="line">    <span class="keyword">final</span> BlockCommand bcmd = cmd <span class="keyword">instanceof</span> BlockCommand? (BlockCommand)cmd: <span class="literal">null</span>;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">switch</span>(cmd.getAction()) &#123;</span><br><span class="line">    <span class="keyword">case</span> DatanodeProtocol.<span class="string">DNA_TRANSFER:</span><span class="comment">//拷贝区块到其他节点</span></span><br><span class="line">      transferBlocks(bcmd.getBlocks(), bcmd.getTargets());</span><br><span class="line">      myMetrics.incrBlocksReplicated(bcmd.getBlocks().length);</span><br><span class="line">      <span class="keyword">break</span>;</span><br><span class="line">    <span class="keyword">case</span> DatanodeProtocol.<span class="string">DNA_INVALIDATE:</span><span class="comment">//删除区块</span></span><br><span class="line">      Block toDelete[] = bcmd.getBlocks();</span><br><span class="line">      <span class="keyword">try</span> &#123;</span><br><span class="line">        <span class="keyword">if</span> (blockScanner != <span class="literal">null</span>) &#123;</span><br><span class="line">          blockScanner.deleteBlocks(toDelete);</span><br><span class="line">        &#125;</span><br><span class="line">        data.invalidate(toDelete);</span><br><span class="line">      &#125; <span class="keyword">catch</span>(IOException e) &#123;</span><br><span class="line">        <span class="comment">// Exceptions caught here are not expected to be disk-related.</span></span><br><span class="line">        <span class="keyword">throw</span> e;</span><br><span class="line">      &#125;</span><br><span class="line">      myMetrics.incrBlocksRemoved(toDelete.length);</span><br><span class="line">      <span class="keyword">break</span>;</span><br><span class="line">    <span class="keyword">case</span> DatanodeProtocol.<span class="string">DNA_SHUTDOWN:</span><span class="comment">//关闭数据节点</span></span><br><span class="line">      <span class="keyword">this</span>.shutdown();</span><br><span class="line">      <span class="keyword">return</span> <span class="literal">false</span>;</span><br><span class="line">    <span class="keyword">case</span> DatanodeProtocol.<span class="string">DNA_REGISTER:</span><span class="comment">//重新注册</span></span><br><span class="line">      LOG.info(<span class="string">"DatanodeCommand action: DNA_REGISTER"</span>);</span><br><span class="line">      <span class="keyword">if</span> (shouldRun) &#123;</span><br><span class="line">        register();</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="keyword">break</span>;</span><br><span class="line">    <span class="keyword">case</span> DatanodeProtocol.<span class="string">DNA_FINALIZE:</span><span class="comment">//提交更新</span></span><br><span class="line">      storage.finalizeUpgrade();</span><br><span class="line">      <span class="keyword">break</span>;</span><br><span class="line">    <span class="keyword">case</span> UpgradeCommand.<span class="string">UC_ACTION_START_UPGRADE:</span></span><br><span class="line">      processDistributedUpgradeCommand((UpgradeCommand)cmd);</span><br><span class="line">      <span class="keyword">break</span>;</span><br><span class="line">    <span class="keyword">case</span> DatanodeProtocol.<span class="string">DNA_RECOVERBLOCK:</span><span class="comment">//开始恢复区块</span></span><br><span class="line">      recoverBlocks(bcmd.getBlocks(), bcmd.getTargets());</span><br><span class="line">      <span class="keyword">break</span>;</span><br><span class="line">    <span class="keyword">case</span> DatanodeProtocol.<span class="string">DNA_ACCESSKEYUPDATE:</span><span class="comment">//更新访问令牌</span></span><br><span class="line">      LOG.info(<span class="string">"DatanodeCommand action: DNA_ACCESSKEYUPDATE"</span>);</span><br><span class="line">      <span class="keyword">if</span> (isBlockTokenEnabled) &#123;</span><br><span class="line">        blockTokenSecretManager.setKeys(((KeyUpdateCommand) cmd).getExportedKeys());</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="keyword">break</span>;</span><br><span class="line">    <span class="keyword">case</span> DatanodeProtocol.<span class="string">DNA_BALANCERBANDWIDTHUPDATE:</span><span class="comment">//更新宽带均衡器带宽</span></span><br><span class="line">      LOG.info(<span class="string">"DatanodeCommand action: DNA_BALANCERBANDWIDTHUPDATE"</span>);</span><br><span class="line">      <span class="typename">int</span> vsn = ((BalancerBandwidthCommand) cmd).getBalancerBandwidthVersion();</span><br><span class="line">      <span class="keyword">if</span> (vsn &gt;= <span class="number">1</span>) &#123;</span><br><span class="line">        <span class="typename">long</span> bandwidth = ((BalancerBandwidthCommand) cmd).getBalancerBandwidthValue();</span><br><span class="line">        <span class="keyword">if</span> (bandwidth &gt; <span class="number">0</span>) &#123;</span><br><span class="line">          DataXceiverServer dxcs = (DataXceiverServer) <span class="keyword">this</span>.dataXceiverServer.getRunnable();</span><br><span class="line">          dxcs.balanceThrottler.setBandwidth(bandwidth);</span><br><span class="line">        &#125;</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="keyword">break</span>;</span><br><span class="line"><span class="label">    default:</span></span><br><span class="line">      LOG.warn(<span class="string">"Unknown DatanodeCommand action: "</span> + cmd.getAction());</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> <span class="literal">true</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，针对不同的指令，有不同的操作。包括区块相关的拷贝(<code>DNA_TRANSFER</code>)，删除(<code>DNA_INVALIDATE</code>)，恢复(<code>DNA_RECOVERBLOCK</code>)；关闭数据节点(DNA_SHUTDOWN)，重新注册(DNA_REGISTER)，提交更新(DNA_FINALIZE)，开始更新(UC_ACTION_START_UPGRADE)指令，更新访问令牌(DNA_ACCESSKEYUPDATE),更新宽带均衡器带宽(DNA_BALANCERBANDWIDTHUPDATE)  </p>
+<h4 id="2-1-1_拷贝DNA_TRANSFER">2.1.1 拷贝DNA_TRANSFER</h4><p>拷贝操作由transferBlocks负责<br><figure class="highlight markdown"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">private void transferBlocks( Block blocks[<span class="link_label"></span>], DatanodeInfo xferTargets[][]) &#123;</span><br><span class="line"><span class="code">    for (int i = 0; i &lt; blocks.length; i++) &#123;</span></span><br><span class="line"><span class="code">      try &#123;</span></span><br><span class="line"><span class="code">        transferBlock(blocks[i], xferTargets[i]);</span></span><br><span class="line"><span class="code">      &#125; catch (IOException ie) &#123;</span></span><br><span class="line"><span class="code">        LOG.warn("Failed to transfer " + blocks[i], ie);</span></span><br><span class="line"><span class="code">      &#125;</span></span><br><span class="line"><span class="code">    &#125;</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上将区块blocks[i]传输到xferTargets[i]指定的系列数据节点中<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="function"><span class="keyword">void</span> <span class="title">transferBlock</span><span class="params">( Block block, DatanodeInfo xferTargets[])</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (!data.isValidBlock(block)) &#123;</span><br><span class="line">      <span class="comment">//区块不存在或正在构造</span></span><br><span class="line">      String errStr = <span class="string">"Can't send invalid "</span> + block;</span><br><span class="line">      LOG.info(errStr);</span><br><span class="line">      notifyNamenode(DatanodeProtocol.INVALID_BLOCK, errStr);<span class="comment">//通过errorReport报告错误</span></span><br><span class="line">      <span class="keyword">return</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">long</span> onDiskLength = data.getLength(block);</span><br><span class="line">    <span class="keyword">if</span> (block.getNumBytes() &gt; onDiskLength) &#123;</span><br><span class="line">      <span class="comment">//磁盘中区块文件小于希望的大小，区块损坏，通过reportBadBlocks报告</span></span><br><span class="line">      namenode.reportBadBlocks(<span class="keyword">new</span> LocatedBlock[]&#123;<span class="keyword">new</span> LocatedBlock(block, <span class="keyword">new</span> DatanodeInfo[] &#123;</span><br><span class="line">              <span class="keyword">new</span> DatanodeInfo(dnRegistration)&#125;)&#125;);</span><br><span class="line">      LOG.info(<span class="string">"Can't replicate "</span> + block + <span class="string">" because on-disk length "</span> + onDiskLength </span><br><span class="line">          + <span class="string">" is shorter than NameNode recorded length "</span> + block.getNumBytes());</span><br><span class="line">      <span class="keyword">return</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">int</span> numTargets = xferTargets.length;</span><br><span class="line">    <span class="keyword">if</span> (numTargets &gt; <span class="number">0</span>) &#123;</span><br><span class="line">      ...<span class="comment">//日志记录</span></span><br><span class="line">      <span class="keyword">new</span> Daemon(<span class="keyword">new</span> DataTransfer(xferTargets, block, <span class="keyword">this</span>)).start();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，首先检查区块是否正常，如果区块不存在或者正在构造，则通过DataProtocol代理调用<code>errorReport</code>向名字节点报告错误。如果区块大小小于期望的大小，则区块损坏，通过<code>reportBadBlocks</code>向名字节点报告。<br>正常情况创建DataTransfer后台线程传输区块。该线程中执行写操作一样的流程，构建BlockSender，然后发送写请求到下游节点xferTargets[0](上述一维数组而不是二维)，建立数据流管道，建立数据流管道时client信息为空。建立数据流管道后，通过BlockSender的sendBlock方法发送数据。具体代码这里不再分析。  </p>
+<h4 id="2-1-2_删除DNA_INVALIDATE">2.1.2 删除DNA_INVALIDATE</h4><p>如processCommand中，先在区块管理器中删除记录，然后通过FSDataset对象<code>data</code>的invalidate方法删除区块文件和校验文件。<br>invalidate如下<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">void</span> <span class="title">invalidate</span><span class="params">(Block invalidBlks[])</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">    <span class="keyword">boolean</span> <span class="keyword">error</span> = <span class="keyword">false</span>;</span><br><span class="line">    <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; invalidBlks.length; i++) &#123;</span><br><span class="line">      File f = <span class="keyword">null</span>;</span><br><span class="line">      FSVolume v;</span><br><span class="line">      <span class="keyword">synchronized</span> (<span class="keyword">this</span>) &#123;</span><br><span class="line">        f = getFile(invalidBlks[i]);</span><br><span class="line">        DatanodeBlockInfo dinfo = volumeMap.get(invalidBlks[i]);</span><br><span class="line">        <span class="keyword">if</span> (dinfo == <span class="keyword">null</span>) &#123;</span><br><span class="line">          ...<span class="comment">//日志记录</span></span><br><span class="line">          <span class="keyword">error</span> = <span class="keyword">true</span>;</span><br><span class="line">          <span class="keyword">continue</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        v = dinfo.getVolume();</span><br><span class="line">        <span class="keyword">if</span> (f == <span class="keyword">null</span>) &#123;</span><br><span class="line">          ...<span class="comment">//日志记录</span></span><br><span class="line">          <span class="keyword">error</span> = <span class="keyword">true</span>;</span><br><span class="line">          <span class="keyword">continue</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">if</span> (v == <span class="keyword">null</span>) &#123;</span><br><span class="line">          ...<span class="comment">//日志记录</span></span><br><span class="line">          <span class="keyword">error</span> = <span class="keyword">true</span>;</span><br><span class="line">          <span class="keyword">continue</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        File parent = f.getParentFile();</span><br><span class="line">        <span class="keyword">if</span> (parent == <span class="keyword">null</span>) &#123;</span><br><span class="line">          ...<span class="comment">//日志记录</span></span><br><span class="line">          <span class="keyword">error</span> = <span class="keyword">true</span>;</span><br><span class="line">          <span class="keyword">continue</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        v.clearPath(parent);</span><br><span class="line">        volumeMap.remove(invalidBlks[i]);<span class="comment">//从volume中移除记录</span></span><br><span class="line">      &#125;</span><br><span class="line">      File metaFile = getMetaFile( f, invalidBlks[i] );</span><br><span class="line">      <span class="keyword">long</span> dfsBytes = f.length() + metaFile.length();<span class="comment">//区块文件和校验文件所占空间</span></span><br><span class="line">      <span class="comment">//通过FSDatasetAsyncDiskService创建线程异步删除</span></span><br><span class="line">      asyncDiskService.deleteAsync(v, f, metaFile, dfsBytes, invalidBlks[i].toString());</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> (<span class="keyword">error</span>) &#123;</span><br><span class="line">      <span class="keyword">throw</span> <span class="keyword">new</span> IOException(<span class="string">"Error in deleting blocks."</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，区块文件和校验文件通过<code>FSDatasetAsyncDiskService</code>删除，会创建ReplicaFileDeleteTask线程异步删除区块文件和校验文件，删除后减少所属FSVolume的使用量，FSDatasetAsyncDiskService另见<a href="../DataNode本地存储管理">DataNode本地存储管理</a><br><figure class="highlight armasm"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="label">void</span> deleteAsync(FSDataset.FSVolume volume, File <span class="keyword">blockFile, </span>File metaFile, long dfsBytes, <span class="keyword">String </span><span class="keyword">blockName) </span>&#123;</span><br><span class="line">    DataNode.LOG.info(<span class="string">"Scheduling "</span> + <span class="keyword">blockName </span>+ <span class="string">" file "</span> + <span class="keyword">blockFile </span>+ <span class="string">" for deletion"</span>)<span class="comment">;</span></span><br><span class="line">    ReplicaFileDeleteTask deletionTask = new ReplicaFileDeleteTask(volume, <span class="keyword">blockFile, </span>metaFile, dfsBytes, <span class="keyword">blockName);</span><br><span class="line"></span>    execute(volume.getCurrentDir(), deletionTask)<span class="comment">;</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<h4 id="2-1-3_恢复DNA_RECOVERBLOCK">2.1.3 恢复DNA_RECOVERBLOCK</h4><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="function">Daemon <span class="title">recoverBlocks</span><span class="params">(<span class="keyword">final</span> Block[] blocks, <span class="keyword">final</span> DatanodeInfo[][] targets)</span> </span>&#123;</span><br><span class="line">    Daemon d = <span class="keyword">new</span> Daemon(threadGroup, <span class="keyword">new</span> Runnable() &#123;</span><br><span class="line">      <span class="keyword">public</span> <span class="function"><span class="keyword">void</span> <span class="title">run</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">for</span>(<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; blocks.length; i++) &#123;</span><br><span class="line">          <span class="keyword">try</span> &#123;</span><br><span class="line">            logRecoverBlock(<span class="string">"NameNode"</span>, blocks[i], targets[i]);</span><br><span class="line">            recoverBlock(blocks[i], <span class="keyword">false</span>, targets[i], <span class="keyword">true</span>);</span><br><span class="line">          &#125; <span class="keyword">catch</span> (IOException e) &#123;</span><br><span class="line">            LOG.warn(<span class="string">"recoverBlocks FAILED, blocks["</span> + i + <span class="string">"]="</span> + blocks[i], e);</span><br><span class="line">          &#125;</span><br><span class="line">        &#125;</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;);</span><br><span class="line">    d.start();</span><br><span class="line">    <span class="keyword">return</span> d;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>如上创建后台线程对需要恢复的区块循环调用recoverBlock进行恢复，recoverBlock在前面已经分析过了，这里注意的是第二个参数<code>keepLength</code>为false即会将各节点上区块截断到所有节点最短长度，第四个参数<code>closeFile</code>为true，即写完数据到本地文件后会提交到current目录并通知NameNode。  </p>
+<h4 id="2-1-4_其他">2.1.4 其他</h4><ul>
+<li>关闭数据节点(DNA_SHUTDOWN)见后面数据节点关闭分析。  </li>
+<li>重新注册(DNA_REGISTER)通过<code>register</code>方法重新向NameNode注册，使用DatanodeProtocol代理register方法注册获取集群信息，更新本本节点的信息，然后根据需要向NameNode报告blocksBeingWritten目录下区块，并开始请求AsyncBlockReport扫描本地区块以便在offerService中能够向NameNode报告区块信息。  </li>
+<li><p>提交更新(DNA_FINALIZE)通过DataStorage对象<code>storage</code>的<code>finalizeUpgrade</code>方法对每个管理的存储目录提交更新</p>
+  <figure class="highlight nimrod"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">void</span> finalizeUpgrade() throws <span class="type">IOException</span> &#123;</span><br><span class="line">    <span class="keyword">for</span> (<span class="type">Iterator</span>&lt;<span class="type">StorageDirectory</span>&gt; it = storageDirs.<span class="keyword">iterator</span>(); it.hasNext();) &#123;</span><br><span class="line">      doFinalize(it.next());</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>  <code>doFinalize</code>方法见<a href="../DataNode本地存储管理">DataNode本地存储管理</a>  </p>
+</li>
+<li>开始更新(UC_ACTION_START_UPGRADE)和更新访问令牌(DNA_ACCESSKEYUPDATE)这里不分析</li>
+<li><p>更新宽带均衡器带宽(DNA_BALANCERBANDWIDTHUPDATE)如processCommand中的处理</p>
+  <figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">int</span> vsn = ((BalancerBandwidthCommand) cmd).getBalancerBandwidthVersion();</span><br><span class="line"><span class="keyword">if</span> (vsn &gt;= <span class="number">1</span>) &#123;</span><br><span class="line">    <span class="keyword">long</span> bandwidth = ((BalancerBandwidthCommand) cmd).getBalancerBandwidthValue();</span><br><span class="line">    <span class="keyword">if</span> (bandwidth &gt; <span class="number">0</span>) &#123;</span><br><span class="line">      DataXceiverServer dxcs = (DataXceiverServer) <span class="keyword">this</span>.dataXceiverServer.getRunnable();</span><br><span class="line">      dxcs.balanceThrottler.setBandwidth(bandwidth);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>  此时对应为BalancerBandwidthCommand，关于BalancerBandwidthCommand见<a href="../HDFS相关实体对象">HDFS相关实体对象</a><br>  获取BalancerBandwidthCommand中的带宽，然后重新设置DataXceiverServer中BlockBalanceThrottler的带宽。  </p>
+</li>
+</ul>
+<hr>
+<h2 id="3-_数据节点关闭">3. 数据节点关闭</h2><p>数据节点关闭由<code>shutdown</code>负责  </p>
+<h3 id="3-1_插件，HTTP服务器，RPC服务">3.1 插件，HTTP服务器，RPC服务</h3><p>按照程序流程，首先关闭插件和HTTP服务器，以及提供的RPC服务<br><figure class="highlight groovy"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (plugins != <span class="literal">null</span>) &#123;<span class="comment">//停止插件</span></span><br><span class="line">  <span class="keyword">for</span> (ServicePlugin <span class="string">p :</span> plugins) &#123;</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">      p.stop();</span><br><span class="line">      LOG.info(<span class="string">"Stopped plug-in "</span> + p);</span><br><span class="line">    &#125; <span class="keyword">catch</span> (Throwable t) &#123;</span><br><span class="line">      LOG.warn(<span class="string">"ServicePlugin "</span> + p + <span class="string">" could not be stopped"</span>, t);</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">this</span>.unRegisterMXBean();</span><br><span class="line"><span class="keyword">if</span> (infoServer != <span class="literal">null</span>) &#123;<span class="comment">//关闭HTTP服务器</span></span><br><span class="line">  <span class="keyword">try</span> &#123;</span><br><span class="line">    infoServer.stop();</span><br><span class="line">  &#125; <span class="keyword">catch</span> (Exception e) &#123;</span><br><span class="line">    LOG.warn(<span class="string">"Exception shutting down DataNode"</span>, e);</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">if</span> (ipcServer != <span class="literal">null</span>) &#123;<span class="comment">//关闭RPC服务</span></span><br><span class="line">  ipcServer.stop();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>插件和HTTP服务器没有分析，因此这里的关闭也不分析。为Client和DataNode提供的RPC服务关闭为RPC服务器关闭过程，见<a href="../RPC源码分析下篇">RPC源码分析下篇</a>  </p>
+<h3 id="3-2_流服务">3.2 流服务</h3><p>然后关闭DataXceiverServer和DataXceiver线程，即流服务<br><figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">this</span>.shouldRun = <span class="keyword">false</span>;</span><br><span class="line"><span class="keyword">if</span> (dataXceiverServer != <span class="keyword">null</span>) &#123;</span><br><span class="line">  ((DataXceiverServer) <span class="keyword">this</span>.dataXceiverServer.getRunnable()).kill();</span><br><span class="line">  <span class="keyword">this</span>.dataXceiverServer.interrupt();</span><br><span class="line"></span><br><span class="line">  <span class="comment">// wait for all data receiver threads to exit</span></span><br><span class="line">  <span class="keyword">if</span> (<span class="keyword">this</span>.threadGroup != <span class="keyword">null</span>) &#123;</span><br><span class="line">    <span class="keyword">while</span> (<span class="keyword">true</span>) &#123;</span><br><span class="line">      <span class="keyword">this</span>.threadGroup.interrupt();</span><br><span class="line">      LOG.info(<span class="string">"Waiting for threadgroup to exit, active threads is "</span> +</span><br><span class="line">               <span class="keyword">this</span>.threadGroup.activeCount());</span><br><span class="line">      <span class="keyword">if</span> (<span class="keyword">this</span>.threadGroup.activeCount() == <span class="number">0</span>) &#123;</span><br><span class="line">        <span class="keyword">break</span>;</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="keyword">try</span> &#123;</span><br><span class="line">        Thread.sleep(<span class="number">1000</span>);</span><br><span class="line">      &#125; <span class="keyword">catch</span> (InterruptedException e) &#123;&#125;</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">try</span> &#123;</span><br><span class="line">    <span class="keyword">this</span>.dataXceiverServer.<span class="keyword">join</span>();</span><br><span class="line">  &#125; <span class="keyword">catch</span> (InterruptedException ie) &#123;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，设置shouldRun为false，然后kill DataXceiverServer，关闭绑定的Socket和所有连接上的socket<br><figure class="highlight nimrod"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">void</span> kill() &#123;</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">      this.ss.close();//关闭绑定的socket</span><br><span class="line">    &#125;...//异常</span><br><span class="line"></span><br><span class="line">    synchronized (childSockets) &#123;//关闭所有读写连接的<span class="type">Socket</span></span><br><span class="line">      <span class="keyword">for</span> (<span class="type">Iterator</span>&lt;<span class="type">Socket</span>&gt; it = childSockets.values().<span class="keyword">iterator</span>(); it.hasNext();) &#123;</span><br><span class="line">        <span class="type">Socket</span> thissock = it.next();</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">          thissock.close();</span><br><span class="line">        &#125; catch (<span class="type">IOException</span> e) &#123;</span><br><span class="line">        &#125;</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>这样，ss关闭会导致接下来到来的connect请求超时，而DataXceiver上的socket关闭，会导致相应的读写操作超时，从读写失败最后检测到DataNode.shouldRun为false退出  </p>
+<p>如上，除了关闭socket外，还中断DataXceiverServer线程，这会将可能阻塞在accept操作上的DataXceiverServer线程唤醒，然后检测到DataNode.shouldRun为false退出。<br>中断所有DataXceiver线程，目前没有发现在DataXceiver线程处理过程中对Interrupt的响应(因为获得的是Socket输入输出流，读写操作不会响应Interrupt)，因此估计最终还是因为读写超时而退出线程(可能没分析到)  </p>
+<h3 id="3-3_RPC代理，更新管理器，区块扫描器">3.3 RPC代理，更新管理器，区块扫描器</h3><p>关闭了流服务后，关闭到NameNode的代理以及更新管理器，区块扫描器<br><figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">RPC.stopProxy(namenode); <span class="comment">//停止RPC代理</span></span><br><span class="line"><span class="keyword">if</span>(upgradeManager != <span class="keyword">null</span>)<span class="comment">//关闭更新管理</span></span><br><span class="line">  upgradeManager.shutdownUpgrade();</span><br><span class="line"><span class="keyword">if</span> (blockScannerThread != <span class="keyword">null</span>) &#123; <span class="comment">//中断区块扫描器线程</span></span><br><span class="line">  blockScannerThread.interrupt();</span><br><span class="line">  <span class="keyword">try</span> &#123;</span><br><span class="line">    blockScannerThread.<span class="keyword">join</span>(<span class="number">3600000</span>L); <span class="comment">// wait for at most 1 hour</span></span><br><span class="line">  &#125; <span class="keyword">catch</span> (InterruptedException ie) &#123;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，RPC代理关闭见<a href="../RPC源码分析下篇">RPC源码分析下篇</a>，更新管理器没有分析，关闭过程也不分析。<br>区块扫描器线程循环中，每次判断shouldRun和isInterrupted<br><figure class="highlight stylus"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">while (datanode<span class="class">.shouldRun</span> &amp;&amp; !Thread.<span class="function"><span class="title">interrupted</span><span class="params">()</span></span>)</span><br></pre></td></tr></table></figure></p>
+<p>而在循环中要么处于扫描过程，这时无法中断要等待扫描完成(最多尝试2次)，因此在上面join等待最多1个小时。要么没有需要扫描的区块，处于休眠状态，这时interrupt操作会唤醒，从而调用shutdown退出<br><figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="function">synchronized <span class="keyword">void</span> <span class="title">shutdown</span>(<span class="params"></span>) </span>&#123;</span><br><span class="line">    LogFileHandler log = verificationLog;</span><br><span class="line">    verificationLog = <span class="keyword">null</span>;</span><br><span class="line">    <span class="keyword">if</span> (log != <span class="keyword">null</span>) &#123;</span><br><span class="line">      log.close();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="function">synchronized <span class="keyword">void</span> <span class="title">close</span>(<span class="params"></span>) </span>&#123;</span><br><span class="line">  <span class="keyword">if</span> (<span class="keyword">out</span> != <span class="keyword">null</span>) &#123;</span><br><span class="line">    <span class="keyword">out</span>.close();</span><br><span class="line">    <span class="keyword">out</span> = <span class="keyword">null</span>;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，关闭当前日志文件</p>
+<h3 id="3-4_DataStorage">3.4 DataStorage</h3><p>然后释放DataStorage获得存储目录独占锁，关闭”in_use.lock”文件<br><figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (storage != <span class="keyword">null</span>) &#123;</span><br><span class="line">  <span class="keyword">try</span> &#123;</span><br><span class="line">    <span class="keyword">this</span>.storage.unlockAll();</span><br><span class="line">  &#125; <span class="keyword">catch</span> (IOException ie) &#123;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">unlockAll</span>(<span class="params"></span>) throws IOException </span>&#123;</span><br><span class="line">    <span class="keyword">for</span> (Iterator&lt;StorageDirectory&gt; it = storageDirs.iterator(); it.hasNext();) &#123;</span><br><span class="line">      it.next().unlock();<span class="comment">//释放每个存储目录的锁</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">unlock</span>(<span class="params"></span>) throws IOException </span>&#123;</span><br><span class="line">  <span class="keyword">if</span> (<span class="keyword">this</span>.<span class="keyword">lock</span> == <span class="keyword">null</span>)<span class="comment">//已经释放了</span></span><br><span class="line">    <span class="keyword">return</span>;</span><br><span class="line">  <span class="keyword">this</span>.<span class="keyword">lock</span>.release();<span class="comment">//释放文件锁</span></span><br><span class="line">  <span class="keyword">lock</span>.channel().close();<span class="comment">//关闭锁文件</span></span><br><span class="line">  <span class="keyword">lock</span> = <span class="keyword">null</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<h3 id="3-5_DataNode线程">3.5 DataNode线程</h3><p>接着中断DataNode线程，并等待其结束<br><figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (dataNodeThread != <span class="keyword">null</span>) &#123;</span><br><span class="line">  dataNodeThread.interrupt();</span><br><span class="line">  <span class="keyword">try</span> &#123;</span><br><span class="line">    dataNodeThread.<span class="keyword">join</span>();</span><br><span class="line">  &#125; <span class="keyword">catch</span> (InterruptedException ie) &#123;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>在DataNode线程中，可能处于sendHeartBeat，blockReceived，blockReport与NameNode交互的过程中，这时因为namenode代理已经关闭了，将抛出异常从而检测shouldRun为false。<br>也可能处于processCommand的过程中，这时可能需要等待处理过程完成。<br>也可能因为当前循环事情处理完，还没到达下一心跳周期处于休眠状态，这时会被interrupt唤醒，从而检测到shouldRun为false。最终会退出。(按照线程流程，如果循环退出或者异常中调用shutdown会一直死循环吗)  </p>
+<h3 id="3-6_FSDataset，DataNodeInstrumentation">3.6 FSDataset，DataNodeInstrumentation</h3><p>然后关闭FSDataset对象以及度量统计DataNodeInstrumentation对象<br><figure class="highlight autoit"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (data != <span class="literal">null</span>) &#123;</span><br><span class="line">  data.<span class="built_in">shutdown</span>()<span class="comment">;</span></span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">if</span> (myMetrics != <span class="literal">null</span>) &#123;</span><br><span class="line">  myMetrics.<span class="built_in">shutdown</span>()<span class="comment">;</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，DataNodeInstrumentation没有分析，这里也不分析关闭过程<br><figure class="highlight autoit"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line">public void <span class="built_in">shutdown</span>() &#123;</span><br><span class="line">    <span class="keyword">if</span> (mbeanName != <span class="literal">null</span>)</span><br><span class="line">      MBeans.unregister(mbeanName)<span class="comment">;</span></span><br><span class="line">    </span><br><span class="line">    <span class="keyword">if</span> (asyncBlockReport != <span class="literal">null</span>) &#123;</span><br><span class="line">      asyncBlockReport.<span class="built_in">shutdown</span>()<span class="comment">;</span></span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">if</span> (asyncDiskService != <span class="literal">null</span>) &#123;</span><br><span class="line">      asyncDiskService.<span class="built_in">shutdown</span>()<span class="comment">;</span></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span>(volumes != <span class="literal">null</span>) &#123;</span><br><span class="line">      <span class="keyword">for</span> (FSVolume volume : volumes.volumes) &#123;</span><br><span class="line">        <span class="keyword">if</span>(volume != <span class="literal">null</span>) &#123;</span><br><span class="line">          volume.dfsUsage.<span class="built_in">shutdown</span>()<span class="comment">;</span></span><br><span class="line">        &#125;</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，关闭异步区块报告线程，关闭异步磁盘服务线程，然后关闭FSVolume每一个存储目录下的DU对象<br>异步区块报告线程关闭如下<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">synchronized</span> <span class="function"><span class="keyword">void</span> <span class="title">shutdown</span><span class="params">()</span> </span>&#123;</span><br><span class="line">  shouldRun = <span class="keyword">false</span>;</span><br><span class="line">  thread.interrupt();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>设置shouldRun为false，然后中断线程。这样如果线程在进行磁盘扫描，则要等待扫描完成后才能检测到shouldRun为false，如果在等待DataNode请求扫描中，则会被interrupt唤醒，然后退出。<br>异步磁盘服务线程关闭如下<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">synchronized</span> <span class="function"><span class="keyword">void</span> <span class="title">shutdown</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (executors == <span class="keyword">null</span>) &#123;<span class="comment">//已经关闭了</span></span><br><span class="line">      LOG.warn(<span class="string">"AsyncDiskService has already shut down."</span>);</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">      LOG.info(<span class="string">"Shutting down all async disk service threads..."</span>);</span><br><span class="line">      <span class="keyword">for</span> (Map.Entry&lt;File, ThreadPoolExecutor&gt; e : executors.entrySet()) &#123;</span><br><span class="line">        e.getValue().shutdown();<span class="comment">//关闭线程池</span></span><br><span class="line">      &#125;</span><br><span class="line">      executors = <span class="keyword">null</span>;</span><br><span class="line">      LOG.info(<span class="string">"All async disk service threads have been shut down"</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，关闭每一个线程池执行器ThreadPoolExecutor，从而关闭其中的线程。</p>
+</span>
+      
+    </div>
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/DataNode/" rel="tag">#DataNode</a>
+          
+            <a href="/tags/DataNode源码阅读/" rel="tag">#DataNode源码阅读</a>
+          
+            <a href="/tags/HDFS/" rel="tag">#HDFS</a>
+          
+            <a href="/tags/Hadoop-1-2-1/" rel="tag">#Hadoop-1.2.1</a>
+          
+            <a href="/tags/Java/" rel="tag">#Java</a>
+          
+            <a href="/tags/源码阅读/" rel="tag">#源码阅读</a>
+          
+        </div>
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/DataNode启动/" rel="next" title="DataNode实现源码分析---DataNode启动">
+                <i class="fa fa-chevron-left"></i> DataNode实现源码分析---DataNode启动
+              </a>
+            
+          </div>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/DataNode本地存储管理/" rel="prev" title="DataNode实现源码分析---本地存储管理">
+                DataNode实现源码分析---本地存储管理 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </article>
+
+
+
+    <div class="post-spread">
+      
+        <!-- JiaThis Button BEGIN -->
+<div class="jiathis_style">
+  <a class="jiathis_button_tsina"></a>
+  <a class="jiathis_button_tqq"></a>
+  <a class="jiathis_button_weixin"></a>
+  <a class="jiathis_button_cqq"></a>
+  <a class="jiathis_button_douban"></a>
+  <a class="jiathis_button_renren"></a>
+  <a class="jiathis_button_qzone"></a>
+  <a class="jiathis_button_kaixin001"></a>
+  <a class="jiathis_button_copy"></a>
+  <a href="http://www.jiathis.com/share" class="jiathis jiathis_txt jiathis_separator jtico jtico_jiathis" target="_blank"></a>
+  <a class="jiathis_counter_style"></a>
+</div>
+<script type="text/javascript" >
+  var jiathis_config={
+    hideMore:false
+  }
+</script>
+<script type="text/javascript" src="http://v3.jiathis.com/code/jia.js" charset="utf-8"></script>
+<!-- JiaThis Button END -->
+
+      
+    </div>
+  </div>
+
+
+        </div>
+
+        
+
+
+        
+  <div class="comments" id="comments">
+    
+      <div class="ds-thread" data-thread-key="DataNode实现源码分析/"
+           data-title="DataNode实现源码分析" data-url="http://xiao-yun.github.io/DataNode实现源码分析/">
+      </div>
+    
+  </div>
+
+
+      </div>
+
+      
+        
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap" >
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel ">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+          <img class="site-author-image" src="/images/hero.jpg" alt="xiaoyun" itemprop="image"/>
+          <p class="site-author-name" itemprop="name">xiaoyun</p>
+        </div>
+        <p class="site-description motion-element" itemprop="description">学习笔记，网上资源摘要等</p>
+        <nav class="site-state motion-element">
+          <div class="site-state-item site-state-posts">
+            <a href="/archives">
+              <span class="site-state-item-count">35</span>
+              <span class="site-state-item-name">日志</span>
+            </a>
+          </div>
+
+          <div class="site-state-item site-state-categories">
+            <a href="/categories">
+              <span class="site-state-item-count">37</span>
+              <span class="site-state-item-name">分类</span>
+              </a>
+          </div>
+
+          <div class="site-state-item site-state-tags">
+            <a href="/tags">
+              <span class="site-state-item-count">19</span>
+              <span class="site-state-item-name">标签</span>
+              </a>
+          </div>
+
+        </nav>
+
+        
+
+        <div class="links-of-author motion-element">
+          
+            
+              <span class="links-of-author-item">
+                <a href="https://github.com/xiao-yun" target="_blank">
+                  
+                    <i class="fa fa-globe"></i> github
+                  
+                </a>
+              </span>
+            
+          
+        </div>
+
+        
+        
+
+        <div class="links-of-author motion-element">
+          
+        </div>
+
+      </section>
+
+      
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc-indicator-top post-toc-indicator">
+            <i class="fa fa-angle-double-up"></i>
+          </div>
+          <div class="post-toc">
+            
+              
+            
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-_数据块恢复"><span class="nav-number">1.</span> <span class="nav-text">1. 数据块恢复</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-1_startBlockRecovery"><span class="nav-number">1.1.</span> <span class="nav-text">1.1 startBlockRecovery</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-2_syncBlock"><span class="nav-number">1.2.</span> <span class="nav-text">1.2 syncBlock</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-3_updateBlock"><span class="nav-number">1.3.</span> <span class="nav-text">1.3 updateBlock</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-_数据节点和名字节点交互"><span class="nav-number">2.</span> <span class="nav-text">2. 数据节点和名字节点交互</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1_processCommand"><span class="nav-number">2.1.</span> <span class="nav-text">2.1 processCommand</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#2-1-1_拷贝DNA_TRANSFER"><span class="nav-number">2.1.1.</span> <span class="nav-text">2.1.1 拷贝DNA_TRANSFER</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-1-2_删除DNA_INVALIDATE"><span class="nav-number">2.1.2.</span> <span class="nav-text">2.1.2 删除DNA_INVALIDATE</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-1-3_恢复DNA_RECOVERBLOCK"><span class="nav-number">2.1.3.</span> <span class="nav-text">2.1.3 恢复DNA_RECOVERBLOCK</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-1-4_其他"><span class="nav-number">2.1.4.</span> <span class="nav-text">2.1.4 其他</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-_数据节点关闭"><span class="nav-number">3.</span> <span class="nav-text">3. 数据节点关闭</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#3-1_插件，HTTP服务器，RPC服务"><span class="nav-number">3.1.</span> <span class="nav-text">3.1 插件，HTTP服务器，RPC服务</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-2_流服务"><span class="nav-number">3.2.</span> <span class="nav-text">3.2 流服务</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-3_RPC代理，更新管理器，区块扫描器"><span class="nav-number">3.3.</span> <span class="nav-text">3.3 RPC代理，更新管理器，区块扫描器</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-4_DataStorage"><span class="nav-number">3.4.</span> <span class="nav-text">3.4 DataStorage</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-5_DataNode线程"><span class="nav-number">3.5.</span> <span class="nav-text">3.5 DataNode线程</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-6_FSDataset，DataNodeInstrumentation"><span class="nav-number">3.6.</span> <span class="nav-text">3.6 FSDataset，DataNodeInstrumentation</span></a></li></ol></li></ol></div>
+            
+          </div>
+          <div class="post-toc-indicator-bottom post-toc-indicator">
+            <i class="fa fa-angle-double-down"></i>
+          </div>
+        </section>
+      
+
+    </div>
+  </aside>
+
+
+      
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright" >
+  
+  &copy; 
+  <span itemprop="copyrightYear">2016</span>
+  <span class="with-love">
+    <i class="icon-next-heart fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">xiaoyun</span>
+</div>
+
+<div class="powered-by">
+  由 <a class="theme-link" href="http://hexo.io">Hexo</a> 强力驱动
+</div>
+
+<div class="theme-info">
+  主题 -
+  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
+    NexT.Mist
+  </a>
+</div>
+
+
+
+      </div>
+    </footer>
+
+    <div class="back-to-top"></div>
+  </div>
+
+  <script type="text/javascript" src="/vendors/jquery/index.js?v=2.1.3"></script>
+
+  
+  
+
+  
+    
+
+  
+    
+  
+
+  <script type="text/javascript">
+    var duoshuoQuery = {short_name:"xiaoyuncom"};
+    (function() {
+      var ds = document.createElement('script');
+      ds.type = 'text/javascript';ds.async = true;
+      ds.id = 'duoshuo-script';
+      ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+      ds.charset = 'UTF-8';
+      (document.getElementsByTagName('head')[0]
+      || document.getElementsByTagName('body')[0]).appendChild(ds);
+    })();
+  </script>
+    
+     
+
+
+    
+  
+
+  
+  <script type="text/javascript" src="/vendors/fancybox/source/jquery.fancybox.pack.js"></script>
+  <script type="text/javascript" src="/js/fancy-box.js?v=0.4.5.2"></script>
+
+
+  <script type="text/javascript" src="/js/helpers.js?v=0.4.5.2"></script>
+  <script type="text/javascript" src="/vendors/velocity/velocity.min.js"></script>
+<script type="text/javascript" src="/vendors/velocity/velocity.ui.min.js"></script>
+
+<script type="text/javascript" src="/js/motion.js?v=0.4.5.2" id="motion.global"></script>
+
+
+  <script type="text/javascript" src="/vendors/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  <script type="text/javascript" src="/vendors/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  
+<script type="text/javascript" src="/js/bootstrap.scrollspy.js?v=0.4.5.2" id="bootstrap.scrollspy.custom"></script>
+
+
+<script type="text/javascript" id="sidebar.toc.highlight">
+  $(document).ready(function () {
+    var tocSelector = '.post-toc';
+    var $tocSelector = $(tocSelector);
+    var activeCurrentSelector = '.active-current';
+
+    $tocSelector
+      .on('activate.bs.scrollspy', function () {
+        var $currentActiveElement = $(tocSelector + ' .active').last();
+
+        removeCurrentActiveClass();
+        $currentActiveElement.addClass('active-current');
+
+        $tocSelector[0].scrollTop = $currentActiveElement.position().top;
+      })
+      .on('clear.bs.scrollspy', function () {
+        removeCurrentActiveClass();
+      });
+
+    function removeCurrentActiveClass () {
+      $(tocSelector + ' ' + activeCurrentSelector)
+        .removeClass(activeCurrentSelector.substring(1));
+    }
+
+    function processTOC () {
+      getTOCMaxHeight();
+      toggleTOCOverflowIndicators();
+    }
+
+    function getTOCMaxHeight () {
+      var height = $('.sidebar').height() -
+                   $tocSelector.position().top -
+                   $('.post-toc-indicator-bottom').height();
+
+      $tocSelector.css('height', height);
+
+      return height;
+    }
+
+    function toggleTOCOverflowIndicators () {
+      tocOverflowIndicator(
+        '.post-toc-indicator-top',
+        $tocSelector.scrollTop() > 0 ? 'show' : 'hide'
+      );
+
+      tocOverflowIndicator(
+        '.post-toc-indicator-bottom',
+        $tocSelector.scrollTop() >= $tocSelector.find('ol').height() - $tocSelector.height() ? 'hide' : 'show'
+      )
+    }
+
+    $(document).on('sidebar.motion.complete', function () {
+      processTOC();
+    });
+
+    $('body').scrollspy({ target: tocSelector });
+    $(window).on('resize', function () {
+      if ( $('.sidebar').hasClass('sidebar-active') ) {
+        processTOC();
+      }
+    });
+
+    onScroll($tocSelector);
+
+    function onScroll (element) {
+      element.on('mousewheel DOMMouseScroll', function (event) {
+          var oe = event.originalEvent;
+          var delta = oe.wheelDelta || -oe.detail;
+
+          this.scrollTop += ( delta < 0 ? 1 : -1 ) * 30;
+          event.preventDefault();
+
+          toggleTOCOverflowIndicators();
+      });
+    }
+
+    function tocOverflowIndicator (indicator, action) {
+      var $indicator = $(indicator);
+      var opacity = action === 'show' ? 1 : 0;
+      $indicator.velocity ?
+        $indicator.velocity('stop').velocity({
+          opacity: opacity
+        }, { duration: 100 }) :
+        $indicator.stop().animate({
+          opacity: opacity
+        }, 100);
+    }
+
+  });
+</script>
+
+<script type="text/javascript" id="sidebar.nav">
+  $(document).ready(function () {
+    var html = $('html');
+    var TAB_ANIMATE_DURATION = 200;
+    var hasVelocity = $.isFunction(html.velocity);
+
+    $('.sidebar-nav li').on('click', function () {
+      var item = $(this);
+      var activeTabClassName = 'sidebar-nav-active';
+      var activePanelClassName = 'sidebar-panel-active';
+      if (item.hasClass(activeTabClassName)) {
+        return;
+      }
+
+      var currentTarget = $('.' + activePanelClassName);
+      var target = $('.' + item.data('target'));
+
+      hasVelocity ?
+        currentTarget.velocity('transition.slideUpOut', TAB_ANIMATE_DURATION, function () {
+          target
+            .velocity('stop')
+            .velocity('transition.slideDownIn', TAB_ANIMATE_DURATION)
+            .addClass(activePanelClassName);
+        }) :
+        currentTarget.animate({ opacity: 0 }, TAB_ANIMATE_DURATION, function () {
+          currentTarget.hide();
+          target
+            .stop()
+            .css({'opacity': 0, 'display': 'block'})
+            .animate({ opacity: 1 }, TAB_ANIMATE_DURATION, function () {
+              currentTarget.removeClass(activePanelClassName);
+              target.addClass(activePanelClassName);
+            });
+        });
+
+      item.siblings().removeClass(activeTabClassName);
+      item.addClass(activeTabClassName);
+    });
+
+    $('.post-toc a').on('click', function (e) {
+      e.preventDefault();
+      var targetSelector = escapeSelector(this.getAttribute('href'));
+      var offset = $(targetSelector).offset().top;
+      hasVelocity ?
+        html.velocity('stop').velocity('scroll', {
+          offset: offset  + 'px',
+          mobileHA: false
+        }) :
+        $('html, body').stop().animate({
+          scrollTop: offset
+        }, 500);
+    });
+
+    // Expand sidebar on post detail page by default, when post has a toc.
+    motionMiddleWares.sidebar = function () {
+      var $tocContent = $('.post-toc-content');
+      if (CONFIG.sidebar === 'post') {
+        if ($tocContent.length > 0 && $tocContent.html().trim().length > 0) {
+          displaySidebar();
+        }
+      }
+    };
+  });
+</script>
+
+
+
+  <script type="text/javascript" src="/js/bootstrap.js"></script>
+
+  
+  
+
+  
+  
+
+</body>
+</html>

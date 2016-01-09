@@ -55,7 +55,7 @@
 
 DataNode的本地存储由DataStorage和FSDataset负责，本地存储目录通过dfs.data.dir配置，可配置多个存储目录。每个目录下有多个目录，current目录保存VERSION文件，区块文件，区块元数据文件，previous目录保存上一">
 <meta property="og:type" content="article">
-<meta property="og:title" content="DataNode本地存储管理">
+<meta property="og:title" content="DataNode实现源码分析---本地存储管理">
 <meta property="og:url" content="http://xiao-yun.github.io/DataNode本地存储管理/index.html">
 <meta property="og:site_name" content="xiaoyun">
 <meta property="og:description" content="Hadoop版本:Hadoop-1.2.1参考：《Hadoop技术内幕-深入解析Hadoop Common和HDFS架构设计与实现原理》
@@ -64,9 +64,9 @@ DataNode的本地存储由DataStorage和FSDataset负责，本地存储目录通�
 <meta property="og:image" content="http://xiao-yun.github.io/../images/StorageInfo实现.png">
 <meta property="og:image" content="http://xiao-yun.github.io/../images/数据节点Storage状态机.png">
 <meta property="og:image" content="http://xiao-yun.github.io/../images/FSDataset成员属性.png">
-<meta property="og:updated_time" content="2016-01-08T06:45:06.270Z">
+<meta property="og:updated_time" content="2016-01-09T02:31:59.927Z">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="DataNode本地存储管理">
+<meta name="twitter:title" content="DataNode实现源码分析---本地存储管理">
 <meta name="twitter:description" content="Hadoop版本:Hadoop-1.2.1参考：《Hadoop技术内幕-深入解析Hadoop Common和HDFS架构设计与实现原理》
 
 DataNode的本地存储由DataStorage和FSDataset负责，本地存储目录通过dfs.data.dir配置，可配置多个存储目录。每个目录下有多个目录，current目录保存VERSION文件，区块文件，区块元数据文件，previous目录保存上一">
@@ -81,7 +81,7 @@ DataNode的本地存储由DataStorage和FSDataset负责，本地存储目录通�
   };
 </script>
 
-  <title> DataNode本地存储管理 | xiaoyun </title>
+  <title> DataNode实现源码分析---本地存储管理 | xiaoyun </title>
 </head>
 
 <body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
@@ -231,7 +231,7 @@ DataNode的本地存储由DataStorage和FSDataset负责，本地存储目录通�
             
             
               
-                DataNode本地存储管理
+                DataNode实现源码分析---本地存储管理
               
             
           </h1>
@@ -240,8 +240,8 @@ DataNode的本地存储由DataStorage和FSDataset负责，本地存储目录通�
         <div class="post-meta">
           <span class="post-time">
             发表于
-            <time itemprop="dateCreated" datetime="2016-01-08T14:45:06+08:00" content="2016-01-08">
-              2016-01-08
+            <time itemprop="dateCreated" datetime="2016-01-09T10:31:59+08:00" content="2016-01-09">
+              2016-01-09
             </time>
           </span>
 
@@ -353,7 +353,7 @@ DataNode的本地存储由DataStorage和FSDataset负责，本地存储目录通�
 <p>类图中的其他类，<code>NamespaceInfo</code>用于DataNode和NameNode通信的DataNodeProtocol接口，DataNode向NameNode注册时，首先通过<code>versionRequest</code>获取集群的信息，返回一个NamespaceInfo对象。<br><code>CheckpointSignature</code>用于NameNode和SecondaryNameNode通信的NameNodeProtocol接口，标识了NameNode元数据的检查点。<br><code>FSImage</code>管理NameNode的文件结构，与DataStorage对应。<code>CheckpointStorage</code>管理SecondaryNameNode的文件结构。   </p>
 <p>StorageInfo比较简单，下面分析Storage</p>
 <hr>
-<h2 id="1_Storage">1 Storage</h2><h3 id="1-1_成员，构造">1.1 成员，构造</h3><p>Storage继承StorageInfo，是节点的存储管理抽象类，管理节点的所有存储目录，数据节点对应的DataStorage和FSImage都继承该类<br><figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">public <span class="keyword">abstract</span> <span class="class"><span class="keyword">class</span> <span class="title">Storage</span> <span class="keyword"><span class="keyword">extends</span></span> <span class="title">StorageInfo</span></span></span><br></pre></td></tr></table></figure></p>
+<h2 id="1-_Storage">1. Storage</h2><h3 id="1-1_成员，构造">1.1 成员，构造</h3><p>Storage继承StorageInfo，是节点的存储管理抽象类，管理节点的所有存储目录，数据节点对应的DataStorage和FSImage都继承该类<br><figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">public <span class="keyword">abstract</span> <span class="class"><span class="keyword">class</span> <span class="title">Storage</span> <span class="keyword"><span class="keyword">extends</span></span> <span class="title">StorageInfo</span></span></span><br></pre></td></tr></table></figure></p>
 <p>成员属性如下<br><figure class="highlight lasso"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> NodeType storageType;    <span class="comment">// Type of the node using this storage </span></span><br><span class="line"><span class="keyword">protected</span> <span class="built_in">List</span>&lt;StorageDirectory&gt; storageDirs = <span class="literal">new</span> ArrayList&lt;StorageDirectory&gt;();</span><br></pre></td></tr></table></figure></p>
 <ul>
 <li><p><code>storageType</code>，节点类型，目前支持数据节点和名字节点</p>
@@ -386,7 +386,7 @@ DataNode的本地存储由DataStorage和FSDataset负责，本地存储目录通�
 <li><code>lastcheckpoint.tmp</code>和<code>previous.checkpoint</code>用于名字节点检查点相关。  </li>
 </ul>
 <hr>
-<h2 id="2_DataStorage">2 DataStorage</h2><h3 id="2-1_成员，构造">2.1 成员，构造</h3><p>DataStorage继承Storage，管理了DataNode中所有的存储目录，存储在<code>storageDirs</code>中，DataStorage会初始化Storage中的storageType成员。<br>此外还提供了其他成员<br><figure class="highlight delphi"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="keyword">String</span> storageID;</span><br></pre></td></tr></table></figure></p>
+<h2 id="2-_DataStorage">2. DataStorage</h2><h3 id="2-1_成员，构造">2.1 成员，构造</h3><p>DataStorage继承Storage，管理了DataNode中所有的存储目录，存储在<code>storageDirs</code>中，DataStorage会初始化Storage中的storageType成员。<br>此外还提供了其他成员<br><figure class="highlight delphi"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="keyword">String</span> storageID;</span><br></pre></td></tr></table></figure></p>
 <p>DataStorage的构造如下<br><figure class="highlight processing"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">DataStorage() &#123;</span><br><span class="line">    <span class="keyword">super</span>(NodeType.DATA_NODE);</span><br><span class="line">    storageID = <span class="string">""</span>;</span><br><span class="line">&#125;</span><br><span class="line">DataStorage(<span class="built_in">int</span> nsID, <span class="keyword">long</span> cT, <span class="keyword">String</span> strgID) &#123;</span><br><span class="line">    <span class="keyword">super</span>(NodeType.DATA_NODE, nsID, cT);</span><br><span class="line">    <span class="keyword">this</span>.storageID = strgID;</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">public</span> DataStorage(StorageInfo storageInfo, <span class="keyword">String</span> strgID) &#123;</span><br><span class="line">    <span class="keyword">super</span>(NodeType.DATA_NODE, storageInfo);</span><br><span class="line">    <span class="keyword">this</span>.storageID = strgID;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
 <p>如上，构造DataStorage时会初始化Storage中storageType为<code>NodeType.DATA_NODE</code>。  </p>
 <h3 id="2-2_格式化">2.2 格式化</h3><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">format</span><span class="params">(StorageDirectory sd, NamespaceInfo nsInfo)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">    sd.clearDirectory(); <span class="comment">// create directory</span></span><br><span class="line">    <span class="keyword">this</span>.layoutVersion = FSConstants.LAYOUT_VERSION;</span><br><span class="line">    <span class="keyword">this</span>.namespaceID = nsInfo.getNamespaceID();</span><br><span class="line">    <span class="keyword">this</span>.cTime = <span class="number">0</span>;</span><br><span class="line">    sd.write();</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">void</span> <span class="title">clearDirectory</span><span class="params">()</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">  File curDir = <span class="keyword">this</span>.getCurrentDir();<span class="comment">//current目录</span></span><br><span class="line">  <span class="keyword">if</span> (curDir.exists())</span><br><span class="line">    <span class="keyword">if</span> (!(FileUtil.fullyDelete(curDir)))</span><br><span class="line">      <span class="keyword">throw</span> <span class="keyword">new</span> IOException(<span class="string">"Cannot remove current directory: "</span> + curDir);</span><br><span class="line">  <span class="keyword">if</span> (!curDir.mkdirs())</span><br><span class="line">    <span class="keyword">throw</span> <span class="keyword">new</span> IOException(<span class="string">"Cannot create directory "</span> + curDir);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
@@ -527,17 +527,13 @@ DataNode的本地存储由DataStorage和FSDataset负责，本地存储目录通�
         <div class="post-nav">
           <div class="post-nav-next post-nav-item">
             
-              <a href="/CorruptMonitor/" rel="next" title="RaidNode源码阅读---损坏区块修复CorruptMonitor(LocalBlockIntegerityMonitor)">
-                <i class="fa fa-chevron-left"></i> RaidNode源码阅读---损坏区块修复CorruptMonitor(LocalBlockIntegerityMonitor)
+              <a href="/DataNode实现源码分析/" rel="next" title="DataNode实现源码分析">
+                <i class="fa fa-chevron-left"></i> DataNode实现源码分析
               </a>
             
           </div>
 
           <div class="post-nav-prev post-nav-item">
-            
-              <a href="/DataNode流接口实现上篇/" rel="prev" title="DataNode实现源码分析---流接口实现上篇">
-                DataNode实现源码分析---流接口实现上篇 <i class="fa fa-chevron-right"></i>
-              </a>
             
           </div>
         </div>
@@ -588,7 +584,7 @@ DataNode的本地存储由DataStorage和FSDataset负责，本地存储目录通�
   <div class="comments" id="comments">
     
       <div class="ds-thread" data-thread-key="DataNode本地存储管理/"
-           data-title="DataNode本地存储管理" data-url="http://xiao-yun.github.io/DataNode本地存储管理/">
+           data-title="DataNode实现源码分析---本地存储管理" data-url="http://xiao-yun.github.io/DataNode本地存储管理/">
       </div>
     
   </div>
@@ -632,21 +628,21 @@ DataNode的本地存储由DataStorage和FSDataset负责，本地存储目录通�
         <nav class="site-state motion-element">
           <div class="site-state-item site-state-posts">
             <a href="/archives">
-              <span class="site-state-item-count">34</span>
+              <span class="site-state-item-count">35</span>
               <span class="site-state-item-name">日志</span>
             </a>
           </div>
 
           <div class="site-state-item site-state-categories">
             <a href="/categories">
-              <span class="site-state-item-count">49</span>
+              <span class="site-state-item-count">37</span>
               <span class="site-state-item-name">分类</span>
               </a>
           </div>
 
           <div class="site-state-item site-state-tags">
             <a href="/tags">
-              <span class="site-state-item-count">25</span>
+              <span class="site-state-item-count">19</span>
               <span class="site-state-item-name">标签</span>
               </a>
           </div>
@@ -688,7 +684,7 @@ DataNode的本地存储由DataStorage和FSDataset负责，本地存储目录通�
               
             
             
-              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#1_Storage"><span class="nav-number">1.</span> <span class="nav-text">1 Storage</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-1_成员，构造"><span class="nav-number">1.1.</span> <span class="nav-text">1.1 成员，构造</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-2_管理的文件目录"><span class="nav-number">1.2.</span> <span class="nav-text">1.2 管理的文件目录</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2_DataStorage"><span class="nav-number">2.</span> <span class="nav-text">2 DataStorage</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1_成员，构造"><span class="nav-number">2.1.</span> <span class="nav-text">2.1 成员，构造</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-2_格式化"><span class="nav-number">2.2.</span> <span class="nav-text">2.2 格式化</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-3_升级"><span class="nav-number">2.3.</span> <span class="nav-text">2.3 升级</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-4_回滚"><span class="nav-number">2.4.</span> <span class="nav-text">2.4 回滚</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-5_升级提交"><span class="nav-number">2.5.</span> <span class="nav-text">2.5 升级提交</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-6_存储空间状态(技术内幕)"><span class="nav-number">2.6.</span> <span class="nav-text">2.6 存储空间状态(技术内幕)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-7_当前状态"><span class="nav-number">2.7.</span> <span class="nav-text">2.7 当前状态</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-8_恢复到正常状态"><span class="nav-number">2.8.</span> <span class="nav-text">2.8 恢复到正常状态</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3_FSDataset"><span class="nav-number">3.</span> <span class="nav-text">3 FSDataset</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#3-1_FSDataset成员属性"><span class="nav-number">3.1.</span> <span class="nav-text">3.1 FSDataset成员属性</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-2_FSDir"><span class="nav-number">3.2.</span> <span class="nav-text">3.2 FSDir</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#3-2-1_成员属性"><span class="nav-number">3.2.1.</span> <span class="nav-text">3.2.1 成员属性</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-2-2_构造"><span class="nav-number">3.2.2.</span> <span class="nav-text">3.2.2 构造</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-2-3_添加新的区块"><span class="nav-number">3.2.3.</span> <span class="nav-text">3.2.3 添加新的区块</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-2-4_获取目录下所有区块信息"><span class="nav-number">3.2.4.</span> <span class="nav-text">3.2.4 获取目录下所有区块信息</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-2-5_检查目录健康性"><span class="nav-number">3.2.5.</span> <span class="nav-text">3.2.5 检查目录健康性</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-3_FSVolume"><span class="nav-number">3.3.</span> <span class="nav-text">3.3 FSVolume</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#3-3-1_成员属性"><span class="nav-number">3.3.1.</span> <span class="nav-text">3.3.1 成员属性</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-3-2_构造"><span class="nav-number">3.3.2.</span> <span class="nav-text">3.3.2 构造</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-4_FSVolumeSet"><span class="nav-number">3.4.</span> <span class="nav-text">3.4 FSVolumeSet</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-5_FSDataset构造"><span class="nav-number">3.5.</span> <span class="nav-text">3.5 FSDataset构造</span></a></li></ol></li></ol></div>
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-_Storage"><span class="nav-number">1.</span> <span class="nav-text">1. Storage</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-1_成员，构造"><span class="nav-number">1.1.</span> <span class="nav-text">1.1 成员，构造</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-2_管理的文件目录"><span class="nav-number">1.2.</span> <span class="nav-text">1.2 管理的文件目录</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-_DataStorage"><span class="nav-number">2.</span> <span class="nav-text">2. DataStorage</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1_成员，构造"><span class="nav-number">2.1.</span> <span class="nav-text">2.1 成员，构造</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-2_格式化"><span class="nav-number">2.2.</span> <span class="nav-text">2.2 格式化</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-3_升级"><span class="nav-number">2.3.</span> <span class="nav-text">2.3 升级</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-4_回滚"><span class="nav-number">2.4.</span> <span class="nav-text">2.4 回滚</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-5_升级提交"><span class="nav-number">2.5.</span> <span class="nav-text">2.5 升级提交</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-6_存储空间状态(技术内幕)"><span class="nav-number">2.6.</span> <span class="nav-text">2.6 存储空间状态(技术内幕)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-7_当前状态"><span class="nav-number">2.7.</span> <span class="nav-text">2.7 当前状态</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-8_恢复到正常状态"><span class="nav-number">2.8.</span> <span class="nav-text">2.8 恢复到正常状态</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3_FSDataset"><span class="nav-number">3.</span> <span class="nav-text">3 FSDataset</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#3-1_FSDataset成员属性"><span class="nav-number">3.1.</span> <span class="nav-text">3.1 FSDataset成员属性</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-2_FSDir"><span class="nav-number">3.2.</span> <span class="nav-text">3.2 FSDir</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#3-2-1_成员属性"><span class="nav-number">3.2.1.</span> <span class="nav-text">3.2.1 成员属性</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-2-2_构造"><span class="nav-number">3.2.2.</span> <span class="nav-text">3.2.2 构造</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-2-3_添加新的区块"><span class="nav-number">3.2.3.</span> <span class="nav-text">3.2.3 添加新的区块</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-2-4_获取目录下所有区块信息"><span class="nav-number">3.2.4.</span> <span class="nav-text">3.2.4 获取目录下所有区块信息</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-2-5_检查目录健康性"><span class="nav-number">3.2.5.</span> <span class="nav-text">3.2.5 检查目录健康性</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-3_FSVolume"><span class="nav-number">3.3.</span> <span class="nav-text">3.3 FSVolume</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#3-3-1_成员属性"><span class="nav-number">3.3.1.</span> <span class="nav-text">3.3.1 成员属性</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-3-2_构造"><span class="nav-number">3.3.2.</span> <span class="nav-text">3.3.2 构造</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-4_FSVolumeSet"><span class="nav-number">3.4.</span> <span class="nav-text">3.4 FSVolumeSet</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-5_FSDataset构造"><span class="nav-number">3.5.</span> <span class="nav-text">3.5 FSDataset构造</span></a></li></ol></li></ol></div>
             
           </div>
           <div class="post-toc-indicator-bottom post-toc-indicator">

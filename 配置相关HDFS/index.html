@@ -97,7 +97,7 @@ FileSystem.get获取文件系统，默认为本地文件系统
 fs.%s.impl.disable.cache
 false
 其中%s为对应">
-<meta property="og:updated_time" content="2016-01-08T06:45:06.394Z">
+<meta property="og:updated_time" content="2016-01-17T06:53:46.233Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="Hadoop配置相关---HDFS">
 <meta name="twitter:description" content="Hadoop版本:Hadoop-1.2.1  
@@ -291,8 +291,8 @@ false
         <div class="post-meta">
           <span class="post-time">
             发表于
-            <time itemprop="dateCreated" datetime="2016-01-08T14:45:06+08:00" content="2016-01-08">
-              2016-01-08
+            <time itemprop="dateCreated" datetime="2016-01-17T14:53:46+08:00" content="2016-01-17">
+              2016-01-17
             </time>
           </span>
 
@@ -598,6 +598,27 @@ false
 </tr>
 </tbody>
 </table>
+<h2 id="NameNode">NameNode</h2><table>
+<thead>
+<tr>
+<th style="text-align:center">属性</th>
+<th style="text-align:center">缺省值</th>
+<th style="text-align:center">说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">dfs.name.dir</td>
+<td style="text-align:center">/tmp/hadoop/dfs/name</td>
+<td style="text-align:center">NameNode命名空间镜像位置，可以有多个目录</td>
+</tr>
+<tr>
+<td style="text-align:center">dfs.name.edits.dir</td>
+<td style="text-align:center">/tmp/hadoop/dfs/name</td>
+<td style="text-align:center">NameNode编辑日志位置，可以有多个，可以不和命名空间镜像一样</td>
+</tr>
+</tbody>
+</table>
 </span>
       
     </div>
@@ -619,16 +640,16 @@ false
         <div class="post-nav">
           <div class="post-nav-next post-nav-item">
             
-              <a href="/序列化/" rel="next" title="Common源码阅读---序列化">
-                <i class="fa fa-chevron-left"></i> Common源码阅读---序列化
+              <a href="/DataNode流接口实现下篇/" rel="next" title="DataNode实现源码分析---流接口实现下篇">
+                <i class="fa fa-chevron-left"></i> DataNode实现源码分析---流接口实现下篇
               </a>
             
           </div>
 
           <div class="post-nav-prev post-nav-item">
             
-              <a href="/配置相关RPC/" rel="prev" title="Hadoop配置相关---RPC">
-                Hadoop配置相关---RPC <i class="fa fa-chevron-right"></i>
+              <a href="/NameNode命名空间镜像和编辑日志/" rel="prev" title="NameNode实现源码分析---命名空间镜像和编辑日志">
+                NameNode实现源码分析---命名空间镜像和编辑日志 <i class="fa fa-chevron-right"></i>
               </a>
             
           </div>
@@ -724,21 +745,21 @@ false
         <nav class="site-state motion-element">
           <div class="site-state-item site-state-posts">
             <a href="/archives">
-              <span class="site-state-item-count">35</span>
+              <span class="site-state-item-count">36</span>
               <span class="site-state-item-name">日志</span>
             </a>
           </div>
 
           <div class="site-state-item site-state-categories">
             <a href="/categories">
-              <span class="site-state-item-count">37</span>
+              <span class="site-state-item-count">40</span>
               <span class="site-state-item-name">分类</span>
               </a>
           </div>
 
           <div class="site-state-item site-state-tags">
             <a href="/tags">
-              <span class="site-state-item-count">19</span>
+              <span class="site-state-item-count">21</span>
               <span class="site-state-item-name">标签</span>
               </a>
           </div>
@@ -780,7 +801,7 @@ false
               
             
             
-              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#FileSystem"><span class="nav-number">1.</span> <span class="nav-text">FileSystem</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#ChecksumFileSystem"><span class="nav-number">2.</span> <span class="nav-text">ChecksumFileSystem</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#InMemoryFileSystem"><span class="nav-number">3.</span> <span class="nav-text">InMemoryFileSystem</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#DataNode"><span class="nav-number">4.</span> <span class="nav-text">DataNode</span></a></li></ol></div>
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#FileSystem"><span class="nav-number">1.</span> <span class="nav-text">FileSystem</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#ChecksumFileSystem"><span class="nav-number">2.</span> <span class="nav-text">ChecksumFileSystem</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#InMemoryFileSystem"><span class="nav-number">3.</span> <span class="nav-text">InMemoryFileSystem</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#DataNode"><span class="nav-number">4.</span> <span class="nav-text">DataNode</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#NameNode"><span class="nav-number">5.</span> <span class="nav-text">NameNode</span></a></li></ol></div>
             
           </div>
           <div class="post-toc-indicator-bottom post-toc-indicator">

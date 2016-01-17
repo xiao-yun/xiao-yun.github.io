@@ -235,8 +235,8 @@
             
               
                 
-                <a class="post-title-link" href="/配置相关HDFS/" itemprop="url">
-                  Hadoop配置相关---HDFS
+                <a class="post-title-link" href="/配置相关RaidNode/" itemprop="url">
+                  Hadoop配置相关---RaidNode
                 </a>
               
             
@@ -256,8 +256,8 @@
               &nbsp; | &nbsp; 分类于
               
                 <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
-                  <a href="/categories/Hadoop-1-2-1/" itemprop="url" rel="index">
-                    <span itemprop="name">Hadoop-1.2.1</span>
+                  <a href="/categories/Hadoop-0-20/" itemprop="url" rel="index">
+                    <span itemprop="name">Hadoop-0.20</span>
                   </a>
                 </span>
 
@@ -268,8 +268,8 @@
 
               
                 <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
-                  <a href="/categories/Hadoop-1-2-1/HDFS/" itemprop="url" rel="index">
-                    <span itemprop="name">HDFS</span>
+                  <a href="/categories/Hadoop-0-20/RaidNode/" itemprop="url" rel="index">
+                    <span itemprop="name">RaidNode</span>
                   </a>
                 </span>
 
@@ -280,7 +280,7 @@
 
               
                 <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
-                  <a href="/categories/Hadoop-1-2-1/HDFS/配置/" itemprop="url" rel="index">
+                  <a href="/categories/Hadoop-0-20/RaidNode/配置/" itemprop="url" rel="index">
                     <span itemprop="name">配置</span>
                   </a>
                 </span>
@@ -296,8 +296,8 @@
             
               <span class="post-comments-count">
                 &nbsp; | &nbsp;
-                <a href="/配置相关HDFS/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="配置相关HDFS/" itemprop="commentsCount"></span>
+                <a href="/配置相关RaidNode/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="配置相关RaidNode/" itemprop="commentsCount"></span>
                 </a>
               </span>
             
@@ -319,10 +319,12 @@
         
           <span itemprop="articleBody">
             
-            Hadoop版本:Hadoop-1.2.1  
+            
+Hadoop版本:hadoop-20-master
 
-说明:缺省值为N/A是指在程序中没有指定，而不是在datanode-default.xml中没有设置。
-FileSystem
+
+源码阅读配置记录
+RaidNode
 
 
 属性
@@ -332,13 +334,173 @@ FileSystem
 
 
 
-fs.default.name
-file:///
-FileSystem.get获取文件系统，
+raid.classname
+DistRaidNode
+RaidNode实现类,默认DistRaidNode在createRaidNode中读取conf设置
+
+
+fs.rai
             ...
           </span>
           <div class="post-more-link text-center">
-            <a class="btn" href="/配置相关HDFS/#more" rel="contents">
+            <a class="btn" href="/配置相关RaidNode/#more" rel="contents">
+              阅读全文 &raquo;
+            </a>
+          </div>
+        
+      
+    </div>
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </article>
+
+
+    
+      
+
+  
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                
+                <a class="post-title-link" href="/压缩/" itemprop="url">
+                  Common源码阅读---压缩
+                </a>
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            发表于
+            <time itemprop="dateCreated" datetime="2016-01-08T14:45:06+08:00" content="2016-01-08">
+              2016-01-08
+            </time>
+          </span>
+
+          
+            <span class="post-category" >
+              &nbsp; | &nbsp; 分类于
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Java/" itemprop="url" rel="index">
+                    <span itemprop="name">Java</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Java/Hadoop-1-2-1/" itemprop="url" rel="index">
+                    <span itemprop="name">Hadoop-1.2.1</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Java/Hadoop-1-2-1/Common/" itemprop="url" rel="index">
+                    <span itemprop="name">Common</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Java/Hadoop-1-2-1/Common/源码阅读/" itemprop="url" rel="index">
+                    <span itemprop="name">源码阅读</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Java/Hadoop-1-2-1/Common/源码阅读/Common源码阅读/" itemprop="url" rel="index">
+                    <span itemprop="name">Common源码阅读</span>
+                  </a>
+                </span>
+
+                
+                
+
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                &nbsp; | &nbsp;
+                <a href="/压缩/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="压缩/" itemprop="commentsCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+
+        </div>
+      </header>
+    
+
+
+    <div class="post-body">
+
+      
+      
+
+      
+        
+          <span itemprop="articleBody">
+            
+            Hadoop版本:Hadoop-1.2.1参考：《Hadoop技术内幕-深入解析Hadoop Common和HDFS架构设计与实现原理》
+
+编解码器Hadoop中每一种压缩/解压算法有一个对应的编解码器，编解码器接口为CompressionCodec1234567891011121314151617
+            ...
+          </span>
+          <div class="post-more-link text-center">
+            <a class="btn" href="/压缩/#more" rel="contents">
               阅读全文 &raquo;
             </a>
           </div>
@@ -542,159 +704,8 @@ FileSystem.get获取文件系统，
             
               
                 
-                <a class="post-title-link" href="/配置相关RaidNode/" itemprop="url">
-                  Hadoop配置相关---RaidNode
-                </a>
-              
-            
-          </h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            发表于
-            <time itemprop="dateCreated" datetime="2016-01-08T14:45:06+08:00" content="2016-01-08">
-              2016-01-08
-            </time>
-          </span>
-
-          
-            <span class="post-category" >
-              &nbsp; | &nbsp; 分类于
-              
-                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
-                  <a href="/categories/Hadoop-0-20/" itemprop="url" rel="index">
-                    <span itemprop="name">Hadoop-0.20</span>
-                  </a>
-                </span>
-
-                
-                
-                  ， 
-                
-
-              
-                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
-                  <a href="/categories/Hadoop-0-20/RaidNode/" itemprop="url" rel="index">
-                    <span itemprop="name">RaidNode</span>
-                  </a>
-                </span>
-
-                
-                
-                  ， 
-                
-
-              
-                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
-                  <a href="/categories/Hadoop-0-20/RaidNode/配置/" itemprop="url" rel="index">
-                    <span itemprop="name">配置</span>
-                  </a>
-                </span>
-
-                
-                
-
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                &nbsp; | &nbsp;
-                <a href="/配置相关RaidNode/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="配置相关RaidNode/" itemprop="commentsCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-
-        </div>
-      </header>
-    
-
-
-    <div class="post-body">
-
-      
-      
-
-      
-        
-          <span itemprop="articleBody">
-            
-            
-Hadoop版本:hadoop-20-master
-
-
-源码阅读配置记录
-RaidNode
-
-
-属性
-缺省值
-说明
-
-
-
-
-raid.classname
-DistRaidNode
-RaidNode实现类,默认DistRaidNode在createRaidNode中读取conf设置
-
-
-fs.rai
-            ...
-          </span>
-          <div class="post-more-link text-center">
-            <a class="btn" href="/配置相关RaidNode/#more" rel="contents">
-              阅读全文 &raquo;
-            </a>
-          </div>
-        
-      
-    </div>
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </article>
-
-
-    
-      
-
-  
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-            
-            
-              
-                
-                <a class="post-title-link" href="/缓冲区/" itemprop="url">
-                  Java NIO---缓冲区
+                <a class="post-title-link" href="/通道和选择器/" itemprop="url">
+                  Java NIO---通道和选择器
                 </a>
               
             
@@ -742,8 +753,8 @@ fs.rai
             
               <span class="post-comments-count">
                 &nbsp; | &nbsp;
-                <a href="/缓冲区/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="缓冲区/" itemprop="commentsCount"></span>
+                <a href="/通道和选择器/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="通道和选择器/" itemprop="commentsCount"></span>
                 </a>
               </span>
             
@@ -765,12 +776,15 @@ fs.rai
         
           <span itemprop="articleBody">
             
-            先看ByteBuffer的父类Buffer
-Buffer(java.nio)成员12345// Invariants: mark &lt;= position &lt;= limit &lt;= capacityprivate int mark = -1;//若设置，则reset时postion变为
+            Java NIO提供了通道,缓冲区,选择器，字符集等多项特性。缓冲区另见Java NIO—缓冲区。Java NIO的通道类似于流，不同点在于:
+
+通道支持双向的数据读写，但流通常是单向的；
+通道支持异步操作，流只能是同步的；
+通道的读写基于块(使用缓冲区)，而流基于字节。流一个字节一个字节按顺序传输
             ...
           </span>
           <div class="post-more-link text-center">
-            <a class="btn" href="/缓冲区/#more" rel="contents">
+            <a class="btn" href="/通道和选择器/#more" rel="contents">
               阅读全文 &raquo;
             </a>
           </div>
@@ -813,8 +827,8 @@ Buffer(java.nio)成员12345// Invariants: mark &lt;= position &lt;= limit &lt;= 
             
               
                 
-                <a class="post-title-link" href="/辅助类/" itemprop="url">
-                  RaidNode源码阅读---辅助类
+                <a class="post-title-link" href="/配置相关RPC/" itemprop="url">
+                  Hadoop配置相关---RPC
                 </a>
               
             
@@ -834,8 +848,8 @@ Buffer(java.nio)成员12345// Invariants: mark &lt;= position &lt;= limit &lt;= 
               &nbsp; | &nbsp; 分类于
               
                 <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
-                  <a href="/categories/Java/" itemprop="url" rel="index">
-                    <span itemprop="name">Java</span>
+                  <a href="/categories/Hadoop-1-2-1/" itemprop="url" rel="index">
+                    <span itemprop="name">Hadoop-1.2.1</span>
                   </a>
                 </span>
 
@@ -846,8 +860,8 @@ Buffer(java.nio)成员12345// Invariants: mark &lt;= position &lt;= limit &lt;= 
 
               
                 <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
-                  <a href="/categories/Java/Hadoop-0-20/" itemprop="url" rel="index">
-                    <span itemprop="name">Hadoop-0.20</span>
+                  <a href="/categories/Hadoop-1-2-1/Common/" itemprop="url" rel="index">
+                    <span itemprop="name">Common</span>
                   </a>
                 </span>
 
@@ -858,32 +872,8 @@ Buffer(java.nio)成员12345// Invariants: mark &lt;= position &lt;= limit &lt;= 
 
               
                 <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
-                  <a href="/categories/Java/Hadoop-0-20/RaidNode/" itemprop="url" rel="index">
-                    <span itemprop="name">RaidNode</span>
-                  </a>
-                </span>
-
-                
-                
-                  ， 
-                
-
-              
-                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
-                  <a href="/categories/Java/Hadoop-0-20/RaidNode/源码阅读/" itemprop="url" rel="index">
-                    <span itemprop="name">源码阅读</span>
-                  </a>
-                </span>
-
-                
-                
-                  ， 
-                
-
-              
-                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
-                  <a href="/categories/Java/Hadoop-0-20/RaidNode/源码阅读/RaidNode源码阅读/" itemprop="url" rel="index">
-                    <span itemprop="name">RaidNode源码阅读</span>
+                  <a href="/categories/Hadoop-1-2-1/Common/配置/" itemprop="url" rel="index">
+                    <span itemprop="name">配置</span>
                   </a>
                 </span>
 
@@ -898,8 +888,8 @@ Buffer(java.nio)成员12345// Invariants: mark &lt;= position &lt;= limit &lt;= 
             
               <span class="post-comments-count">
                 &nbsp; | &nbsp;
-                <a href="/辅助类/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="辅助类/" itemprop="commentsCount"></span>
+                <a href="/配置相关RPC/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="配置相关RPC/" itemprop="commentsCount"></span>
                 </a>
               </span>
             
@@ -921,15 +911,30 @@ Buffer(java.nio)成员12345// Invariants: mark &lt;= position &lt;= limit &lt;= 
         
           <span itemprop="articleBody">
             
-            
-Hadoop版本:hadoop-20-master
+            Hadoop版本:Hadoop-1.2.1  
+
+Client
 
 
-ConfigManager主要成员12345678910111213public static final long RELOAD_WAIT = 5 * 1000;private long lastReloadAttempt; // Last
+属性
+缺省值
+说明
+
+
+
+
+ipc.client.tcpnodelay
+false
+socket连接Nagel算法
+
+
+ipc.client.connection.maxidletime
+10000(10s)
+连接最大空闲时间，超过
             ...
           </span>
           <div class="post-more-link text-center">
-            <a class="btn" href="/辅助类/#more" rel="contents">
+            <a class="btn" href="/配置相关RPC/#more" rel="contents">
               阅读全文 &raquo;
             </a>
           </div>
@@ -956,7 +961,7 @@ ConfigManager主要成员12345678910111213public static final long RELOAD_WAIT =
 
   
   <nav class="pagination">
-    <a class="extend prev" rel="prev" href="/page/2/"><i class="fa fa-angle-left"></i></a><a class="page-number" href="/">1</a><a class="page-number" href="/page/2/">2</a><span class="page-number current">3</span><a class="page-number" href="/page/4/">4</a><span class="space">&hellip;</span><a class="page-number" href="/page/7/">7</a><a class="extend next" rel="next" href="/page/4/"><i class="fa fa-angle-right"></i></a>
+    <a class="extend prev" rel="prev" href="/page/2/"><i class="fa fa-angle-left"></i></a><a class="page-number" href="/">1</a><a class="page-number" href="/page/2/">2</a><span class="page-number current">3</span><a class="page-number" href="/page/4/">4</a><span class="space">&hellip;</span><a class="page-number" href="/page/8/">8</a><a class="extend next" rel="next" href="/page/4/"><i class="fa fa-angle-right"></i></a>
   </nav>
 
 
@@ -997,21 +1002,21 @@ ConfigManager主要成员12345678910111213public static final long RELOAD_WAIT =
         <nav class="site-state motion-element">
           <div class="site-state-item site-state-posts">
             <a href="/archives">
-              <span class="site-state-item-count">35</span>
+              <span class="site-state-item-count">36</span>
               <span class="site-state-item-name">日志</span>
             </a>
           </div>
 
           <div class="site-state-item site-state-categories">
             <a href="/categories">
-              <span class="site-state-item-count">37</span>
+              <span class="site-state-item-count">40</span>
               <span class="site-state-item-name">分类</span>
               </a>
           </div>
 
           <div class="site-state-item site-state-tags">
             <a href="/tags">
-              <span class="site-state-item-count">19</span>
+              <span class="site-state-item-count">21</span>
               <span class="site-state-item-name">标签</span>
               </a>
           </div>

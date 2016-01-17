@@ -1,0 +1,1059 @@
+<!doctype html>
+<html class="theme-next   use-motion ">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+  <link href="/vendors/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css"/>
+
+
+
+
+  <link href="//fonts.googleapis.com/css?family=Lato:300,400,700,400italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+
+
+
+<link href="/vendors/font-awesome/css/font-awesome.min.css?v=4.4.0" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=0.4.5.2" rel="stylesheet" type="text/css" />
+
+
+  <meta name="keywords" content="HDFS,Hadoop-1.2.1,Java,NameNode,NameNode源码阅读,源码阅读," />
+
+
+
+
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=0.4.5.2" />
+
+
+
+
+
+
+<meta name="description" content="Hadoop版本:Hadoop-1.2.1参考：《Hadoop技术内幕-深入解析Hadoop Common和HDFS架构设计与实现原理》  
+
+名字节点维护着HDFS文件系统中两个最重要的关系:
+
+HDFS文件系统的文件目录树，以及文件的数据块索引，即每个文件对应的数据块列表
+数据块和数据节点的对应关系，即某一数据块保存在哪些数据节点的信息
+
+以上，后文将第一个关系称为NameNode维护的第一关">
+<meta property="og:type" content="article">
+<meta property="og:title" content="NameNode实现源码分析---命名空间镜像和编辑日志">
+<meta property="og:url" content="http://xiao-yun.github.io/NameNode命名空间镜像和编辑日志/index.html">
+<meta property="og:site_name" content="xiaoyun">
+<meta property="og:description" content="Hadoop版本:Hadoop-1.2.1参考：《Hadoop技术内幕-深入解析Hadoop Common和HDFS架构设计与实现原理》  
+
+名字节点维护着HDFS文件系统中两个最重要的关系:
+
+HDFS文件系统的文件目录树，以及文件的数据块索引，即每个文件对应的数据块列表
+数据块和数据节点的对应关系，即某一数据块保存在哪些数据节点的信息
+
+以上，后文将第一个关系称为NameNode维护的第一关">
+<meta property="og:image" content="http://xiao-yun.github.io/../images/INode实现类图.png">
+<meta property="og:image" content="http://xiao-yun.github.io/../images/INode成员属性.png">
+<meta property="og:image" content="http://xiao-yun.github.io/../images/INodeFileUnderConstruction成员属性.png">
+<meta property="og:image" content="http://xiao-yun.github.io/../images/命名空间镜像中的INodeFile.png">
+<meta property="og:image" content="http://xiao-yun.github.io/../images/命名空间镜像中的目录.png">
+<meta property="og:image" content="http://xiao-yun.github.io/../images/saveImage目录树.png">
+<meta property="og:image" content="http://xiao-yun.github.io/../images/命名空间镜像中的INodeFileUnderConstruction.png">
+<meta property="og:image" content="http://xiao-yun.github.io/../images/EditLogFileOutputStream成员属性.png">
+<meta property="og:updated_time" content="2016-01-17T07:15:31.661Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="NameNode实现源码分析---命名空间镜像和编辑日志">
+<meta name="twitter:description" content="Hadoop版本:Hadoop-1.2.1参考：《Hadoop技术内幕-深入解析Hadoop Common和HDFS架构设计与实现原理》  
+
+名字节点维护着HDFS文件系统中两个最重要的关系:
+
+HDFS文件系统的文件目录树，以及文件的数据块索引，即每个文件对应的数据块列表
+数据块和数据节点的对应关系，即某一数据块保存在哪些数据节点的信息
+
+以上，后文将第一个关系称为NameNode维护的第一关">
+
+
+
+<script type="text/javascript" id="hexo.configuration">
+  var CONFIG = {
+    scheme: 'Mist',
+    sidebar: 'hide',
+    motion: true
+  };
+</script>
+
+  <title> NameNode实现源码分析---命名空间镜像和编辑日志 | xiaoyun </title>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  <!--[if lte IE 8]>
+  <div style=' clear: both; height: 59px; padding:0 0 0 15px; position: relative;margin:0 auto;'>
+    <a href="http://windows.microsoft.com/en-US/internet-explorer/products/ie/home?ocid=ie6_countdown_bannercode">
+      <img src="http://7u2nvr.com1.z0.glb.clouddn.com/picouterie.jpg" border="0" height="42" width="820"
+           alt="You are using an outdated browser. For a faster, safer browsing experience, upgrade for free today or use other browser ,like chrome firefox safari."
+           style='margin-left:auto;margin-right:auto;display: block;'/>
+    </a>
+  </div>
+<![endif]-->
+  
+
+
+
+  <script type="text/javascript">
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "//hm.baidu.com/hm.js?caeb4129c91d1e6fb3d562d35fedef0d";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+  <div class="container one-column page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-meta ">
+  
+
+  <div class="custom-logo-site-title">
+    <a href="/"  class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <span class="site-title">xiaoyun</span>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+  <p class="site-subtitle"></p>
+</div>
+
+<div class="site-nav-toggle">
+  <button>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+  </button>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu ">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-home fa-fw"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives" rel="section">
+            
+              <i class="menu-item-icon fa fa-archive fa-fw"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories" rel="section">
+            
+              <i class="menu-item-icon fa fa-th fa-fw"></i> <br />
+            
+            分类
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+              <i class="menu-item-icon fa fa-tags fa-fw"></i> <br />
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about" rel="section">
+            
+              <i class="menu-item-icon fa fa-user fa-fw"></i> <br />
+            
+            关于
+          </a>
+        </li>
+      
+
+      
+      
+    </ul>
+  
+
+  
+</nav>
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div id="content" class="content">
+          
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                NameNode实现源码分析---命名空间镜像和编辑日志
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            发表于
+            <time itemprop="dateCreated" datetime="2016-01-17T15:15:31+08:00" content="2016-01-17">
+              2016-01-17
+            </time>
+          </span>
+
+          
+            <span class="post-category" >
+              &nbsp; | &nbsp; 分类于
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Java/" itemprop="url" rel="index">
+                    <span itemprop="name">Java</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Java/Hadoop-1-2-1/" itemprop="url" rel="index">
+                    <span itemprop="name">Hadoop-1.2.1</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Java/Hadoop-1-2-1/HDFS/" itemprop="url" rel="index">
+                    <span itemprop="name">HDFS</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Java/Hadoop-1-2-1/HDFS/NameNode/" itemprop="url" rel="index">
+                    <span itemprop="name">NameNode</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Java/Hadoop-1-2-1/HDFS/NameNode/源码阅读/" itemprop="url" rel="index">
+                    <span itemprop="name">源码阅读</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Java/Hadoop-1-2-1/HDFS/NameNode/源码阅读/NameNode源码阅读/" itemprop="url" rel="index">
+                    <span itemprop="name">NameNode源码阅读</span>
+                  </a>
+                </span>
+
+                
+                
+
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                &nbsp; | &nbsp;
+                <a href="/NameNode命名空间镜像和编辑日志/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="NameNode命名空间镜像和编辑日志/" itemprop="commentsCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+
+        </div>
+      </header>
+    
+
+
+    <div class="post-body">
+
+      
+      
+
+      
+        <span itemprop="articleBody"><p>Hadoop版本:<a href="https://archive.apache.org/dist/hadoop/core/hadoop-1.2.1/" target="_blank" rel="external">Hadoop-1.2.1</a><br>参考：《Hadoop技术内幕-深入解析Hadoop Common和HDFS架构设计与实现原理》  </p>
+<hr>
+<p>名字节点维护着HDFS文件系统中两个最重要的关系:</p>
+<ul>
+<li>HDFS文件系统的文件目录树，以及文件的数据块索引，即每个文件对应的数据块列表</li>
+<li>数据块和数据节点的对应关系，即某一数据块保存在哪些数据节点的信息</li>
+</ul>
+<p>以上，后文将第一个关系称为NameNode维护的第一关系，第二个称为NameNode维护的第二关系(技术内幕)。<br>第一关系会持久化到磁盘上，保存在命名空间镜像和编辑日志中。数据块和数据节点的对应关系则在名字节点启动后，由数据节点上报，动态建立，保持在内存中。<br>本文分析第一关系的相关实现，包括命名空间镜像和编辑日志的保存，加载，以及和SecondaryNameNode之间的交互等。  </p>
+<p>在分析命名空间镜像和编辑日志的保存，加载前，先分析涉及到的相关类。  </p>
+<hr>
+<h2 id="1-_目录项INode">1. 目录项INode</h2><p>与Linux中的i-node类似，名字节点中，对文件和目录的抽象使用INode类进行表示，INode是文件和目录的抽象类，其子类中，INodeFile表示文件，INodeDirectory表示目录，另外，INodeFileUnderConstruction表示正在执行写操作(还未关闭)的文件，INodeDirectoryWithQuota表示具有配额的目录，配额包括目录下的目录项配额和总大小配额。<br>相关类图如下:<br><img src="../images/INode实现类图.png" alt="INode实现类图">  </p>
+<h3 id="1-1_INode">1.1 INode</h3><p>INode是名字节点中文件和目录的抽象，成员属性如下<br><img src="../images/INode成员属性.png" alt="INode成员属性">  </p>
+<ul>
+<li><code>name</code>，文件或目录名</li>
+<li><code>parent</code>，父目录，对于根目录来说为空，其他的都有父目录</li>
+<li><code>modificationTime</code>，修改时间</li>
+<li><code>accessTime</code>，访问时间</li>
+<li><code>permission</code>，访问权限</li>
+</ul>
+<p>其中permission字段包含所属用户，所属组，以及Linux中权限表示形式(用户权限，组权限，其他用户权限，如755)，这三个信息分别保存在permission的不同位置，其中所属用户占41-63位，所属组占16-41位，权限占0-15位。使用INode内部类<code>PermissionStatusFormat</code>管理，PermissionStatusFormat是一个枚举是一个枚举  </p>
+<h4 id="1-1-1_PermissionStatusFormat">1.1.1 PermissionStatusFormat</h4><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">enum</span> PermissionStatusFormat &#123;</span><br><span class="line">    MODE(<span class="number">0</span>, <span class="number">16</span>),<span class="comment">//权限，0-15位</span></span><br><span class="line">    GROUP(MODE.OFFSET + MODE.LENGTH, <span class="number">25</span>),<span class="comment">//所属组16-40</span></span><br><span class="line">    USER(GROUP.OFFSET + GROUP.LENGTH, <span class="number">23</span>);<span class="comment">//所属用户41-63</span></span><br><span class="line"></span><br><span class="line">    final <span class="keyword">int</span> OFFSET;<span class="comment">//字段在long中开始偏移量</span></span><br><span class="line">    final <span class="keyword">int</span> LENGTH;<span class="comment">//字段在long所占长度，bit</span></span><br><span class="line">    final <span class="keyword">long</span> MASK;<span class="comment">//字段对应掩码</span></span><br><span class="line"></span><br><span class="line">    PermissionStatusFormat(<span class="keyword">int</span> offset, <span class="keyword">int</span> length) &#123;</span><br><span class="line">      OFFSET = offset;</span><br><span class="line">      LENGTH = length;</span><br><span class="line">      MASK = ((-<span class="number">1L</span>) &gt;&gt;&gt; (<span class="number">64</span> - LENGTH)) &lt;&lt; OFFSET;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">long</span> <span class="title">retrieve</span><span class="params">(<span class="keyword">long</span> record)</span> </span>&#123;<span class="comment">//提取字段</span></span><br><span class="line">      <span class="keyword">return</span> (record &amp; MASK) &gt;&gt;&gt; OFFSET;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">long</span> <span class="title">combine</span><span class="params">(<span class="keyword">long</span> bits, <span class="keyword">long</span> record)</span> </span>&#123;<span class="comment">//更新字段</span></span><br><span class="line">      <span class="keyword">return</span> (record &amp; ~MASK) | (bits &lt;&lt; OFFSET);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>如上，枚举值MODE在long开始偏移量为0，长度为16，即对应long整型中0-15位。GROUP开始偏移量紧接MODE为16，长度为25，对应16-40位。USER开始偏移量紧接GROUP为41，长度23，对应41-63位。<br>通过retrieve提取permission中对应的属性值，通过combine更新permission(参数record)中属性值为(bits)。  </p>
+<p>通过PermissionStatusFormat的retrieve获取的所属用户或所属组都是整型的，为实际用户名或组的序号，combine方法也一样，设置的值bits是整型，为对应的用户名和组的序号，而用户名或组序号到具体字符串之间的映射通过SerialNumberManager管理，如在INode中获取所属用户名<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="function">String <span class="title">getUserName</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="keyword">int</span> n = (<span class="keyword">int</span>)PermissionStatusFormat.USER.retrieve(permission);</span><br><span class="line">    <span class="keyword">return</span> SerialNumberManager.INSTANCE.getUser(n);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>先从permission中提取用户名对应序号，如果没有序号，则还未设置用户名会抛出异常。然后使用SerialNumberManager获取序号对应的用户名。<br>设置所属用户名<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">protected</span> <span class="function"><span class="keyword">void</span> <span class="title">setUser</span><span class="params">(String user)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">int</span> n = SerialNumberManager.INSTANCE.getUserSerialNumber(user);</span><br><span class="line">    updatePermissionStatus(PermissionStatusFormat.USER, n);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>通过user在SerialNumberManager中查找对应的序号，如果没有则分配新的序号，即插入新的用户名。获取到用户名序号后更新permission中的属性。  </p>
+<h4 id="1-1-2_SerialNumberManager">1.1.2 SerialNumberManager</h4><figure class="highlight processing"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br></pre></td><td class="code"><pre><span class="line">class SerialNumberManager &#123;</span><br><span class="line">  <span class="keyword">static</span> <span class="keyword">final</span> SerialNumberManager INSTANCE = <span class="keyword">new</span> SerialNumberManager();<span class="comment">//单例</span></span><br><span class="line">  <span class="keyword">private</span> SerialNumberMap&lt;<span class="keyword">String</span>&gt; usermap = <span class="keyword">new</span> SerialNumberMap&lt;<span class="keyword">String</span>&gt;();<span class="comment">//用户映射</span></span><br><span class="line">  <span class="keyword">private</span> SerialNumberMap&lt;<span class="keyword">String</span>&gt; groupmap = <span class="keyword">new</span> SerialNumberMap&lt;<span class="keyword">String</span>&gt;();<span class="comment">//组映射</span></span><br><span class="line">  </span><br><span class="line">  <span class="keyword">private</span> SerialNumberManager() &#123;&#125;<span class="comment">//私有构造</span></span><br><span class="line"></span><br><span class="line">  <span class="built_in">int</span> getUserSerialNumber(<span class="keyword">String</span> u) &#123;<span class="keyword">return</span> usermap.<span class="built_in">get</span>(u);&#125;<span class="comment">//通过usermap获取用户名标识</span></span><br><span class="line">  <span class="built_in">int</span> getGroupSerialNumber(<span class="keyword">String</span> g) &#123;<span class="keyword">return</span> groupmap.<span class="built_in">get</span>(g);&#125;<span class="comment">//通过groupemap获取组标识</span></span><br><span class="line">  <span class="keyword">String</span> getUser(<span class="built_in">int</span> n) &#123;<span class="keyword">return</span> usermap.<span class="built_in">get</span>(n);&#125;<span class="comment">//通过usermap获取用户名</span></span><br><span class="line">  <span class="keyword">String</span> getGroup(<span class="built_in">int</span> n) &#123;<span class="keyword">return</span> groupmap.<span class="built_in">get</span>(n);&#125;<span class="comment">//通过groupmap获取组名</span></span><br><span class="line">  &#123;<span class="comment">//初始化null的用户名和组名</span></span><br><span class="line">    getUserSerialNumber(<span class="keyword">null</span>);</span><br><span class="line">    getGroupSerialNumber(<span class="keyword">null</span>);</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">private</span> <span class="keyword">static</span> class SerialNumberMap&lt;T&gt; &#123;<span class="comment">//标识到名字的映射</span></span><br><span class="line">    <span class="keyword">private</span> <span class="built_in">int</span> <span class="built_in">max</span> = <span class="number">0</span>;</span><br><span class="line">    <span class="keyword">private</span> <span class="built_in">int</span> nextSerialNumber() &#123;<span class="keyword">return</span> <span class="built_in">max</span>++;&#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> Map&lt;T, Integer&gt; t2i = <span class="keyword">new</span> <span class="keyword">HashMap</span>&lt;T, Integer&gt;();</span><br><span class="line">    <span class="keyword">private</span> Map&lt;Integer, T&gt; i2t = <span class="keyword">new</span> <span class="keyword">HashMap</span>&lt;Integer, T&gt;();</span><br><span class="line"></span><br><span class="line">    <span class="keyword">synchronized</span> <span class="built_in">int</span> <span class="built_in">get</span>(T t) &#123;</span><br><span class="line">      Integer sn = t2i.<span class="built_in">get</span>(t);</span><br><span class="line">      <span class="keyword">if</span> (sn == <span class="keyword">null</span>) &#123;</span><br><span class="line">        sn = nextSerialNumber();</span><br><span class="line">        t2i.put(t, sn);</span><br><span class="line">        i2t.put(sn, t);</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="keyword">return</span> sn;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">synchronized</span> T <span class="built_in">get</span>(<span class="built_in">int</span> i) &#123;</span><br><span class="line">      <span class="keyword">if</span> (!i2t.containsKey(i)) &#123;</span><br><span class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> IllegalStateException(<span class="string">"!i2t.containsKey("</span> + i</span><br><span class="line">            + <span class="string">"), this="</span> + <span class="keyword">this</span>);</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="keyword">return</span> i2t.<span class="built_in">get</span>(i);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">String</span> toString() &#123;</span><br><span class="line">      <span class="keyword">return</span> <span class="string">"max="</span> + <span class="built_in">max</span> + <span class="string">",\n  t2i="</span> + t2i + <span class="string">",\n  i2t="</span> + i2t;</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>如上，SerialNumberManager采用单例模式，实例为INSTANCE，其中真正管理映射的是usermap和groupmap对象，usermap管理用户名的映射，groupmap管理组名的映射，为SerialNumberMap类，管理了序号到具体名字的映射i2t和名字到序号的映射t2i。<br>通过名字查找序号时，如果没有该名字的序号，则分配下一个序号，插入到t2i和i2t中管理，这个对应设置用户名或组名时。<br>而获取用户名或组名时，通过序号查找名字，如果没有找到说明还未设置好，抛出异常。  </p>
+<p>INode很多方法都是抽象方法，到后面遇到时具体分析。  </p>
+<h3 id="1-2_INodeFile和INodeFileUnderConstruction">1.2 INodeFile和INodeFileUnderConstruction</h3><p>INodeFile是文件的抽象，继承自INode，主要成员如下<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">static</span> <span class="keyword">final</span> FsPermission UMASK = FsPermission.createImmutable((<span class="keyword">short</span>)<span class="number">0111</span>);</span><br><span class="line"><span class="keyword">static</span> <span class="keyword">final</span> <span class="keyword">short</span> BLOCKBITS = <span class="number">48</span>;</span><br><span class="line"><span class="keyword">static</span> <span class="keyword">final</span> <span class="keyword">long</span> HEADERMASK = <span class="number">0xffff</span>L &lt;&lt; BLOCKBITS;</span><br><span class="line"></span><br><span class="line"><span class="comment">//Format: [16 bits for replication][48 bits for PreferredBlockSize]</span></span><br><span class="line"><span class="keyword">protected</span> <span class="keyword">long</span> header;</span><br><span class="line"><span class="keyword">protected</span> BlockInfo blocks[] = <span class="keyword">null</span>;</span><br></pre></td></tr></table></figure></p>
+<p>如上，主要为<code>header</code>和<code>blocks</code>。<br>header在long型的64位中存储了副本数和区块大小两个属性，最高16 bit存储副本数replication，低48 bit存储区块大小。副本数的掩码为HEADERMASK。<br>blocks保存了该文件的所有区块信息，类型为BlockInfo，BlockInfo保存了一个Block所属的文件INodeFile信息，还保存了该区块所有副本所在的数据节点信息，并能因此访问副本所在数据节点上的所有区块信息。成员如下:<br><figure class="highlight delphi"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> INodeFile          inode;</span><br><span class="line"><span class="keyword">private</span> LightWeightGSet.LinkedElement nextLinkedElement;</span><br><span class="line"><span class="keyword">private</span> <span class="keyword">Object</span>[] triplets;</span><br></pre></td></tr></table></figure></p>
+<p>如上，<code>inode</code>为区块所属文件，<code>triplets</code>为Object数组，对于第i个副本，所在的数据节点为triplets[i]，对应数据节点信息类型为DataNodeDescriptor，第i个副本所属DataNodeDescriptor前一个区块信息BlockInfo为triplets[i+1]，后一个区块信息为triplets[i+2]。更多关于INodeFile和DataNodeDescriptor后面具体分析。  </p>
+<p>INodeFileUnderConstruction是正在写的还未关闭的文件，是INodeFile的子类，客户端写或者追加时打开的文件即为INodeFileUnderConstruction。<br>成员属性如下:<br><img src="../images/INodeFileUnderConstruction成员属性.png" alt="INodeFileUnderConstruction成员属性">  </p>
+<ul>
+<li><code>clientName</code>，写文件的客户端，也就是该文件租约的所有者</li>
+<li><code>clientMachine</code>，客户端所在主机</li>
+<li><code>clientNode</code>，当客户端运行在数据节点上时该数据节点信息</li>
+<li><code>primaryNodeIndex</code>，租约恢复时主数据节点</li>
+<li><code>targets</code>，最后一个数据块的数据流管道成员</li>
+<li><code>lastRecoveryTime</code>，租约恢复时间</li>
+</ul>
+<p>如上，其中租约用于对文件写进行控制，为了防止多个客户端写一个文件，HDFS采用租约的机制，文件租约最多属于一个客户端，客户端获取到租约后定期更新租约，否则到期后经过一段时间(NameNode定期检测是否到期)会关闭该文件，恢复租约以供其他客户端使用。具体后面会分析。<br>客户端可能运行在DataNode上，此时clientNode保存了该DataNode信息。  </p>
+<p>对于INodeFileUnderConstruction来说，最后一个区块在NameNode内存中是没有其对应的数据节点信息的，该区块所有副本对应所在的数据节点也没有管理对应区块，因为还没创建完，在INodeFileUnderConstruction中通过targets保存最后一个区块的数据流管道成员，即正在写该区块的数据节点。后面会具体分析。  </p>
+<p>当NameNode定期检查时发现客户端长时间未更新租约，NameNode便会开始租约恢复(客户端也可以强行抢占另一个客户端占有某文件的租约,开始租约恢复)。从targets中选择第一个活着的数据节点，为主数据节点在targets中索引保存在primaryNodeIndex中，通过lastRecoveryTime记录租约恢复时间，为该INodeFileUnderConstruction分配一个固定的客户端NN_Recovery，并创建新的租约，原来的租约得以释放。然后在主数据节点心跳到来时发送区块恢复命令，区块恢复到一致状态时，原来的INodeFileUnderConstruction与NN_Recovery的对应关系解除。从而释放原来文件的租约，可以给新的客户端使用。具体见后面分析。  </p>
+<p>INodeFileUnderConstruction其他相关方法后面具体分析。  </p>
+<h3 id="1-3_INodeDirectory和INodeDirectoryWithQuota">1.3 INodeDirectory和INodeDirectoryWithQuota</h3><p>INodeDirectory是目录的抽象，继承自INode，成员如下<br><figure class="highlight processing"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">protected</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="built_in">int</span> DEFAULT_FILES_PER_DIRECTORY = <span class="number">5</span>;</span><br><span class="line"><span class="keyword">final</span> <span class="keyword">static</span> <span class="keyword">String</span> ROOT_NAME = <span class="string">""</span>;</span><br><span class="line"><span class="keyword">private</span> List&lt;INode&gt; children;</span><br></pre></td></tr></table></figure></p>
+<p>如上，对于HDFS来说根目录为””，对应的INode中name长度为0。<br><figure class="highlight applescript"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">boolean</span> isRoot() &#123; <span class="constant">return</span> <span class="property">name</span>.<span class="property">length</span> == <span class="number">0</span>; &#125;</span><br></pre></td></tr></table></figure></p>
+<p>目录下的目录项保存在<code>children</code>中，可以为任意INode子类。目录的父目录继承自INode，为parent成员，也是INodeDirectory类。<br>INodeDirectory大多是对目录项进行操作，如添加，删除，查找目录项等，如下<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line">&lt;T <span class="keyword">extends</span> INode&gt; <span class="function">T <span class="title">addNode</span><span class="params">(String path, T newNode, <span class="keyword">boolean</span> inheritPermission)</span> <span class="keyword">throws</span> FileNotFoundException </span>&#123;</span><br><span class="line">    <span class="keyword">if</span>(addToParent(path, newNode, <span class="keyword">null</span>, inheritPermission) == <span class="keyword">null</span>)</span><br><span class="line">      <span class="keyword">return</span> <span class="keyword">null</span>;</span><br><span class="line">    <span class="keyword">return</span> newNode;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">&lt;T <span class="keyword">extends</span> INode&gt; <span class="function">INodeDirectory <span class="title">addToParent</span><span class="params">(String path, T newNode,</span><br><span class="line">                  INodeDirectory parent, <span class="keyword">boolean</span> inheritPermission)</span> <span class="keyword">throws</span> FileNotFoundException </span>&#123;</span><br><span class="line">    <span class="keyword">byte</span>[][] pathComponents = getPathComponents(path);</span><br><span class="line">    <span class="keyword">assert</span> pathComponents != <span class="keyword">null</span> : <span class="string">"Incorrect path "</span> + path;</span><br><span class="line">    <span class="keyword">int</span> pathLen = pathComponents.length;</span><br><span class="line">    <span class="keyword">if</span> (pathLen &lt; <span class="number">2</span>)  <span class="comment">// add root</span></span><br><span class="line">      <span class="keyword">return</span> <span class="keyword">null</span>;</span><br><span class="line">    <span class="keyword">if</span>(parent == <span class="keyword">null</span>) &#123;</span><br><span class="line">      INode[] inodes  = <span class="keyword">new</span> INode[<span class="number">2</span>];</span><br><span class="line">      getExistingPathINodes(pathComponents, inodes);</span><br><span class="line">      INode inode = inodes[<span class="number">0</span>];</span><br><span class="line">      <span class="keyword">if</span> (inode == <span class="keyword">null</span>) &#123;</span><br><span class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> FileNotFoundException(<span class="string">"Parent path does not exist: "</span>+path);</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="keyword">if</span> (!inode.isDirectory()) &#123;</span><br><span class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> FileNotFoundException(<span class="string">"Parent path is not a directory: "</span>+path);</span><br><span class="line">      &#125;</span><br><span class="line">      parent = (INodeDirectory)inode;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">// insert into the parent children list</span></span><br><span class="line">    newNode.name = pathComponents[pathLen-<span class="number">1</span>];</span><br><span class="line">    <span class="keyword">if</span>(parent.addChild(newNode, inheritPermission) == <span class="keyword">null</span>)</span><br><span class="line">      <span class="keyword">return</span> <span class="keyword">null</span>;</span><br><span class="line">    <span class="keyword">return</span> parent;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，添加子节点时，通过addToParent实现，如果没有指定parent，会查找parent节点，然后通过addChild添加到parent目录下。<br>其中<code>getPathComponents</code>获取路径元素数组，如<code>/c1/c2/c3</code>得到的是数组元素{“c1”,”c2”,”c3”}，字符串转换成字节数组。<br>而<code>getExistingPathINodes</code>使用的比较多，方法声明如下<br><figure class="highlight scss"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">int <span class="function">getExistingPathINodes</span>(byte<span class="attr_selector">[]</span><span class="attr_selector">[]</span> components, INode<span class="attr_selector">[]</span> existing)</span><br></pre></td></tr></table></figure></p>
+<p>根据传入的第二个参数existing获取路径元素components对应的INode对象。如果existing足够大能够存储所有存在或不存在的路径元素，则存在的INode对象从根INode(如上c1对应的INode)开始会从existing[0]开始存储，而如果existing不是足够大，则只有后面存在或不存在的INode会存储在exiting中以保证existing[existing.length-1]保存目标节点(如上c3对应INode)。<br>例如，给定路径/c1/c2/c3，不过当前只存在/c1/c2,得到路径元素数组components[“”,”c1”,”c2”,”c3”],则可能有以下情况:<br>getExistingPathINodes([“”,”c1”,”c2”], [?])，则existing为[c2]，最后一个元素c2存在<br>getExistingPathINodes([“”,”c1”,”c2”,”c3”], [?])，则existing为[null]，最后一个元素c3不存在<br>getExistingPathINodes([“”,”c1”,”c2”], [?,?])，则existing为[c1,c2]，最后两个元素都存在<br>getExistingPathINodes([“”,”c1”,”c2”,”c3”], [?,?])，则existing为[c2,null]，c2存在，c3不存在<br>getExistingPathINodes([“”,”c1”,”c2”], [?,?,?,?])，则existing为[rootINode,c1,c2,null]<br>getExistingPathINodes([“”,”c1”,”c2”,”c3”], [?,?,?,?])，则existing为[rootINode,c1,c2,null]</p>
+<p>因此对应到addToParent中，传入的existing为两个元素的数组，因此inodes[0]将获取到父目录INode对象，如果不存在则不能添加，最终通过parent.addChild添加newNode到parent中，如下<br><figure class="highlight crmsh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;T extends INode&gt;</span> T addChild(final T <span class="keyword">node</span><span class="identifier"></span><span class="title">, boolean</span> inheritPermission) &#123;</span><br><span class="line">    if (inheritPermission) &#123;//继承父目录的权限</span><br><span class="line">      FsPermission p = getFsPermission();</span><br><span class="line">      //确保用户有wx权限，在目录下有执行权限才能访问目录，写权限才能创建新的目录项</span><br><span class="line">      if (!p.getUserAction().implies(FsAction.WRITE_EXECUTE)) &#123;</span><br><span class="line">        p = new FsPermission(p.getUserAction().<span class="operator">or</span>(FsAction.WRITE_EXECUTE),</span><br><span class="line">            p.getGroupAction(), p.getOtherAction());</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="keyword">node</span>.<span class="identifier"></span><span class="title">setPermission</span>(p);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    if (children == null) &#123;//父目录下还没有目录项，创建</span><br><span class="line">      children = new ArrayList<span class="tag">&lt;INode&gt;</span>(DEFAULT_FILES_PER_DIRECTORY);</span><br><span class="line">    &#125;</span><br><span class="line">    int low = Collections.binarySearch(children, <span class="keyword">node</span>.<span class="identifier"></span><span class="title">name</span>);//查找是否已经存在</span><br><span class="line">    if(low &gt;= <span class="number">0</span>)//已经存在添加失败，返回null</span><br><span class="line">      return null;</span><br><span class="line">    <span class="keyword">node</span>.<span class="identifier"></span><span class="title">parent</span> = this;//更新新节点的parent成员</span><br><span class="line">    children.add(-low - <span class="number">1</span>, <span class="keyword">node</span><span class="identifier"></span><span class="title">);//添加到parent</span>的children中</span><br><span class="line">    setModificationTime(<span class="keyword">node</span>.<span class="identifier"></span><span class="title">getModificationTime</span>());//设置新节点的修改时间</span><br><span class="line">    if (<span class="keyword">node</span>.<span class="identifier"></span><span class="title">getGroupName</span>() == null) &#123;//新节点的组即为父目录的组</span><br><span class="line">      <span class="keyword">node</span>.<span class="identifier"></span><span class="title">setGroup</span>(getGroupName());</span><br><span class="line">    &#125;</span><br><span class="line">    return <span class="keyword">node</span><span class="identifier"></span><span class="title">;</span><br><span class="line">&#125;</span></span><br></pre></td></tr></table></figure></p>
+<p>如上，关于FsPermission另见<a href="../Hadoop抽象文件系统">Hadoop抽象文件系统</a>  </p>
+<p>这里就介绍添加子节点的方法，其中getExistingPathINodes方法用的比较多，其他的方法后面用到时具体分析。  </p>
+<p>INodeDirectoryWithQuota继承自INodeDirectory，在目录的基础上增加了配额，配额有两种:节点配额和空间配额。节点配额用于限制目录下的目录项数量，保存在成员变量nsQuota中，空间配额用于限制存储在目录下所有目录项所占存储空间大小，保存在成员变量dsQuota中，成员如下<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="keyword">long</span> nsQuota; <span class="comment">//namespace配额</span></span><br><span class="line"><span class="keyword">private</span> <span class="keyword">long</span> nsCount; <span class="comment">//当前namespace数量</span></span><br><span class="line"><span class="keyword">private</span> <span class="keyword">long</span> dsQuota; <span class="comment">//磁盘空间配额</span></span><br><span class="line"><span class="keyword">private</span> <span class="keyword">long</span> diskspace; <span class="comment">//当前所占磁盘空间</span></span><br></pre></td></tr></table></figure></p>
+<p>HDFS的dfsadmin工具提供了修改目录配额的命令，该命令会修改相应的成员变量。具体方法后面碰到具体分析。  </p>
+<hr>
+<p>命名空间镜像是某一个时间点内存元数据的真实组织情况，由FSImage实现。编辑日志则记录了该时刻以后所有元数据操作，如打开了一个文件，删除文件等等。<br>命名空间镜像位置由配置项<code>dfs.name.dir</code>指定，编辑日志由配置项<code>dfs.name.edits.dir</code>，两者都可以由多个目录，缺省都为<code>/tmp/hadoop/dfs/name</code>。其中编辑日志可以指定和命名空间镜像一样，这样镜像和日志文件存储在同一个目录下。对应的NameNode中目录类型有以下几种<br><figure class="highlight crystal"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">static <span class="class"><span class="keyword">enum</span> <span class="title">NameNodeDirType</span> <span class="title">implements</span> <span class="title">StorageDirType</span> &#123;</span></span><br><span class="line">    <span class="constant">UNDEFINED</span>,</span><br><span class="line">    <span class="constant">IMAGE</span>,</span><br><span class="line">    <span class="constant">EDITS</span>,</span><br><span class="line">    <span class="constant">IMAGE_AND_EDITS</span>;</span><br></pre></td></tr></table></figure></p>
+<p>如上，UNDEFINED未定义，IMAGE只存储镜像文件，EDITS只存储日志文件，IMAGE_AND_EDITS既存储镜像又存储日志文件(对应日志目录配置和镜像一样)。<br>与DataNode一样，NameNode也可存在多个存储目录。  </p>
+<hr>
+<h2 id="2-_FSImage">2. FSImage</h2><p>FSImage继承自Storage，Storage见<a href="../DataNode本地存储管理">DataNode本地存储管理</a>。<br>FSImage管理着存储空间的生存期，负责命名空间镜像的保存和装载，和第二名字节点合作执行检查点过程。FSImage中还包含FSEditLog成员，如下<br><figure class="highlight actionscript"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">protected</span> FSEditLog editLog = <span class="literal">null</span>;</span><br></pre></td></tr></table></figure></p>
+<p>在FSImage存储目录下可能有以下文件<br><figure class="highlight crystal"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">enum</span> <span class="title">NameNodeFile</span> &#123;</span></span><br><span class="line">    <span class="constant">IMAGE</span>     (<span class="string">"fsimage"</span>),</span><br><span class="line">    <span class="constant">TIME</span>      (<span class="string">"fstime"</span>),</span><br><span class="line">    <span class="constant">EDITS</span>     (<span class="string">"edits"</span>),</span><br><span class="line">    <span class="constant">IMAGE_NEW</span> (<span class="string">"fsimage.ckpt"</span>),</span><br><span class="line">    <span class="constant">EDITS_NEW</span> (<span class="string">"edits.new"</span>);</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">private</span> <span class="constant">String</span> fileName = null;</span><br><span class="line">    <span class="keyword">private</span> <span class="constant">NameNodeFile</span>(<span class="constant">String</span> name) &#123;this.fileName = name;&#125;</span><br><span class="line">    <span class="constant">String</span> getName() &#123;<span class="keyword">return</span> fileName;&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，通过枚举定义</p>
+<ul>
+<li><code>fsimage</code>，元数据镜像文件</li>
+<li><code>fstime</code>，保存了最近一次检查点的时间，检查点一般由第二名字节点产生，是一次fsimage和对应edits合并结果</li>
+<li><code>edits</code>，编辑日志文件，根据配置不同可能和fsimage不在一个目录</li>
+<li><code>fsimage.ckpt</code>，新的fsimage文件，从第二名字节点通过HTTP方式获取到的新的镜像文件</li>
+<li><code>edits.new</code>，新的编辑日志文件，第二名字节点发起新的检查点请求后，名字节点关闭当前edits文件，使用新的日志文件记录</li>
+</ul>
+<p>当然还有Storage中的VERSION文件，in_user.lock锁文件。  </p>
+<h3 id="2-1_命名空间镜像保存">2.1 命名空间镜像保存</h3><p>命名空间镜像存储了某一个时刻名字节点内内存元数据的信息，包括目录树中所有INode信息，正在写入文件信息(INodeFileUnderConstruction)，和与安全相关的信息。<br>命名空间镜像的保存通过<code>saveFSImage</code>完成，将当前内存中命名空间镜像，保存到指定文件中<br><figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">saveFSImage</span>(<span class="params">File newFile</span>) throws IOException </span>&#123;</span><br><span class="line">    FSNamesystem fsNamesys = FSNamesystem.getFSNamesystem();</span><br><span class="line">    FSDirectory fsDir = fsNamesys.dir;</span><br><span class="line">    <span class="keyword">long</span> startTime = FSNamesystem.now();</span><br><span class="line">    <span class="comment">//创建输出流对象</span></span><br><span class="line">    DataOutputStream <span class="keyword">out</span> = <span class="keyword">new</span> DataOutputStream(<span class="keyword">new</span> BufferedOutputStream(<span class="keyword">new</span> FileOutputStream(newFile)));</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">      <span class="keyword">out</span>.writeInt(FSConstants.LAYOUT_VERSION);<span class="comment">//版本号</span></span><br><span class="line">      <span class="keyword">out</span>.writeInt(namespaceID);<span class="comment">//命名空间ID</span></span><br><span class="line">      <span class="keyword">out</span>.writeLong(fsDir.rootDir.numItemsInTree());<span class="comment">//目录和文件数目</span></span><br><span class="line">      <span class="keyword">out</span>.writeLong(fsNamesys.getGenerationStamp());<span class="comment">//当前数据块版本号</span></span><br><span class="line">      <span class="keyword">byte</span>[] byteStore = <span class="keyword">new</span> <span class="keyword">byte</span>[<span class="number">4</span>*FSConstants.MAX_PATH_LENGTH];</span><br><span class="line">      ByteBuffer strbuf = ByteBuffer.wrap(byteStore);</span><br><span class="line">      <span class="comment">//保存根目录信息</span></span><br><span class="line">      saveINode2Image(strbuf, fsDir.rootDir, <span class="keyword">out</span>);</span><br><span class="line">      <span class="comment">//递归保存根目录所有子目录和文件信息</span></span><br><span class="line">      saveImage(strbuf, <span class="number">0</span>, fsDir.rootDir, <span class="keyword">out</span>);</span><br><span class="line">      fsNamesys.saveFilesUnderConstruction(<span class="keyword">out</span>);<span class="comment">//保存正在写的文件</span></span><br><span class="line">      fsNamesys.saveSecretManagerState(<span class="keyword">out</span>);<span class="comment">//保存安全信息</span></span><br><span class="line">      strbuf = <span class="keyword">null</span>;</span><br><span class="line">    &#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">      <span class="keyword">out</span>.close();</span><br><span class="line">    &#125;</span><br><span class="line">    LOG.info(<span class="string">"Image file "</span> + newFile + <span class="string">" of size "</span> + newFile.length() +</span><br><span class="line">        <span class="string">" bytes saved in "</span> + (FSNamesystem.now() - startTime)/<span class="number">1000</span> + <span class="string">" seconds."</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>FSNamesystem是NameNode管理目录树，文件对应数据块信息，数据块和数据节点关系以及一些列相关操作的一个大类，与文件，数据块，数据节点相关的大部分操作都通过它完成，这里暂时不分析。FSNamesystem的dir成员为FSDirectory，管理了与命名空间镜像和编辑日志与目录树，文件和区块相关的操作，其中包含FSImage对象，而FSImage对象又包含FSEditLog对象。dir的吃恒源rootDir为目录树的根目录，如前描述名字为””，对应的名字长度为0，对应的类为INodeDirectoryWithQuota。  </p>
+<p>如上，首先保存头信息，包括4字节的版本号，4字节的命名空间ID，8字节的目录树中目录和文件数目(根目录INodeDirectoryWithQuota中的节点配额nsQuota)，8字节的当前数据块版本号。<br>头信息之后通过<code>saveINode2Image</code>保存根目录(INodeDirectoryWithQuota)信息，通过<code>saveImage</code>保存目录树中其他的子目录和文件信息。<br>通过<code>saveFilesUnderConstruction</code>保存正在写的文件(INodeFileUnderConstruction)信息。<br>通过<code>saveSecretManagerState</code>保存安全相关的信息。  </p>
+<h4 id="2-1-1_saveINode2Image">2.1.1 saveINode2Image</h4><p>saveINode2Image用于输出一个具体的INode对象，有可能为目录或者文件。如上使用saveINode2Image输出根目录信息，在saveImage中也会使用saveINode2Image输出具体的目录或文件。<br><figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">saveINode2Image</span>(<span class="params">ByteBuffer name,</span><br><span class="line">                                      INode node, DataOutputStream <span class="keyword">out</span></span>) throws IOException </span>&#123;</span><br><span class="line">    <span class="keyword">int</span> nameLen = name.position();</span><br><span class="line">    <span class="keyword">out</span>.writeShort(nameLen);</span><br><span class="line">    <span class="keyword">out</span>.write(name.array(), name.arrayOffset(), nameLen);</span><br><span class="line">    <span class="keyword">if</span> (!node.isDirectory()) &#123;  <span class="comment">//文件</span></span><br><span class="line">      INodeFile fileINode = (INodeFile)node;</span><br><span class="line">      <span class="keyword">out</span>.writeShort(fileINode.getReplication());<span class="comment">//副本数</span></span><br><span class="line">      <span class="keyword">out</span>.writeLong(fileINode.getModificationTime());<span class="comment">//修改时间</span></span><br><span class="line">      <span class="keyword">out</span>.writeLong(fileINode.getAccessTime());<span class="comment">//访问时间</span></span><br><span class="line">      <span class="keyword">out</span>.writeLong(fileINode.getPreferredBlockSize());<span class="comment">//区块大小</span></span><br><span class="line">      Block[] blocks = fileINode.getBlocks();</span><br><span class="line">      <span class="keyword">out</span>.writeInt(blocks.length);<span class="comment">//区块数目</span></span><br><span class="line">      <span class="keyword">for</span> (Block blk : blocks)<span class="comment">//所有区块信息</span></span><br><span class="line">        blk.write(<span class="keyword">out</span>);</span><br><span class="line">      FILE_PERM.fromShort(fileINode.getFsPermissionShort());</span><br><span class="line">      <span class="comment">//用户名，组名，访问权限</span></span><br><span class="line">      PermissionStatus.write(<span class="keyword">out</span>, fileINode.getUserName(),</span><br><span class="line">                             fileINode.getGroupName(), FILE_PERM);</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;   <span class="comment">//目录</span></span><br><span class="line">      <span class="keyword">out</span>.writeShort(<span class="number">0</span>);  <span class="comment">//副本数，目录没这个概念，0</span></span><br><span class="line">      <span class="keyword">out</span>.writeLong(node.getModificationTime());<span class="comment">//修改时间</span></span><br><span class="line">      <span class="keyword">out</span>.writeLong(<span class="number">0</span>);   <span class="comment">//访问时间，目录没有，0</span></span><br><span class="line">      <span class="keyword">out</span>.writeLong(<span class="number">0</span>);   <span class="comment">//区块大小，目录没有，0</span></span><br><span class="line">      <span class="keyword">out</span>.writeInt(-<span class="number">1</span>);    <span class="comment">//区块数，目录不存在区块，-1</span></span><br><span class="line">      <span class="keyword">out</span>.writeLong(node.getNsQuota());<span class="comment">//节点配额</span></span><br><span class="line">      <span class="keyword">out</span>.writeLong(node.getDsQuota());<span class="comment">//空间配额</span></span><br><span class="line">      FILE_PERM.fromShort(node.getFsPermissionShort());</span><br><span class="line">      <span class="comment">//用户名，组名，访问权限</span></span><br><span class="line">      PermissionStatus.write(<span class="keyword">out</span>, node.getUserName(),</span><br><span class="line">                             node.getGroupName(), FILE_PERM);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，参数name为保存绝对路径的缓冲区，如在saveFSImage中保存根目录时传入的为strbuf为空，对应根目录name为空，长度为0，在saveImage中有相应处理。<br>按照以上代码可知对于文件，其在命名空间镜像中格式为<br><img src="../images/命名空间镜像中的INodeFile.png" alt="命名空间镜像中的INodeFile"><br>对于目录，其在命名空间镜像中格式为<br><img src="../images/命名空间镜像中的目录.png" alt="命名空间镜像中的目录"><br>因为目录没有副本数，访问时间，区块大小，因此都置0，区块数目为-1，没有区块相应的区块信息部分当然不存在。就是多了节点配额和空间配额两项，其他一致。其中如果目录为INodeDirectory没有配额，则相应的值继承INode为-1。</p>
+<h4 id="2-1-2_saveImage">2.1.2 saveImage</h4><p>saveImage保存目录下的所有目录和文件<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="keyword">static</span> <span class="function"><span class="keyword">void</span> <span class="title">saveImage</span><span class="params">(ByteBuffer parentPrefix,</span><br><span class="line">                                <span class="keyword">int</span> prefixLength,</span><br><span class="line">                                INodeDirectory current,</span><br><span class="line">                                DataOutputStream out)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">    <span class="keyword">int</span> newPrefixLength = prefixLength;</span><br><span class="line">    <span class="keyword">if</span> (current.getChildrenRaw() == <span class="keyword">null</span>)<span class="comment">//没有目录项，该目录保存完成，返回</span></span><br><span class="line">      <span class="keyword">return</span>;</span><br><span class="line">    <span class="keyword">for</span>(INode child : current.getChildren()) &#123;<span class="comment">//先输出当前节点所有子节点</span></span><br><span class="line">      parentPrefix.position(prefixLength);<span class="comment">//重新定位到父目录在缓冲区位置</span></span><br><span class="line">      parentPrefix.put(PATH_SEPARATOR).put(child.getLocalNameBytes());<span class="comment">//添加子节点名字</span></span><br><span class="line">      saveINode2Image(parentPrefix, child, out);<span class="comment">//保存子节点</span></span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">for</span>(INode child : current.getChildren()) &#123;<span class="comment">//递归输出子节点的目录项</span></span><br><span class="line">      <span class="keyword">if</span>(!child.isDirectory())<span class="comment">//文件，不需要继续</span></span><br><span class="line">        <span class="keyword">continue</span>;</span><br><span class="line">      parentPrefix.position(prefixLength);</span><br><span class="line">      parentPrefix.put(PATH_SEPARATOR).put(child.getLocalNameBytes());<span class="comment">//添加节点名，作为节点的子节点的父路径</span></span><br><span class="line">      newPrefixLength = parentPrefix.position();<span class="comment">//更新新的父路径在缓冲区位置</span></span><br><span class="line">      saveImage(parentPrefix, newPrefixLength, (INodeDirectory)child, out)信息，i;<span class="comment">//递归输出子节点目录下所有目录项</span></span><br><span class="line">    &#125;</span><br><span class="line">    parentPrefix.position(prefixLength);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>参数<code>parentPrefix</code>缓冲区保存父目录路径，<code>prefixLength</code>为父目录路径在缓冲区中长度。<code>current</code>为要保存的目录，<code>out</code>保存输出流。<br>如saveFSImage中调用<br><figure class="highlight lisp"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">saveImage<span class="list">(<span class="keyword">strbuf</span>, <span class="number">0</span>, fsDir.rootDir, out)</span><span class="comment">;</span></span><br></pre></td></tr></table></figure></p>
+<p>strbuf为4*8000的缓冲区，指定最大路径长度为8000，路径上每个字符最大4个字节，该缓冲区可重复利用。根目录的父目录不存在，因此此时strbuf中没有保存任何信息，指定的prefixLength为0。通过FSDirectory对象fsDir的rootDir属性从根目录开始保存。<br>如上，输出目录时，先输出目录下的所有子目录项，即目录下的目录项为文件的通过saveINode2Image输出文件信息，为目录的通过saveINode2Image输出目录信息。然后对于目录下的每一个子目录递归调用saveImage输出该子目录下的目录项，最终完成整个目录树的输出。<br>输出时，文件或目录的名字通过缓冲区parentPrefix和指定的位置prefixLength动态更新。为了便于说明，这里举个例子<br>假设存在如下目录树<br><img src="../images/saveImage目录树.png" alt="saveImage目录树"><br>其中d为目录，f为文件。因此通过saveImage(strbuf,0,fsDir.rootDir,out)输出根目录下的节点时，先通过saveINode2Image输出目录项d1，d2，f1，调用saveINode2Image前更新缓冲区，在原来基础上添加对应的目录项名字。如输出d1调用saveINode2Image时，缓冲区中内容为<code>/d1</code>对应的字节。而继续输出d2时，又通过记录的父路径在缓冲区位置prefixLength重置到父路径处，缓冲区有效内容置空，然后添加d2的路径名，调用saveINode2Image时，缓冲区内容为<code>/d2</code>对应的字节，以此类推f1。  </p>
+<p>输出了根目录下的三个目录项后，因为存在子目录d1，d2，需要递归输出d1，d2下面的目录项。递归输出d1下的目录项时，先重置到父路径位置，然后添加d1路径名，作为输出d1目录下目录项时的父路径，并通过newPrefixLength记录此时新父路径在缓冲区的位置，调用saveImage输出d1下面的目录项，此时父路径为<code>/d1</code>。d1下面目录项输出完后，同样的d2也要先重置到父路径，添加d2的路径，作为新的父路径，调用saveImage输出d2的子目录项时，新的父路径为<code>/d2</code>。最终输出所有子目录下的节点。  </p>
+<p>在saveFSImage中通过saveINode2Image输出根目录，通过saveImage递归输出根目录的子节点后，调用<code>saveFilesUnderConstruction</code>输出正在构建中的文件信息</p>
+<h4 id="2-1-3_saveFilesUnderConstruction">2.1.3 saveFilesUnderConstruction</h4><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">saveFilesUnderConstruction</span><span class="params">(DataOutputStream out)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">    <span class="keyword">synchronized</span> (leaseManager) &#123;</span><br><span class="line">      out.writeInt(leaseManager.countPath()); <span class="comment">//处于构建状态下的文件数</span></span><br><span class="line"></span><br><span class="line">      <span class="keyword">for</span> (Lease lease : leaseManager.getSortedLeases()) &#123;</span><br><span class="line">        <span class="keyword">for</span>(String path : lease.getPaths()) &#123;<span class="comment">//一个租约下处于构建状态的文件</span></span><br><span class="line">          INode node = dir.getFileINode(path);</span><br><span class="line">          <span class="keyword">if</span> (node == <span class="keyword">null</span>) &#123;</span><br><span class="line">            <span class="keyword">throw</span> <span class="keyword">new</span> IOException(<span class="string">"saveLeases found path "</span> + path +</span><br><span class="line">                                  <span class="string">" but no matching entry in namespace."</span>);</span><br><span class="line">          &#125;</span><br><span class="line">          <span class="keyword">if</span> (!node.isUnderConstruction()) &#123;</span><br><span class="line">            <span class="keyword">throw</span> <span class="keyword">new</span> IOException(<span class="string">"saveLeases found path "</span> + path +</span><br><span class="line">                                  <span class="string">" but is not under construction."</span>);</span><br><span class="line">          &#125;</span><br><span class="line">          INodeFileUnderConstruction cons = (INodeFileUnderConstruction) node;</span><br><span class="line">          FSImage.writeINodeUnderConstruction(out, cons, path);</span><br><span class="line">        &#125;</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>如上，通过租约管理器获取处于构建状态的文件信息。租约管理器LeaseManager是FSNamesystem中的成员，管理了所有客户端对应的租约。管理的所有租约保存在成员<code>sortedLeasesByPath</code>中，通过更新时间排序。sortedLeasesByPath通过<code>getSortedLeases</code>方法获取，如上。<br>一个客户端对应一个租约Lease，租约Lease维护了客户端打开的所有文件，维护的文件保存在Lease的成员<code>paths</code>中，通过<code>getPaths</code>获取，如上。  </p>
+<p>获取打开文件路径后，通过FSDirectory的<code>getFileINode</code>获取对应的INode对象<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="function">INodeFile <span class="title">getFileINode</span><span class="params">(String src)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">synchronized</span> (rootDir) &#123;</span><br><span class="line">      INode inode = rootDir.getNode(src);</span><br><span class="line">      <span class="keyword">if</span> (inode == <span class="keyword">null</span> || inode.isDirectory())</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">null</span>;</span><br><span class="line">      <span class="keyword">return</span> (INodeFile)inode;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function">INode <span class="title">getNode</span><span class="params">(String path)</span> </span>&#123; <span class="keyword">return</span> getNode(getPathComponents(path)); &#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，从根目录rootDir开始查找，getPathComponents已经介绍过，获取path路径元素数组，getNode如下<br><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> INode <span class="title">getNode</span><span class="params">(byte[][] components)</span> </span>&#123;</span><br><span class="line">    INode[] inode  = <span class="keyword">new</span> INode[<span class="number">1</span>];</span><br><span class="line">    getExistingPathINodes(components, inode);</span><br><span class="line">    <span class="keyword">return</span> inode[<span class="number">0</span>];</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，getExistingPathINodes也已经介绍过了，传入的第二个参数只有一个元素，因此获取的是components中的最后一个路径对应的INode对象，如果不存在则返回null。<br>回到saveFilesUnderConstruction中，获取到对应的INode对象后，如果正常转换为INodeFileUnderConstruction对象，然后通过writeINodeUnderConstruction输出INodeFileUnderConstruction<br><figure class="highlight stata"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">static void writeINodeUnderConstruction(DataOutputStream <span class="keyword">out</span>,</span><br><span class="line">               INodeFileUnderConstruction <span class="keyword">cons</span>, String path) throws IOException &#123;</span><br><span class="line">    writeString(path, <span class="keyword">out</span>);<span class="comment">//路径</span></span><br><span class="line">    <span class="keyword">out</span>.writeShort(<span class="keyword">cons</span>.getReplication());<span class="comment">//副本数</span></span><br><span class="line">    <span class="keyword">out</span>.writeLong(<span class="keyword">cons</span>.getModificationTime());<span class="comment">//修改时间</span></span><br><span class="line">    <span class="keyword">out</span>.writeLong(<span class="keyword">cons</span>.getPreferredBlockSize());<span class="comment">//区块大小</span></span><br><span class="line">    int nrBlocks = <span class="keyword">cons</span>.getBlocks().length;<span class="comment">//区块数</span></span><br><span class="line">    <span class="keyword">out</span>.writeInt(nrBlocks);</span><br><span class="line">    <span class="keyword">for</span> (int i = 0; i &lt; nrBlocks; i++) &#123;<span class="comment">//所有区块信息</span></span><br><span class="line">      <span class="keyword">cons</span>.getBlocks()[i].write(<span class="keyword">out</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">cons</span>.getPermissionStatus().write(<span class="keyword">out</span>);<span class="comment">//所属用户，所属组，访问权限</span></span><br><span class="line">    writeString(<span class="keyword">cons</span>.getClientName(), <span class="keyword">out</span>);<span class="comment">//客户端名</span></span><br><span class="line">    writeString(<span class="keyword">cons</span>.getClientMachine(), <span class="keyword">out</span>);<span class="comment">//客户端所在主机</span></span><br><span class="line">    <span class="keyword">out</span>.writeInt(0); <span class="comment">//  do not store locations of last block</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>按照上面的代码，可得INodeFileUnderConstruction的输出格式为<br><img src="../images/命名空间镜像中的INodeFileUnderConstruction.png" alt="命名空间镜像中的INodeFileUnderConstruction">  </p>
+<p>saveFSImage最后输出安全相关的部分对应的对象为DelegationTokenSecretManager，不再分析。  </p>
+<p>Hadoop提供了一个离线命名空间镜像查看器，可用于对fsimage文件进行分析，实现在<code>org.apache.hadoop.hdfs.tools.offlineImageViewer</code>中。(技术内幕)  </p>
+<h3 id="2-2_命名空间镜像的读取">2.2 命名空间镜像的读取</h3><p>命名空间镜像的读取由FSImage.loadFSImage完成，将包含的元数据添加/更新到内存元数据中。<br>loadFSImage比较冗长，因为为了兼容以前的版本，读取到版本号后，要根据版本号做相应的处理(不同版本的格式不一样)，这里不全部分析了，只结合上面命名空间镜像保存过程分析当前版本(版本号-41)的读取过程。<br><figure class="highlight groovy"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br></pre></td><td class="code"><pre><span class="line"><span class="typename">boolean</span> loadFSImage(File curFile) <span class="keyword">throws</span> IOException &#123;</span><br><span class="line">      ...<span class="comment">//版本号，命名空间ID，节点数等读取</span></span><br><span class="line">      <span class="keyword">if</span> (imgVersion &lt;= -<span class="number">12</span>) &#123;</span><br><span class="line">        <span class="typename">long</span> genstamp = <span class="keyword">in</span>.readLong();</span><br><span class="line">        fsNamesys.setGenerationStamp(genstamp);<span class="comment">//设置数据块版本号 </span></span><br><span class="line">      &#125;</span><br><span class="line"></span><br><span class="line">      String path;</span><br><span class="line">      String parentPath = <span class="string">""</span>;</span><br><span class="line">      INodeDirectory parentINode = fsDir.rootDir;<span class="comment">//根节点</span></span><br><span class="line">      <span class="keyword">for</span> (<span class="typename">long</span> i = <span class="number">0</span>; i &lt; numFiles; i++) &#123;<span class="comment">//循环读取所有节点</span></span><br><span class="line">        ...<span class="comment">//按照保存过程读取路径，副本数，修改时间，访问时间，数据块大小，数据块数，数据块，用户名，组名，访问权限等</span></span><br><span class="line">        <span class="keyword">if</span> (path.length() == <span class="number">0</span>) &#123;<span class="comment">//根目录</span></span><br><span class="line">          <span class="keyword">if</span> (nsQuota != -<span class="number">1</span> || dsQuota != -<span class="number">1</span>) &#123;<span class="comment">//更新根目录配额</span></span><br><span class="line">            fsDir.rootDir.setQuota(nsQuota, dsQuota);</span><br><span class="line">          &#125;</span><br><span class="line">          fsDir.rootDir.setModificationTime(modificationTime);<span class="comment">//更新更目录修改时间</span></span><br><span class="line">          fsDir.rootDir.setPermissionStatus(permissions);<span class="comment">//更新根目录访问权限</span></span><br><span class="line">          <span class="keyword">continue</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">if</span>(!isParent(path, parentPath)) &#123;</span><br><span class="line">          parentINode = <span class="literal">null</span>;</span><br><span class="line">          parentPath = getParent(path);</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="comment">//添加子节点</span></span><br><span class="line">        parentINode = fsDir.addToParent(path, parentINode, permissions,</span><br><span class="line">                           blocks, replication, modificationTime, atime, nsQuota, dsQuota, blockSize);</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="keyword">this</span>.loadDatanodes(imgVersion, <span class="keyword">in</span>);<span class="comment">//某些版本(-12,-3]保存了数据节点信息</span></span><br><span class="line">      <span class="keyword">this</span>.loadFilesUnderConstruction(imgVersion, <span class="keyword">in</span>, fsNamesys);<span class="comment">//加载正在写的文件</span></span><br><span class="line">      <span class="keyword">this</span>.loadSecretManagerState(imgVersion, <span class="keyword">in</span>, fsNamesys);<span class="comment">//加载安全信息</span></span><br><span class="line">    &#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">      <span class="keyword">in</span>.close();</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> needToSave;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，对于根目录直接更新，其下的子节点通过<code>addToParent</code>创建新的INode对象添加到目录树中如下<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br></pre></td><td class="code"><pre><span class="line"><span class="function">INodeDirectory <span class="title">addToParent</span><span class="params">( String src, INodeDirectory parentINode, PermissionStatus permissions,</span><br><span class="line">                            Block[] blocks, <span class="keyword">short</span> replication, <span class="keyword">long</span> modificationTime, <span class="keyword">long</span> atime,</span><br><span class="line">                            <span class="keyword">long</span> nsQuota, <span class="keyword">long</span> dsQuota, <span class="keyword">long</span> preferredBlockSize)</span> </span>&#123;</span><br><span class="line">    INode newNode;</span><br><span class="line">    <span class="keyword">if</span> (blocks == <span class="keyword">null</span>) &#123;<span class="comment">//目录</span></span><br><span class="line">      <span class="keyword">if</span> (nsQuota &gt;= <span class="number">0</span> || dsQuota &gt;= <span class="number">0</span>) &#123;<span class="comment">//存在配额的目录</span></span><br><span class="line">        newNode = <span class="keyword">new</span> INodeDirectoryWithQuota(permissions, modificationTime, nsQuota, dsQuota);</span><br><span class="line">      &#125; <span class="keyword">else</span> &#123;<span class="comment">//没有配额</span></span><br><span class="line">        newNode = <span class="keyword">new</span> INodeDirectory(permissions, modificationTime);</span><br><span class="line">      &#125;</span><br><span class="line">    &#125; <span class="keyword">else</span> <span class="comment">//blocks不为空，文件</span></span><br><span class="line">      newNode = <span class="keyword">new</span> INodeFile(permissions, blocks.length, replication,</span><br><span class="line">                              modificationTime, atime, preferredBlockSize);</span><br><span class="line">    INodeDirectory newParent = <span class="keyword">null</span>;</span><br><span class="line">    <span class="keyword">synchronized</span> (rootDir) &#123;</span><br><span class="line">      <span class="keyword">try</span> &#123;</span><br><span class="line">        newParent = rootDir.addToParent(src, newNode, parentINode, <span class="keyword">false</span>);<span class="comment">//添加到目录树中</span></span><br><span class="line">        cacheName(newNode);<span class="comment">//缓存路径</span></span><br><span class="line">      &#125; <span class="keyword">catch</span> (FileNotFoundException e) &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">null</span>;</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="keyword">if</span>(newParent == <span class="keyword">null</span>)</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">null</span>;</span><br><span class="line">      <span class="keyword">if</span>(blocks != <span class="keyword">null</span>) &#123;</span><br><span class="line">        <span class="keyword">int</span> nrBlocks = blocks.length;</span><br><span class="line">        INodeFile newF = (INodeFile)newNode;</span><br><span class="line">        <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; nrBlocks; i++) &#123;</span><br><span class="line">          newF.setBlock(i, namesystem.blocksMap.addINode(blocks[i], newF));<span class="comment">//添加文件区块映射，添加区块信息BlockInfo到BlockMap中</span></span><br><span class="line">        &#125;</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> newParent;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，根据blocks和是否有配额创建相应的INode文件或目录对象，然后通过addToParent添加到目录树中，addToParent在前面INodeDirectory部分已经分析过了，parentINode可能为null这时需要查找对应的父目录的INode对象，并添加到父目录INode的children中。<br>之后，如果是文件，需要建立文件到区块间的映射，即创建BlockInfo对象，然后添加到INode对象的blocks中，同时会添加到FSNamesystem管理的BlocksMap对象中，BlocksMap中管理NameNode所有的区块信息。  </p>
+<hr>
+<h2 id="3-_FSEditLog">3. FSEditLog</h2><p>命名空间镜像很难和名字节点内存中的元数据时时刻刻保持一致，HDFS将对元数据的修改保存在编辑日志中，编辑日志和命名空间镜像一起，确定了当前时刻文件系统的元数据。当日志超过一定大小后，由第二名字节点获取命名空间镜像和编辑日志，合并成新的命名空间镜像。<br>FSEditLog主要成员如下<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> ArrayList&lt;EditLogOutputStream&gt; editStreams = <span class="keyword">null</span>;<span class="comment">//输出流对象</span></span><br><span class="line"><span class="keyword">private</span> FSImage fsimage = <span class="keyword">null</span>;<span class="comment">//所属的FSImage对象</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">private</span> <span class="keyword">long</span> txid = <span class="number">0</span>;<span class="comment">//事务ID，每一次编辑日志的记录对应一个ID，记录后增加</span></span><br><span class="line"><span class="keyword">private</span> <span class="keyword">long</span> synctxid = <span class="number">0</span>;<span class="comment">//已经同步的ID</span></span><br><span class="line"></span><br><span class="line"><span class="comment">// the time of printing the statistics to the log file.</span></span><br><span class="line"><span class="keyword">private</span> <span class="keyword">long</span> lastPrintTime;</span><br><span class="line"></span><br><span class="line"><span class="keyword">private</span> <span class="keyword">boolean</span> isSyncRunning;<span class="comment">//当前有线程正在进行同步操作</span></span><br><span class="line"></span><br><span class="line"><span class="comment">//线程局部变量，每个线程编辑日志记录当前的ID值</span></span><br><span class="line"><span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> ThreadLocal&lt;TransactionId&gt; myTransactionId = <span class="keyword">new</span> ThreadLocal&lt;TransactionId&gt;() &#123;</span><br><span class="line">    <span class="keyword">protected</span> <span class="keyword">synchronized</span> <span class="function">TransactionId <span class="title">initialValue</span><span class="params">()</span> </span>&#123; <span class="keyword">return</span> <span class="keyword">new</span> TransactionId(Long.MAX_VALUE); &#125;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure></p>
+<ul>
+<li><code>editStreams</code>，保存着编辑日志的输出流对象，编辑日志可以配置多个目录，因此对应多个输出流</li>
+<li><code>txid</code>，每一次编辑日志的记录都对应一个ID，记录操作增加该值</li>
+<li><code>synctxid</code>，已经同步的ID，这之前的ID对应的操作都已经同步到文件中了。因为编辑日志写到流中，会先保存在缓冲区中，该ID表示已经从缓冲区中刷新到文件中的操作ID值</li>
+<li><code>isSyncRunning</code>，当前是否有线程正在进行同步操作，日志的记录可以有多个线程，也为每个线程都有一个线程局部变量保存该线程日志记录操作所分配到的ID值。同样的每个线程都可以进行同步操作，同步操作执行时会将txid之前没有同步的所有记录都刷新到文件中，因此同步时其他线程不能进行同步操作。该变量则用于标记是否有线程正在进行同步操作。  </li>
+<li><code>myTransactionId</code>，线程局部变量，每个线程上次日志记录所获得的ID，会增加txid值</li>
+</ul>
+<p>如上，编辑日志的输出通过EditLogOutputStream完成，EditLogOutputStream为抽象类，具体实现EditLogFileOutputStream</p>
+<h3 id="3-1_EditLogFileOutputStream">3.1 EditLogFileOutputStream</h3><h4 id="3-1-1_成员，构造">3.1.1 成员，构造</h4><p>EditLogFileOutputStream成员如下<br><img src="../images/EditLogFileOutputStream成员属性.png" alt="EditLogFileOutputStream成员属性">  </p>
+<ul>
+<li><code>PREALLOCATION_BUFFER</code>，预分配的缓冲区，大小1MB，填充-1</li>
+<li><code>file</code>，对应的输出文件</li>
+<li><code>bufCurrent</code>，当前使用的缓冲区，写日志时写到该缓冲区</li>
+<li><code>bufReady</code>，同步时交换bufCurrent和bufReady缓冲区(交换前bufReady一般为null)，然后将bufReady中内容刷新到文件中</li>
+</ul>
+<p>如下，构造<br><figure class="highlight gradle"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">EditLogFileOutputStream(<span class="keyword">File</span> name) <span class="keyword">throws</span> IOException &#123;</span><br><span class="line">      <span class="keyword">super</span>();<span class="comment">//初始化EditLogOutputStream中成员numSync和totalTimeSync为0</span></span><br><span class="line">      <span class="keyword">file</span> = name;</span><br><span class="line">      bufCurrent = <span class="keyword">new</span> DataOutputBuffer(sizeFlushBuffer);<span class="comment">//初始缓冲区大小为512KB</span></span><br><span class="line">      bufReady = <span class="keyword">new</span> DataOutputBuffer(sizeFlushBuffer);<span class="comment">//初始缓冲区大小为512KB</span></span><br><span class="line">      RandomAccessFile rp = <span class="keyword">new</span> RandomAccessFile(name, <span class="string">"rw"</span>);</span><br><span class="line">      fp = <span class="keyword">new</span> FileOutputStream(rp.getFD());<span class="comment">//为了追加数据打开</span></span><br><span class="line">      fc = rp.getChannel();</span><br><span class="line">      fc.position(fc.<span class="keyword">size</span>());<span class="comment">//定位到文件尾，追加</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，父类中包含两个成员numSync记录同步操作的次数，totalTimeSync记录同步的总时间。两个缓冲区初始大小为512KB。  </p>
+<h4 id="3-1-2_create">3.1.2 create</h4><p>创建EditLogFileOutputStream对象之后，通过create方法写文件头并刷新，然后可以开始写日志记录<br><figure class="highlight css"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="at_rule">@<span class="keyword">Override</span></span><br><span class="line">void <span class="function">create</span>() throws IOException </span>&#123;</span><br><span class="line">  <span class="tag">fc</span><span class="class">.truncate</span>(0);</span><br><span class="line">  <span class="tag">fc</span><span class="class">.position</span>(0);</span><br><span class="line">  <span class="tag">bufCurrent</span><span class="class">.writeInt</span>(<span class="tag">FSConstants</span><span class="class">.LAYOUT_VERSION</span>);</span><br><span class="line">  <span class="tag">setReadyToFlush</span>();</span><br><span class="line">  <span class="tag">flush</span>();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，写日志记录时往bufCurrent中写，然后调用<code>setReadyToFlush</code>交换bufCurrent和bufReady，最终通过flush刷新到文件，即create会创建空的日志文件，并写文件头—版本号<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">void</span> <span class="title">flush</span><span class="params">()</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">    numSync++;</span><br><span class="line">    <span class="keyword">long</span> start = FSNamesystem.now();</span><br><span class="line">    flushAndSync();</span><br><span class="line">    <span class="keyword">long</span> end = FSNamesystem.now();</span><br><span class="line">    totalTimeSync += (end - start);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>更新同步次数，调用flushAndSync进行同步操作，最终更新totalTimeSync<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="annotation">@Override</span></span><br><span class="line"><span class="keyword">protected</span> <span class="function"><span class="keyword">void</span> <span class="title">flushAndSync</span><span class="params">()</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">      preallocate();            <span class="comment">//如果必要的话预分配磁盘空间</span></span><br><span class="line">      bufReady.writeTo(fp);     <span class="comment">//写数据到文件输出流中</span></span><br><span class="line">      bufReady.reset();         <span class="comment">//重置bufReady缓冲区</span></span><br><span class="line">      fc.force(<span class="keyword">false</span>);          <span class="comment">//刷新文件输出流中的数据到文件中，false表示不更新文件元数据，因为预分配操作</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，通过preallocate预分配磁盘空间，如果bufReady中要写到文件中的数据大于文件剩余空间，则通过文件通道循环往文件中追加PREALLOCATION_BUFFER来扩充文件大小。这里不贴出preallocate的代码了。<br>文件空间足够后将bufReady中的数据写到文件输出流中，此时bufReady已经和bufCurrent交换了，为先前所有写到bufCurrent中的数据，输出后重置缓冲区，然后通过文件通道的force方法强制文件输出流中的数据刷新到文件中，因为之前可能预先分配了空间，因此不需要更新元数据，force传入参数为false。  </p>
+<h4 id="3-1-3_write">3.1.3 write</h4><p>数据通过相应的write方法写到bufCurrent中<br><figure class="highlight gradle"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="keyword">write</span>(<span class="keyword">int</span> b) <span class="keyword">throws</span> IOException &#123;</span><br><span class="line">  bufCurrent.<span class="keyword">write</span>(b);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">void</span> <span class="keyword">write</span>(<span class="keyword">byte</span> op, Writable ... writables) <span class="keyword">throws</span> IOException &#123;</span><br><span class="line">  <span class="keyword">write</span>(op);</span><br><span class="line">  <span class="keyword">for</span>(Writable w : writables) &#123;</span><br><span class="line">    w.<span class="keyword">write</span>(bufCurrent);</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上第二个带操作码的write方法一般被FSEditLog日志记录时使用</p>
+<h3 id="3-2_记录日志">3.2 记录日志</h3><p>FSEditLog记录的日志类型有很多种，最终都会调用输出流的write方法写到LogEditLogFileOutputStream的bufCurrent中，这些日志记录都是以log开头，如对打开文件进行记录对应的方法为logOpenFile，如下<br><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">logOpenFile</span><span class="params">(String path, INodeFileUnderConstruction newNode)</span> throws IOException </span>&#123;</span><br><span class="line">    UTF8 nameReplicationPair[] = <span class="keyword">new</span> UTF8[] &#123; </span><br><span class="line">      <span class="keyword">new</span> UTF8(path), </span><br><span class="line">      FSEditLog.toLogReplication(newNode.getReplication()),</span><br><span class="line">      FSEditLog.toLogLong(newNode.getModificationTime()),</span><br><span class="line">      FSEditLog.toLogLong(newNode.getAccessTime()),</span><br><span class="line">      FSEditLog.toLogLong(newNode.getPreferredBlockSize())&#125;;</span><br><span class="line">    logEdit(OP_ADD,</span><br><span class="line">            <span class="keyword">new</span> ArrayWritable(UTF8.<span class="keyword">class</span>, nameReplicationPair), </span><br><span class="line">            <span class="keyword">new</span> ArrayWritable(Block.<span class="keyword">class</span>, newNode.getBlocks()),</span><br><span class="line">            newNode.getPermissionStatus(),</span><br><span class="line">            <span class="keyword">new</span> UTF8(newNode.getClientName()),</span><br><span class="line">            <span class="keyword">new</span> UTF8(newNode.getClientMachine()));</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，log*相关方法最终都会调用logEdit，附带相应的操作码<br><figure class="highlight processing"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">synchronized</span> <span class="keyword">void</span> logEdit(<span class="built_in">byte</span> op, Writable ... writables) &#123;</span><br><span class="line">    <span class="keyword">if</span> (getNumEditStreams() &lt; <span class="number">1</span>) &#123;<span class="comment">//没有相应的输出流</span></span><br><span class="line">      <span class="keyword">throw</span> <span class="keyword">new</span> AssertionError(<span class="string">"No edit streams to log to"</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">long</span> start = FSNamesystem.now();</span><br><span class="line">    <span class="keyword">for</span> (<span class="built_in">int</span> idx = <span class="number">0</span>; idx &lt; editStreams.<span class="built_in">size</span>(); idx++) &#123;<span class="comment">//写到所有的日志输出流中</span></span><br><span class="line">      EditLogOutputStream eStream = editStreams.<span class="built_in">get</span>(idx);</span><br><span class="line">      <span class="keyword">try</span> &#123;</span><br><span class="line">        eStream.write(op, writables);</span><br><span class="line">      &#125; <span class="keyword">catch</span> (IOException ioe) &#123;<span class="comment">//写到日志输出流中异常，移除该日志文件和相应的存储目录</span></span><br><span class="line">        removeEditsAndStorageDir(idx);</span><br><span class="line">        idx--; </span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    exitIfNoStreams();</span><br><span class="line">    <span class="comment">//获得新的ID</span></span><br><span class="line">    txid++;</span><br><span class="line">    <span class="comment">//日志记录完成，当前线程更新ID</span></span><br><span class="line">    TransactionId id = myTransactionId.<span class="built_in">get</span>();</span><br><span class="line">    id.txid = txid;</span><br><span class="line">    ...<span class="comment">//更新统计信息</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，依次写到所有的日志输出流中，如果写过程中失败，则关闭日志文件从editStreams中移除该输出流，并移除对应的存储目录。写到日志输出流中通过write方法，先写操作码，然后写相应的序列化对象，都是写到bufCurrent缓冲区中。<br>输出日志记录后，更新当前线程的ID值和txid值。  </p>
+<p>对应到logOpenFile中，会记录操作码OP_ADD，然后依次输出打开文件路径path，该文件的副本数，访问时间，修改时间，区块大小，所有的区块，所属用户，所属组，访问权限，客户端名，客户端主机这些信息，可见文件的日志记录和命名空间镜像中对文件的记录很类似。  </p>
+<p>log系列有以下记录操作(技术内幕P344)  </p>
+<table>
+<thead>
+<tr>
+<th style="text-align:center">操作码</th>
+<th style="text-align:center">值</th>
+<th style="text-align:center">操作</th>
+<th style="text-align:center">记录内容</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">OP_INVALID</td>
+<td style="text-align:center">-1</td>
+<td style="text-align:center">无效/结束</td>
+<td style="text-align:center">N/A</td>
+</tr>
+<tr>
+<td style="text-align:center">OP_ADD</td>
+<td style="text-align:center">0</td>
+<td style="text-align:center">创建文件</td>
+<td style="text-align:center">文件的绝对路径，副本数，修改时间，访问时间，区块大小，区块列表<br>权限(所属用户，所属组，访问权限)，客户端名称，客户端所在主机</td>
+</tr>
+<tr>
+<td style="text-align:center">OP_RENAME</td>
+<td style="text-align:center">1</td>
+<td style="text-align:center">改名</td>
+<td style="text-align:center">原目标绝对路径，修改后绝对路径，修改时间</td>
+</tr>
+<tr>
+<td style="text-align:center">OP_DELETE</td>
+<td style="text-align:center">2</td>
+<td style="text-align:center">删除</td>
+<td style="text-align:center">被删除目标绝对路径，删除时间</td>
+</tr>
+<tr>
+<td style="text-align:center">OP_MKDIR</td>
+<td style="text-align:center">3</td>
+<td style="text-align:center">创建目录</td>
+<td style="text-align:center">目录的绝对路径，修改时间，访问时间，权限(所属用户，所属组，访问权限)</td>
+</tr>
+<tr>
+<td style="text-align:center">OP_SET_REPLICATION</td>
+<td style="text-align:center">4</td>
+<td style="text-align:center">设置文件副本数</td>
+<td style="text-align:center">文件的绝对路径，副本数</td>
+</tr>
+<tr>
+<td style="text-align:center">OP_DATANODE_ADD</td>
+<td style="text-align:center">5</td>
+<td style="text-align:center">增加数据节点</td>
+<td style="text-align:center">N/A，不再使用</td>
+</tr>
+<tr>
+<td style="text-align:center">OP_DATANODE_REMOVE</td>
+<td style="text-align:center">6</td>
+<td style="text-align:center">删除数据节点</td>
+<td style="text-align:center">N/A，不再使用</td>
+</tr>
+<tr>
+<td style="text-align:center">OP_SET_PERMISSIONS</td>
+<td style="text-align:center">7</td>
+<td style="text-align:center">设置权限</td>
+<td style="text-align:center">目标的绝对路径，新权限(所属用户，所属组，访问权限)</td>
+</tr>
+<tr>
+<td style="text-align:center">OP_SET_OWNER</td>
+<td style="text-align:center">8</td>
+<td style="text-align:center">设置文件主</td>
+<td style="text-align:center">目标的绝对路径，用户名，组名</td>
+</tr>
+<tr>
+<td style="text-align:center">OP_CLOSE</td>
+<td style="text-align:center">9</td>
+<td style="text-align:center">关闭文件</td>
+<td style="text-align:center">文件的绝对路径，副本数，修改时间，访问时间，区块大小<br>区块列表，权限(所属用户，所属组，访问权限)</td>
+</tr>
+<tr>
+<td style="text-align:center">OP_SET_GENSTAMP</td>
+<td style="text-align:center">10</td>
+<td style="text-align:center">设置数据块版本号</td>
+<td style="text-align:center">新数据块版本号</td>
+</tr>
+<tr>
+<td style="text-align:center">OP_SET_NS_QUOTA</td>
+<td style="text-align:center">11</td>
+<td style="text-align:center">设置节点配额</td>
+<td style="text-align:center">N/A，不再使用</td>
+</tr>
+<tr>
+<td style="text-align:center">OP_CLEAR_NS_QUOTA</td>
+<td style="text-align:center">12</td>
+<td style="text-align:center">清除节点配额</td>
+<td style="text-align:center">N/A，不再使用</td>
+</tr>
+<tr>
+<td style="text-align:center">OP_TIMES</td>
+<td style="text-align:center">13</td>
+<td style="text-align:center">设置访问或修改时间</td>
+<td style="text-align:center">目标的绝对路径，修改时间，访问时间</td>
+</tr>
+<tr>
+<td style="text-align:center">OP_SET_QUOTA</td>
+<td style="text-align:center">14</td>
+<td style="text-align:center">设置配额</td>
+<td style="text-align:center">目标的绝对路径，节点配额，空间配额</td>
+</tr>
+</tbody>
+</table>
+<h3 id="3-3_日志同步">3.3 日志同步</h3><p>如上日志记录时相应的log方法都只是写到LogEditLogFileOutputStream的bufCurrent中，没有刷新到相应的文件中，因此在调用相应log方法后一般都会使用logSync进行同步操作<br><figure class="highlight processing"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> logSync() <span class="keyword">throws</span> IOException &#123;</span><br><span class="line">    ArrayList&lt;EditLogOutputStream&gt; errorStreams = <span class="keyword">null</span>;</span><br><span class="line">    <span class="keyword">long</span> syncStart = <span class="number">0</span>;</span><br><span class="line">    <span class="keyword">long</span> mytxid = myTransactionId.<span class="built_in">get</span>().txid;<span class="comment">//当前线程的事务ID</span></span><br><span class="line">    ArrayList&lt;EditLogOutputStream&gt; streams = <span class="keyword">new</span> ArrayList&lt;EditLogOutputStream&gt;();</span><br><span class="line">    <span class="built_in">boolean</span> sync = <span class="keyword">false</span>;</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">      <span class="keyword">synchronized</span> (<span class="keyword">this</span>) &#123;</span><br><span class="line">        printStatistics(<span class="keyword">false</span>);<span class="comment">//LOG记录统计信息</span></span><br><span class="line">        <span class="comment">//事务ID大于已经同步的ID，即需要同步，而此时有其他线程正在进行同步操作，等待</span></span><br><span class="line">        <span class="keyword">while</span> (mytxid &gt; synctxid &amp;&amp; isSyncRunning) &#123;</span><br><span class="line">          <span class="keyword">try</span> &#123;</span><br><span class="line">            wait(<span class="number">1000</span>);</span><br><span class="line">          &#125; <span class="keyword">catch</span> (InterruptedException ie) &#123; </span><br><span class="line">          &#125;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> (mytxid &lt;= synctxid) &#123;<span class="comment">//当前ID小于已经同步的ID，即已经同步过了，返回</span></span><br><span class="line">          numTransactionsBatchedInSync++;</span><br><span class="line">          <span class="keyword">if</span> (metrics != <span class="keyword">null</span>) <span class="comment">// Metrics is non-null only when used inside name node</span></span><br><span class="line">            metrics.incrTransactionsBatchedInSync();</span><br><span class="line">          <span class="keyword">return</span>;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        syncStart = txid;</span><br><span class="line">        isSyncRunning = <span class="keyword">true</span>;<span class="comment">//设置isSyncRunning为true，表示有线程正在同步</span></span><br><span class="line">        sync = <span class="keyword">true</span>;</span><br><span class="line"></span><br><span class="line">        exitIfNoStreams();<span class="comment">//没有输出流直接退出</span></span><br><span class="line">        <span class="keyword">for</span>(EditLogOutputStream eStream : editStreams) &#123;</span><br><span class="line">          <span class="keyword">try</span> &#123;</span><br><span class="line">            eStream.setReadyToFlush();<span class="comment">//交换bufCurrent和bufReady缓冲区</span></span><br><span class="line">            streams.<span class="built_in">add</span>(eStream);</span><br><span class="line">          &#125; <span class="keyword">catch</span> (IOException ie) &#123;</span><br><span class="line">            <span class="keyword">if</span> (errorStreams == <span class="keyword">null</span>) &#123;</span><br><span class="line">              errorStreams = <span class="keyword">new</span> ArrayList&lt;EditLogOutputStream&gt;(<span class="number">1</span>);</span><br><span class="line">            &#125;</span><br><span class="line">            errorStreams.<span class="built_in">add</span>(eStream);</span><br><span class="line">          &#125;</span><br><span class="line">        &#125;</span><br><span class="line">      &#125;</span><br><span class="line"></span><br><span class="line">      <span class="keyword">long</span> start = FSNamesystem.now();</span><br><span class="line">      <span class="keyword">for</span> (EditLogOutputStream eStream : streams) &#123;</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">          eStream.flush();<span class="comment">//同步</span></span><br><span class="line">        &#125; <span class="keyword">catch</span> (IOException ie) &#123;</span><br><span class="line">          <span class="keyword">if</span> (errorStreams == <span class="keyword">null</span>) &#123;</span><br><span class="line">            errorStreams = <span class="keyword">new</span> ArrayList&lt;EditLogOutputStream&gt;(<span class="number">1</span>);</span><br><span class="line">          &#125;</span><br><span class="line">          errorStreams.<span class="built_in">add</span>(eStream);<span class="comment">//同步错误，添加到errorStreams中</span></span><br><span class="line">        &#125;</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="keyword">long</span> elapsed = FSNamesystem.now() - start;</span><br><span class="line">      removeEditsStreamsAndStorageDirs(errorStreams);<span class="comment">//移除错误的日志文件，并移除相应的存储目录</span></span><br><span class="line">      exitIfNoStreams();</span><br><span class="line"></span><br><span class="line">      <span class="keyword">if</span> (metrics != <span class="keyword">null</span>) <span class="comment">// Metrics is non-null only when used inside name node</span></span><br><span class="line">        metrics.addSync(elapsed);</span><br><span class="line">    &#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">      <span class="keyword">synchronized</span> (<span class="keyword">this</span>) &#123;</span><br><span class="line">        <span class="keyword">if</span>(sync) &#123;</span><br><span class="line">          <span class="comment">//更新已经同步的ID为同步开始时的txid，因为交换bufCurrent和bufReady，刷新的是所有写到bufCurrent的日志</span></span><br><span class="line">          synctxid = syncStart;</span><br><span class="line">          isSyncRunning = <span class="keyword">false</span>;<span class="comment">//isSyncRunning置false</span></span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">this</span>.notifyAll();<span class="comment">//通知处于等待同步操作状态的线程</span></span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，通过线程局部变量获取当前线程的最近日志记录的ID，每次日志记录时都会增加txid更新线程局部变量中对应的ID。<br>如果当前线程事务ID大于已经同步过的ID值synctxid，但是现在isSyncRunning为true即有线程正在同步，则等待同步线程退出。没有的话则开始同步过程。<br>而如果当前线程事务ID小于已经同步过的ID值synctxid，即已经同步过了，直接返回。  </p>
+<p>同步时，所有的日志输出流交换bufCurrent和bufReady缓冲区，新的日志将写到新的bufCurrent缓冲区中，而同步到文件中的日志记录则为此前所有写到bufCurrent中的日志记录。<br>交换后，通过日志输出流的flush方法进行同步，刷新到底层文件中，上面已经分析过。如果flush异常则移除对应的日志文件，日志输出流，并移除相应的存储目录。  </p>
+<p>最终更新已经同步的ID值为同步开始时的txid，同步过程中txid可能会变化，即有日志记录写到新的bufCurrent中，因此不能直接用txid值。然后将isSyncRunning置为false，最终通知可能处于等待同步的线程。  </p>
+<h3 id="3-4_编辑日志的读取">3.4 编辑日志的读取</h3><p>编辑日志读取通过loadFSEdits完成，在读取编辑日志之前需要通过loadFSImage加载命名空间镜像，在某一命名空间基础上解析编辑日志更新NameNode元数据。<br>读取编辑日志时，按照编辑日志的保存格式进行读取。首先会读取文件头版本信息进行相应的验证。<br>对于每一个操作，先读取操作码，然后按照对应操作格式读取相应数据，进行相应的操作。  </p>
+<p>如对于打开文件OP_ADD和关闭文件OP_CLOSE，两者记录的内容很相似，放在一起处理。读取完文件的绝对路径，副本数，修改时间，访问时间，区块大小，区块列表，权限(所属用户，所属组，访问权限)之后，如果是打开文件OP_ADD，则还要读取客户端名称和客户端所在主机。<br>读取完信息后，如果是关闭文件，则先在目录树中删除原有文件(INodeFileUnderConstruction)，然后再添加新的INode对象<br><figure class="highlight crmsh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">fsDir.unprotectedDelete(path, mtime);</span><br><span class="line">INodeFile <span class="keyword">node</span><span class="identifier"> </span><span class="title">= (INodeFile</span>)fsDir.unprotectedAddFile(</span><br><span class="line">                path, permissions, blocks, replication, mtime, atime, blockSize);</span><br></pre></td></tr></table></figure></p>
+<p>关于目录树的很多操作都是通过FSDirectory的相关unprotected*方法完成，关于目录树相关的操作都是由FSDirectory负责。<br><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">unprotectedDelete</span><span class="params">(String src, <span class="keyword">long</span> mTime)</span> </span>&#123;</span><br><span class="line">    List&lt;Block&gt; collectedBlocks = <span class="keyword">new</span> ArrayList&lt;Block&gt;();</span><br><span class="line">    <span class="comment">//从目录树中删除，更新所有祖先节点配额，更新父节点的修改时间，删除对应的区块和文件对应关系，解除第一关系</span></span><br><span class="line">    <span class="keyword">int</span> filesRemoved = unprotectedDelete(src, collectedBlocks, mTime);</span><br><span class="line">    <span class="keyword">if</span> (filesRemoved &gt; <span class="number">0</span>) &#123;</span><br><span class="line">      <span class="comment">//释放文件对应的租约，将区块从FSNamesystem相关数据结构(blocksMap，corruptReplicas，pendingReplications)</span></span><br><span class="line">      <span class="comment">//中移除，并添加到待删除区块列表recentInvalidateSets中</span></span><br><span class="line">      <span class="comment">//第二关系</span></span><br><span class="line">      namesystem.removePathAndBlocks(src, collectedBlocks);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上<code>unprotectedDelete</code>首先在目录树中删除目录，并更新其所有祖先节点的配额，父节点的修改时间，删除区块和文件的对应关系，即删除文件在NameNode的第一关系。这些工作由unprotectedDelete完成，不再贴出代码。    </p>
+<p>然后释放文件对应的租约，将其下所有的区块从FSNamesystem相关数据结构(blocksMap，corruptReplicas，pendingReplications)中移除，其中<code>blocksMap</code>为NameNode管理的所有区块信息BlockInfo，BlockInfo包含区块对应的文件，区块所有副本所在数据节点信息。<code>corruptReplicas</code>记录了NameNode中所有损坏的区块信息，为损坏区块到区块对应数据节点的映射，当区块所有副本都损坏时，该区块才损坏。<code>pendingReplications</code>记录了NameNode当前正在执行复制(副本数没达到要求)的区块，包含了该区块当前正在执行几个复制操作。  </p>
+<p>这些都属于FSNamesystem维护的NameNode第二关系相关数据结构，即数据块和数据节点相关的关系。其他的还有<code>neededReplications</code>，<code>recentInvalidateSets</code>，<code>excessReplicateMap</code>等<br>neededReplications维护了NameNode需要执行复制(还没执行，执行时会添加到pendingReplications中)的区块，会在有效副本数加正在复制的副本数之和大于等于期望副本数时删除，或者当读取neededReplications中待复制区块进行复制时发现区块对应文件不存在(如上unprotectedDelete方法删除了对应关系)时删除，因此unprotectedDelete中不删除neededReplications中的记录。<br>recentInvalidateSets维护了<code>数据节点-需要删除的区块</code>信息，添加到相应数据节点的invalidateBlocks集合中后，删除。<br>excessReplicateMap维护了<code>数据节点-超出备份数的区块</code>信息，对应的区块在数据节点上应该删除，添加在recentInvalidateSets中。<br>这些维护NameNode第二关系的数据结构之后会详细分析。  </p>
+<p>因此如上，在removePathAndBlocks中，移除第二关系后，将所有区块添加到recentInvalidateSets中，在特定线程中添加到指定的数据节点待删除区块列表invalidateBlocks中，该数据节点心跳到来时，发送相应的删除命令在数据节点上移除区块。  </p>
+<p>在NameNode中删除旧的文件后，通过<code>unprotectedAddFile</code>创建新的文件或目录，添加到目录树中，如果是文件建立文件到相应区块的关系，并添加到blocksMap中。  </p>
+<p>因此，对于文件关闭操作，读取相应信息后，先删除原来文件(INodeFileUnderConstruction)在NameNode中的相应记录，然后创建新的INode对象添加到目录树中，并根据相应的区块信息建立第二关系。这样便更新了NameNode中的元数据，其他的日志读取不再分析。  </p>
+</span>
+      
+    </div>
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/HDFS/" rel="tag">#HDFS</a>
+          
+            <a href="/tags/Hadoop-1-2-1/" rel="tag">#Hadoop-1.2.1</a>
+          
+            <a href="/tags/Java/" rel="tag">#Java</a>
+          
+            <a href="/tags/NameNode/" rel="tag">#NameNode</a>
+          
+            <a href="/tags/NameNode源码阅读/" rel="tag">#NameNode源码阅读</a>
+          
+            <a href="/tags/源码阅读/" rel="tag">#源码阅读</a>
+          
+        </div>
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/配置相关HDFS/" rel="next" title="Hadoop配置相关---HDFS">
+                <i class="fa fa-chevron-left"></i> Hadoop配置相关---HDFS
+              </a>
+            
+          </div>
+
+          <div class="post-nav-prev post-nav-item">
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </article>
+
+
+
+    <div class="post-spread">
+      
+        <!-- JiaThis Button BEGIN -->
+<div class="jiathis_style">
+  <a class="jiathis_button_tsina"></a>
+  <a class="jiathis_button_tqq"></a>
+  <a class="jiathis_button_weixin"></a>
+  <a class="jiathis_button_cqq"></a>
+  <a class="jiathis_button_douban"></a>
+  <a class="jiathis_button_renren"></a>
+  <a class="jiathis_button_qzone"></a>
+  <a class="jiathis_button_kaixin001"></a>
+  <a class="jiathis_button_copy"></a>
+  <a href="http://www.jiathis.com/share" class="jiathis jiathis_txt jiathis_separator jtico jtico_jiathis" target="_blank"></a>
+  <a class="jiathis_counter_style"></a>
+</div>
+<script type="text/javascript" >
+  var jiathis_config={
+    hideMore:false
+  }
+</script>
+<script type="text/javascript" src="http://v3.jiathis.com/code/jia.js" charset="utf-8"></script>
+<!-- JiaThis Button END -->
+
+      
+    </div>
+  </div>
+
+
+        </div>
+
+        
+
+
+        
+  <div class="comments" id="comments">
+    
+      <div class="ds-thread" data-thread-key="NameNode命名空间镜像和编辑日志/"
+           data-title="NameNode实现源码分析---命名空间镜像和编辑日志" data-url="http://xiao-yun.github.io/NameNode命名空间镜像和编辑日志/">
+      </div>
+    
+  </div>
+
+
+      </div>
+
+      
+        
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap" >
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel ">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+          <img class="site-author-image" src="/images/hero.jpg" alt="xiaoyun" itemprop="image"/>
+          <p class="site-author-name" itemprop="name">xiaoyun</p>
+        </div>
+        <p class="site-description motion-element" itemprop="description">学习笔记，网上资源摘要等</p>
+        <nav class="site-state motion-element">
+          <div class="site-state-item site-state-posts">
+            <a href="/archives">
+              <span class="site-state-item-count">36</span>
+              <span class="site-state-item-name">日志</span>
+            </a>
+          </div>
+
+          <div class="site-state-item site-state-categories">
+            <a href="/categories">
+              <span class="site-state-item-count">40</span>
+              <span class="site-state-item-name">分类</span>
+              </a>
+          </div>
+
+          <div class="site-state-item site-state-tags">
+            <a href="/tags">
+              <span class="site-state-item-count">21</span>
+              <span class="site-state-item-name">标签</span>
+              </a>
+          </div>
+
+        </nav>
+
+        
+
+        <div class="links-of-author motion-element">
+          
+            
+              <span class="links-of-author-item">
+                <a href="https://github.com/xiao-yun" target="_blank">
+                  
+                    <i class="fa fa-globe"></i> github
+                  
+                </a>
+              </span>
+            
+          
+        </div>
+
+        
+        
+
+        <div class="links-of-author motion-element">
+          
+        </div>
+
+      </section>
+
+      
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc-indicator-top post-toc-indicator">
+            <i class="fa fa-angle-double-up"></i>
+          </div>
+          <div class="post-toc">
+            
+              
+            
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-_目录项INode"><span class="nav-number">1.</span> <span class="nav-text">1. 目录项INode</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-1_INode"><span class="nav-number">1.1.</span> <span class="nav-text">1.1 INode</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#1-1-1_PermissionStatusFormat"><span class="nav-number">1.1.1.</span> <span class="nav-text">1.1.1 PermissionStatusFormat</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#1-1-2_SerialNumberManager"><span class="nav-number">1.1.2.</span> <span class="nav-text">1.1.2 SerialNumberManager</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-2_INodeFile和INodeFileUnderConstruction"><span class="nav-number">1.2.</span> <span class="nav-text">1.2 INodeFile和INodeFileUnderConstruction</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-3_INodeDirectory和INodeDirectoryWithQuota"><span class="nav-number">1.3.</span> <span class="nav-text">1.3 INodeDirectory和INodeDirectoryWithQuota</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-_FSImage"><span class="nav-number">2.</span> <span class="nav-text">2. FSImage</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1_命名空间镜像保存"><span class="nav-number">2.1.</span> <span class="nav-text">2.1 命名空间镜像保存</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#2-1-1_saveINode2Image"><span class="nav-number">2.1.1.</span> <span class="nav-text">2.1.1 saveINode2Image</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-1-2_saveImage"><span class="nav-number">2.1.2.</span> <span class="nav-text">2.1.2 saveImage</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-1-3_saveFilesUnderConstruction"><span class="nav-number">2.1.3.</span> <span class="nav-text">2.1.3 saveFilesUnderConstruction</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-2_命名空间镜像的读取"><span class="nav-number">2.2.</span> <span class="nav-text">2.2 命名空间镜像的读取</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-_FSEditLog"><span class="nav-number">3.</span> <span class="nav-text">3. FSEditLog</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#3-1_EditLogFileOutputStream"><span class="nav-number">3.1.</span> <span class="nav-text">3.1 EditLogFileOutputStream</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#3-1-1_成员，构造"><span class="nav-number">3.1.1.</span> <span class="nav-text">3.1.1 成员，构造</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-1-2_create"><span class="nav-number">3.1.2.</span> <span class="nav-text">3.1.2 create</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-1-3_write"><span class="nav-number">3.1.3.</span> <span class="nav-text">3.1.3 write</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-2_记录日志"><span class="nav-number">3.2.</span> <span class="nav-text">3.2 记录日志</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-3_日志同步"><span class="nav-number">3.3.</span> <span class="nav-text">3.3 日志同步</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-4_编辑日志的读取"><span class="nav-number">3.4.</span> <span class="nav-text">3.4 编辑日志的读取</span></a></li></ol></li></ol></div>
+            
+          </div>
+          <div class="post-toc-indicator-bottom post-toc-indicator">
+            <i class="fa fa-angle-double-down"></i>
+          </div>
+        </section>
+      
+
+    </div>
+  </aside>
+
+
+      
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright" >
+  
+  &copy; 
+  <span itemprop="copyrightYear">2016</span>
+  <span class="with-love">
+    <i class="icon-next-heart fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">xiaoyun</span>
+</div>
+
+<div class="powered-by">
+  由 <a class="theme-link" href="http://hexo.io">Hexo</a> 强力驱动
+</div>
+
+<div class="theme-info">
+  主题 -
+  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
+    NexT.Mist
+  </a>
+</div>
+
+
+
+      </div>
+    </footer>
+
+    <div class="back-to-top"></div>
+  </div>
+
+  <script type="text/javascript" src="/vendors/jquery/index.js?v=2.1.3"></script>
+
+  
+  
+
+  
+    
+
+  
+    
+  
+
+  <script type="text/javascript">
+    var duoshuoQuery = {short_name:"xiaoyuncom"};
+    (function() {
+      var ds = document.createElement('script');
+      ds.type = 'text/javascript';ds.async = true;
+      ds.id = 'duoshuo-script';
+      ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+      ds.charset = 'UTF-8';
+      (document.getElementsByTagName('head')[0]
+      || document.getElementsByTagName('body')[0]).appendChild(ds);
+    })();
+  </script>
+    
+     
+
+
+    
+  
+
+  
+  <script type="text/javascript" src="/vendors/fancybox/source/jquery.fancybox.pack.js"></script>
+  <script type="text/javascript" src="/js/fancy-box.js?v=0.4.5.2"></script>
+
+
+  <script type="text/javascript" src="/js/helpers.js?v=0.4.5.2"></script>
+  <script type="text/javascript" src="/vendors/velocity/velocity.min.js"></script>
+<script type="text/javascript" src="/vendors/velocity/velocity.ui.min.js"></script>
+
+<script type="text/javascript" src="/js/motion.js?v=0.4.5.2" id="motion.global"></script>
+
+
+  <script type="text/javascript" src="/vendors/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  <script type="text/javascript" src="/vendors/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  
+<script type="text/javascript" src="/js/bootstrap.scrollspy.js?v=0.4.5.2" id="bootstrap.scrollspy.custom"></script>
+
+
+<script type="text/javascript" id="sidebar.toc.highlight">
+  $(document).ready(function () {
+    var tocSelector = '.post-toc';
+    var $tocSelector = $(tocSelector);
+    var activeCurrentSelector = '.active-current';
+
+    $tocSelector
+      .on('activate.bs.scrollspy', function () {
+        var $currentActiveElement = $(tocSelector + ' .active').last();
+
+        removeCurrentActiveClass();
+        $currentActiveElement.addClass('active-current');
+
+        $tocSelector[0].scrollTop = $currentActiveElement.position().top;
+      })
+      .on('clear.bs.scrollspy', function () {
+        removeCurrentActiveClass();
+      });
+
+    function removeCurrentActiveClass () {
+      $(tocSelector + ' ' + activeCurrentSelector)
+        .removeClass(activeCurrentSelector.substring(1));
+    }
+
+    function processTOC () {
+      getTOCMaxHeight();
+      toggleTOCOverflowIndicators();
+    }
+
+    function getTOCMaxHeight () {
+      var height = $('.sidebar').height() -
+                   $tocSelector.position().top -
+                   $('.post-toc-indicator-bottom').height();
+
+      $tocSelector.css('height', height);
+
+      return height;
+    }
+
+    function toggleTOCOverflowIndicators () {
+      tocOverflowIndicator(
+        '.post-toc-indicator-top',
+        $tocSelector.scrollTop() > 0 ? 'show' : 'hide'
+      );
+
+      tocOverflowIndicator(
+        '.post-toc-indicator-bottom',
+        $tocSelector.scrollTop() >= $tocSelector.find('ol').height() - $tocSelector.height() ? 'hide' : 'show'
+      )
+    }
+
+    $(document).on('sidebar.motion.complete', function () {
+      processTOC();
+    });
+
+    $('body').scrollspy({ target: tocSelector });
+    $(window).on('resize', function () {
+      if ( $('.sidebar').hasClass('sidebar-active') ) {
+        processTOC();
+      }
+    });
+
+    onScroll($tocSelector);
+
+    function onScroll (element) {
+      element.on('mousewheel DOMMouseScroll', function (event) {
+          var oe = event.originalEvent;
+          var delta = oe.wheelDelta || -oe.detail;
+
+          this.scrollTop += ( delta < 0 ? 1 : -1 ) * 30;
+          event.preventDefault();
+
+          toggleTOCOverflowIndicators();
+      });
+    }
+
+    function tocOverflowIndicator (indicator, action) {
+      var $indicator = $(indicator);
+      var opacity = action === 'show' ? 1 : 0;
+      $indicator.velocity ?
+        $indicator.velocity('stop').velocity({
+          opacity: opacity
+        }, { duration: 100 }) :
+        $indicator.stop().animate({
+          opacity: opacity
+        }, 100);
+    }
+
+  });
+</script>
+
+<script type="text/javascript" id="sidebar.nav">
+  $(document).ready(function () {
+    var html = $('html');
+    var TAB_ANIMATE_DURATION = 200;
+    var hasVelocity = $.isFunction(html.velocity);
+
+    $('.sidebar-nav li').on('click', function () {
+      var item = $(this);
+      var activeTabClassName = 'sidebar-nav-active';
+      var activePanelClassName = 'sidebar-panel-active';
+      if (item.hasClass(activeTabClassName)) {
+        return;
+      }
+
+      var currentTarget = $('.' + activePanelClassName);
+      var target = $('.' + item.data('target'));
+
+      hasVelocity ?
+        currentTarget.velocity('transition.slideUpOut', TAB_ANIMATE_DURATION, function () {
+          target
+            .velocity('stop')
+            .velocity('transition.slideDownIn', TAB_ANIMATE_DURATION)
+            .addClass(activePanelClassName);
+        }) :
+        currentTarget.animate({ opacity: 0 }, TAB_ANIMATE_DURATION, function () {
+          currentTarget.hide();
+          target
+            .stop()
+            .css({'opacity': 0, 'display': 'block'})
+            .animate({ opacity: 1 }, TAB_ANIMATE_DURATION, function () {
+              currentTarget.removeClass(activePanelClassName);
+              target.addClass(activePanelClassName);
+            });
+        });
+
+      item.siblings().removeClass(activeTabClassName);
+      item.addClass(activeTabClassName);
+    });
+
+    $('.post-toc a').on('click', function (e) {
+      e.preventDefault();
+      var targetSelector = escapeSelector(this.getAttribute('href'));
+      var offset = $(targetSelector).offset().top;
+      hasVelocity ?
+        html.velocity('stop').velocity('scroll', {
+          offset: offset  + 'px',
+          mobileHA: false
+        }) :
+        $('html, body').stop().animate({
+          scrollTop: offset
+        }, 500);
+    });
+
+    // Expand sidebar on post detail page by default, when post has a toc.
+    motionMiddleWares.sidebar = function () {
+      var $tocContent = $('.post-toc-content');
+      if (CONFIG.sidebar === 'post') {
+        if ($tocContent.length > 0 && $tocContent.html().trim().length > 0) {
+          displaySidebar();
+        }
+      }
+    };
+  });
+</script>
+
+
+
+  <script type="text/javascript" src="/js/bootstrap.js"></script>
+
+  
+  
+
+  
+  
+
+</body>
+</html>

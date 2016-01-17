@@ -57,7 +57,7 @@
 
 1. 读数据块如上篇分析，读数据块由readBlock负责12345678910111">
 <meta property="og:type" content="article">
-<meta property="og:title" content="DataNode实现源码分析---流接口实现上篇">
+<meta property="og:title" content="DataNode实现源码分析---流接口实现下篇">
 <meta property="og:url" content="http://xiao-yun.github.io/DataNode流接口实现下篇/index.html">
 <meta property="og:site_name" content="xiaoyun">
 <meta property="og:description" content="Hadoop版本:Hadoop-1.2.1参考：《Hadoop技术内幕-深入解析Hadoop Common和HDFS架构设计与实现原理》  
@@ -66,9 +66,9 @@
 
 1. 读数据块如上篇分析，读数据块由readBlock负责12345678910111">
 <meta property="og:image" content="http://xiao-yun.github.io/../images/普通方式和零拷贝.png">
-<meta property="og:updated_time" content="2016-01-08T06:45:06.306Z">
+<meta property="og:updated_time" content="2016-01-17T06:53:45.889Z">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="DataNode实现源码分析---流接口实现上篇">
+<meta name="twitter:title" content="DataNode实现源码分析---流接口实现下篇">
 <meta name="twitter:description" content="Hadoop版本:Hadoop-1.2.1参考：《Hadoop技术内幕-深入解析Hadoop Common和HDFS架构设计与实现原理》  
 
 本文接DataNode实现源码分析—流接口实现上篇分析DataNode流接口中除写操作外的剩余4中流接口操作:读数据块，数据块替换，数据块拷贝，读数据块校验信息。  
@@ -85,7 +85,7 @@
   };
 </script>
 
-  <title> DataNode实现源码分析---流接口实现上篇 | xiaoyun </title>
+  <title> DataNode实现源码分析---流接口实现下篇 | xiaoyun </title>
 </head>
 
 <body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
@@ -235,7 +235,7 @@
             
             
               
-                DataNode实现源码分析---流接口实现上篇
+                DataNode实现源码分析---流接口实现下篇
               
             
           </h1>
@@ -244,8 +244,8 @@
         <div class="post-meta">
           <span class="post-time">
             发表于
-            <time itemprop="dateCreated" datetime="2016-01-08T14:45:06+08:00" content="2016-01-08">
-              2016-01-08
+            <time itemprop="dateCreated" datetime="2016-01-17T14:53:45+08:00" content="2016-01-17">
+              2016-01-17
             </time>
           </span>
 
@@ -433,16 +433,16 @@
         <div class="post-nav">
           <div class="post-nav-next post-nav-item">
             
-              <a href="/DataNode流接口实现上篇/" rel="next" title="DataNode实现源码分析---流接口实现上篇">
-                <i class="fa fa-chevron-left"></i> DataNode实现源码分析---流接口实现上篇
+              <a href="/DataNode本地存储管理/" rel="next" title="DataNode实现源码分析---本地存储管理">
+                <i class="fa fa-chevron-left"></i> DataNode实现源码分析---本地存储管理
               </a>
             
           </div>
 
           <div class="post-nav-prev post-nav-item">
             
-              <a href="/HDFS相关实体对象/" rel="prev" title="HDFS相关实体对象">
-                HDFS相关实体对象 <i class="fa fa-chevron-right"></i>
+              <a href="/配置相关HDFS/" rel="prev" title="Hadoop配置相关---HDFS">
+                Hadoop配置相关---HDFS <i class="fa fa-chevron-right"></i>
               </a>
             
           </div>
@@ -494,7 +494,7 @@
   <div class="comments" id="comments">
     
       <div class="ds-thread" data-thread-key="DataNode流接口实现下篇/"
-           data-title="DataNode实现源码分析---流接口实现上篇" data-url="http://xiao-yun.github.io/DataNode流接口实现下篇/">
+           data-title="DataNode实现源码分析---流接口实现下篇" data-url="http://xiao-yun.github.io/DataNode流接口实现下篇/">
       </div>
     
   </div>
@@ -538,21 +538,21 @@
         <nav class="site-state motion-element">
           <div class="site-state-item site-state-posts">
             <a href="/archives">
-              <span class="site-state-item-count">35</span>
+              <span class="site-state-item-count">36</span>
               <span class="site-state-item-name">日志</span>
             </a>
           </div>
 
           <div class="site-state-item site-state-categories">
             <a href="/categories">
-              <span class="site-state-item-count">37</span>
+              <span class="site-state-item-count">40</span>
               <span class="site-state-item-name">分类</span>
               </a>
           </div>
 
           <div class="site-state-item site-state-tags">
             <a href="/tags">
-              <span class="site-state-item-count">19</span>
+              <span class="site-state-item-count">21</span>
               <span class="site-state-item-name">标签</span>
               </a>
           </div>

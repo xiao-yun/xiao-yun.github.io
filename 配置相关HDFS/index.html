@@ -51,9 +51,8 @@
 
 
 
-<meta name="description" content="Hadoop版本:Hadoop-1.2.1  
+<meta name="description" content="Hadoop版本:Hadoop-1.2.1说明:缺省值为N/A是指在程序中没有指定，而不是在datanode-default.xml等缺省配置文件中没有设置。
 
-说明:缺省值为N/A是指在程序中没有指定，而不是在datanode-default.xml中没有设置。
 FileSystem
 
 
@@ -71,14 +70,13 @@ FileSystem.get获取文件系统，默认为本地文件系统
 
 fs.%s.impl.disable.cache
 false
-其中%s为对应">
+其中%">
 <meta property="og:type" content="article">
 <meta property="og:title" content="Hadoop配置相关---HDFS">
 <meta property="og:url" content="http://xiao-yun.github.io/配置相关HDFS/index.html">
 <meta property="og:site_name" content="xiaoyun">
-<meta property="og:description" content="Hadoop版本:Hadoop-1.2.1  
+<meta property="og:description" content="Hadoop版本:Hadoop-1.2.1说明:缺省值为N/A是指在程序中没有指定，而不是在datanode-default.xml等缺省配置文件中没有设置。
 
-说明:缺省值为N/A是指在程序中没有指定，而不是在datanode-default.xml中没有设置。
 FileSystem
 
 
@@ -96,13 +94,12 @@ FileSystem.get获取文件系统，默认为本地文件系统
 
 fs.%s.impl.disable.cache
 false
-其中%s为对应">
-<meta property="og:updated_time" content="2016-01-17T06:53:46.233Z">
+其中%">
+<meta property="og:updated_time" content="2016-01-18T06:56:14.385Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="Hadoop配置相关---HDFS">
-<meta name="twitter:description" content="Hadoop版本:Hadoop-1.2.1  
+<meta name="twitter:description" content="Hadoop版本:Hadoop-1.2.1说明:缺省值为N/A是指在程序中没有指定，而不是在datanode-default.xml等缺省配置文件中没有设置。
 
-说明:缺省值为N/A是指在程序中没有指定，而不是在datanode-default.xml中没有设置。
 FileSystem
 
 
@@ -120,7 +117,7 @@ FileSystem.get获取文件系统，默认为本地文件系统
 
 fs.%s.impl.disable.cache
 false
-其中%s为对应">
+其中%">
 
 
 
@@ -291,8 +288,8 @@ false
         <div class="post-meta">
           <span class="post-time">
             发表于
-            <time itemprop="dateCreated" datetime="2016-01-17T14:53:46+08:00" content="2016-01-17">
-              2016-01-17
+            <time itemprop="dateCreated" datetime="2016-01-18T14:56:14+08:00" content="2016-01-18">
+              2016-01-18
             </time>
           </span>
 
@@ -361,9 +358,8 @@ false
       
 
       
-        <span itemprop="articleBody"><p>Hadoop版本:<a href="https://archive.apache.org/dist/hadoop/core/hadoop-1.2.1/" target="_blank" rel="external">Hadoop-1.2.1</a>  </p>
+        <span itemprop="articleBody"><p>Hadoop版本:<a href="https://archive.apache.org/dist/hadoop/core/hadoop-1.2.1/" target="_blank" rel="external">Hadoop-1.2.1</a><br>说明:缺省值为N/A是指在程序中没有指定，而不是在datanode-default.xml等缺省配置文件中没有设置。</p>
 <hr>
-<p>说明:缺省值为N/A是指在程序中没有指定，而不是在datanode-default.xml中没有设置。</p>
 <h2 id="FileSystem">FileSystem</h2><table>
 <thead>
 <tr>
@@ -617,6 +613,77 @@ false
 <td style="text-align:center">/tmp/hadoop/dfs/name</td>
 <td style="text-align:center">NameNode编辑日志位置，可以有多个，可以不和命名空间镜像一样</td>
 </tr>
+<tr>
+<td style="text-align:center">dfs.info.bindAddress</td>
+<td style="text-align:center">N/A</td>
+<td style="text-align:center">旧的HTTP地址</td>
+</tr>
+<tr>
+<td style="text-align:center">dfs.info.bindAddress</td>
+<td style="text-align:center">N/A</td>
+<td style="text-align:center">旧的HTTP端口</td>
+</tr>
+<tr>
+<td style="text-align:center">dfs.http.address</td>
+<td style="text-align:center">N/A</td>
+<td style="text-align:center">新的HTTP服务地址，包括端口</td>
+</tr>
+</tbody>
+</table>
+<h2 id="SecondaryNameNode">SecondaryNameNode</h2><table>
+<thead>
+<tr>
+<th style="text-align:center">属性</th>
+<th style="text-align:center">缺省值</th>
+<th style="text-align:center">说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">dfs.secondary.info.bindAddress</td>
+<td style="text-align:center">N/A</td>
+<td style="text-align:center">旧的HTTP地址</td>
+</tr>
+<tr>
+<td style="text-align:center">dfs.secondary.info.port</td>
+<td style="text-align:center">N/A</td>
+<td style="text-align:center">旧的HTTP端口</td>
+</tr>
+<tr>
+<td style="text-align:center">dfs.secondary.http.address</td>
+<td style="text-align:center">N/A</td>
+<td style="text-align:center">新的HTTP地址和端口(:分隔)</td>
+</tr>
+<tr>
+<td style="text-align:center">dfs.namenode.servicerpc-address</td>
+<td style="text-align:center">N/A</td>
+<td style="text-align:center">NameNode代理服务所在地址，优先使用该选项，没有配置时使用dfs.namenode.rpc-address，任然没有配置时使用fs.default.name和缺省端口8020</td>
+</tr>
+<tr>
+<td style="text-align:center">dfs.namenode.rpc-address</td>
+<td style="text-align:center">N/A</td>
+<td style="text-align:center">NameNode代理服务所在地址</td>
+</tr>
+<tr>
+<td style="text-align:center">fs.checkpoint.dir</td>
+<td style="text-align:center">/tmp/hadoop/dfs/namesecondary</td>
+<td style="text-align:center">校验点镜像目录</td>
+</tr>
+<tr>
+<td style="text-align:center">fs.checkpoint.edits.dir</td>
+<td style="text-align:center">/tmp/hadoop/dfs/namesecondary</td>
+<td style="text-align:center">校验点日志目录</td>
+</tr>
+<tr>
+<td style="text-align:center">fs.checkpoint.period</td>
+<td style="text-align:center">3600s(1h)</td>
+<td style="text-align:center">检查点周期，默认最多1h一次检查点</td>
+</tr>
+<tr>
+<td style="text-align:center">fs.checkpoint.size</td>
+<td style="text-align:center">4194304(4MB)</td>
+<td style="text-align:center">日志文件大小阈值，超过4MB一次检查点</td>
+</tr>
 </tbody>
 </table>
 </span>
@@ -640,16 +707,16 @@ false
         <div class="post-nav">
           <div class="post-nav-next post-nav-item">
             
-              <a href="/DataNode流接口实现下篇/" rel="next" title="DataNode实现源码分析---流接口实现下篇">
-                <i class="fa fa-chevron-left"></i> DataNode实现源码分析---流接口实现下篇
+              <a href="/NameNode命名空间镜像和编辑日志/" rel="next" title="NameNode实现源码分析---命名空间镜像和编辑日志">
+                <i class="fa fa-chevron-left"></i> NameNode实现源码分析---命名空间镜像和编辑日志
               </a>
             
           </div>
 
           <div class="post-nav-prev post-nav-item">
             
-              <a href="/NameNode命名空间镜像和编辑日志/" rel="prev" title="NameNode实现源码分析---命名空间镜像和编辑日志">
-                NameNode实现源码分析---命名空间镜像和编辑日志 <i class="fa fa-chevron-right"></i>
+              <a href="/NameNode和SecondaryNameNode/" rel="prev" title="NameNode实现源码分析---和SecondaryNameNode的交互">
+                NameNode实现源码分析---和SecondaryNameNode的交互 <i class="fa fa-chevron-right"></i>
               </a>
             
           </div>
@@ -745,7 +812,7 @@ false
         <nav class="site-state motion-element">
           <div class="site-state-item site-state-posts">
             <a href="/archives">
-              <span class="site-state-item-count">36</span>
+              <span class="site-state-item-count">37</span>
               <span class="site-state-item-name">日志</span>
             </a>
           </div>
@@ -801,7 +868,7 @@ false
               
             
             
-              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#FileSystem"><span class="nav-number">1.</span> <span class="nav-text">FileSystem</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#ChecksumFileSystem"><span class="nav-number">2.</span> <span class="nav-text">ChecksumFileSystem</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#InMemoryFileSystem"><span class="nav-number">3.</span> <span class="nav-text">InMemoryFileSystem</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#DataNode"><span class="nav-number">4.</span> <span class="nav-text">DataNode</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#NameNode"><span class="nav-number">5.</span> <span class="nav-text">NameNode</span></a></li></ol></div>
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#FileSystem"><span class="nav-number">1.</span> <span class="nav-text">FileSystem</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#ChecksumFileSystem"><span class="nav-number">2.</span> <span class="nav-text">ChecksumFileSystem</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#InMemoryFileSystem"><span class="nav-number">3.</span> <span class="nav-text">InMemoryFileSystem</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#DataNode"><span class="nav-number">4.</span> <span class="nav-text">DataNode</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#NameNode"><span class="nav-number">5.</span> <span class="nav-text">NameNode</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#SecondaryNameNode"><span class="nav-number">6.</span> <span class="nav-text">SecondaryNameNode</span></a></li></ol></div>
             
           </div>
           <div class="post-toc-indicator-bottom post-toc-indicator">

@@ -1,0 +1,982 @@
+<!doctype html>
+<html class="theme-next   use-motion ">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+  <link href="/vendors/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css"/>
+
+
+
+
+  <link href="//fonts.googleapis.com/css?family=Lato:300,400,700,400italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+
+
+
+<link href="/vendors/font-awesome/css/font-awesome.min.css?v=4.4.0" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=0.4.5.2" rel="stylesheet" type="text/css" />
+
+
+  <meta name="keywords" content="HDFS,Hadoop-1.2.1,Java,NameNode,NameNode源码阅读,源码阅读," />
+
+
+
+
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=0.4.5.2" />
+
+
+
+
+
+
+<meta name="description" content="Hadoop版本:Hadoop-1.2.1参考：《Hadoop技术内幕-深入解析Hadoop Common和HDFS架构设计与实现原理》  
+
+如HDFS节点的VersionedProtocol实现中对NamenodeProtocol的分析，SecondaryNameNode周期性通过getEditLogSize获取NameNode编辑日志大小，如果超出某个值，则通过rollEditLog通知Na">
+<meta property="og:type" content="article">
+<meta property="og:title" content="NameNode实现源码分析---和SecondaryNameNode的交互">
+<meta property="og:url" content="http://xiao-yun.github.io/NameNode和SecondaryNameNode/index.html">
+<meta property="og:site_name" content="xiaoyun">
+<meta property="og:description" content="Hadoop版本:Hadoop-1.2.1参考：《Hadoop技术内幕-深入解析Hadoop Common和HDFS架构设计与实现原理》  
+
+如HDFS节点的VersionedProtocol实现中对NamenodeProtocol的分析，SecondaryNameNode周期性通过getEditLogSize获取NameNode编辑日志大小，如果超出某个值，则通过rollEditLog通知Na">
+<meta property="og:updated_time" content="2016-01-18T07:08:45.793Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="NameNode实现源码分析---和SecondaryNameNode的交互">
+<meta name="twitter:description" content="Hadoop版本:Hadoop-1.2.1参考：《Hadoop技术内幕-深入解析Hadoop Common和HDFS架构设计与实现原理》  
+
+如HDFS节点的VersionedProtocol实现中对NamenodeProtocol的分析，SecondaryNameNode周期性通过getEditLogSize获取NameNode编辑日志大小，如果超出某个值，则通过rollEditLog通知Na">
+
+
+
+<script type="text/javascript" id="hexo.configuration">
+  var CONFIG = {
+    scheme: 'Mist',
+    sidebar: 'hide',
+    motion: true
+  };
+</script>
+
+  <title> NameNode实现源码分析---和SecondaryNameNode的交互 | xiaoyun </title>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  <!--[if lte IE 8]>
+  <div style=' clear: both; height: 59px; padding:0 0 0 15px; position: relative;margin:0 auto;'>
+    <a href="http://windows.microsoft.com/en-US/internet-explorer/products/ie/home?ocid=ie6_countdown_bannercode">
+      <img src="http://7u2nvr.com1.z0.glb.clouddn.com/picouterie.jpg" border="0" height="42" width="820"
+           alt="You are using an outdated browser. For a faster, safer browsing experience, upgrade for free today or use other browser ,like chrome firefox safari."
+           style='margin-left:auto;margin-right:auto;display: block;'/>
+    </a>
+  </div>
+<![endif]-->
+  
+
+
+
+  <script type="text/javascript">
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "//hm.baidu.com/hm.js?caeb4129c91d1e6fb3d562d35fedef0d";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+  <div class="container one-column page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-meta ">
+  
+
+  <div class="custom-logo-site-title">
+    <a href="/"  class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <span class="site-title">xiaoyun</span>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+  <p class="site-subtitle"></p>
+</div>
+
+<div class="site-nav-toggle">
+  <button>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+  </button>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu ">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-home fa-fw"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives" rel="section">
+            
+              <i class="menu-item-icon fa fa-archive fa-fw"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories" rel="section">
+            
+              <i class="menu-item-icon fa fa-th fa-fw"></i> <br />
+            
+            分类
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+              <i class="menu-item-icon fa fa-tags fa-fw"></i> <br />
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about" rel="section">
+            
+              <i class="menu-item-icon fa fa-user fa-fw"></i> <br />
+            
+            关于
+          </a>
+        </li>
+      
+
+      
+      
+    </ul>
+  
+
+  
+</nav>
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div id="content" class="content">
+          
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                NameNode实现源码分析---和SecondaryNameNode的交互
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            发表于
+            <time itemprop="dateCreated" datetime="2016-01-18T15:08:45+08:00" content="2016-01-18">
+              2016-01-18
+            </time>
+          </span>
+
+          
+            <span class="post-category" >
+              &nbsp; | &nbsp; 分类于
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Java/" itemprop="url" rel="index">
+                    <span itemprop="name">Java</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Java/Hadoop-1-2-1/" itemprop="url" rel="index">
+                    <span itemprop="name">Hadoop-1.2.1</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Java/Hadoop-1-2-1/HDFS/" itemprop="url" rel="index">
+                    <span itemprop="name">HDFS</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Java/Hadoop-1-2-1/HDFS/NameNode/" itemprop="url" rel="index">
+                    <span itemprop="name">NameNode</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Java/Hadoop-1-2-1/HDFS/NameNode/源码阅读/" itemprop="url" rel="index">
+                    <span itemprop="name">源码阅读</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Java/Hadoop-1-2-1/HDFS/NameNode/源码阅读/NameNode源码阅读/" itemprop="url" rel="index">
+                    <span itemprop="name">NameNode源码阅读</span>
+                  </a>
+                </span>
+
+                
+                
+
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                &nbsp; | &nbsp;
+                <a href="/NameNode和SecondaryNameNode/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="NameNode和SecondaryNameNode/" itemprop="commentsCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+
+        </div>
+      </header>
+    
+
+
+    <div class="post-body">
+
+      
+      
+
+      
+        <span itemprop="articleBody"><p>Hadoop版本:<a href="https://archive.apache.org/dist/hadoop/core/hadoop-1.2.1/" target="_blank" rel="external">Hadoop-1.2.1</a><br>参考：《Hadoop技术内幕-深入解析Hadoop Common和HDFS架构设计与实现原理》  </p>
+<hr>
+<p>如<a href="../HDFS VersionedProtocol">HDFS节点的VersionedProtocol实现</a>中对NamenodeProtocol的分析，SecondaryNameNode周期性通过<code>getEditLogSize</code>获取NameNode编辑日志大小，如果超出某个值，则通过<code>rollEditLog</code>通知NameNode开始一次检查点过程，NameNode关闭当前编辑日志，使用新的编辑日志<code>edits.new</code>继续记录日志。然后SecondaryNameNode通过HTTP服务获取NameNode上的命名空间镜像和编辑日志，进行合并操作。合并后通过HTTP服务通知NameNode下载新的命名空间镜像，然后通过<code>rollFsImage</code>通知NameNode使用新的检查点。  </p>
+<p>本文将按照以上流程对NameNode和SecondaryNameNode之间的交互进行分析。  </p>
+<hr>
+<h2 id="1-_getEditLogSize">1. getEditLogSize</h2><p>NameNode的getEditLogSize实现如下<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">long</span> <span class="title">getEditLogSize</span><span class="params">()</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">return</span> namesystem.<span class="title">getEditLogSize</span><span class="params">()</span></span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">long</span> <span class="title">getEditLogSize</span><span class="params">()</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">    <span class="keyword">return</span> getEditLog().getEditLogSize();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，还是由FSNamesystem提供服务，通过FSNamesystem获得FSDirectory对象，由FSDirectory获得FSImage对象，FSImage对象最终获得FSEditLog对象，由FSEditLog对象的getEditLogSize返回当前编辑日志的大小<br><figure class="highlight processing"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">synchronized</span> <span class="keyword">long</span> getEditLogSize() <span class="keyword">throws</span> IOException &#123;</span><br><span class="line">    <span class="keyword">assert</span>(getNumStorageDirs() == editStreams.<span class="built_in">size</span>());</span><br><span class="line">    <span class="keyword">long</span> <span class="built_in">size</span> = <span class="number">0</span>;</span><br><span class="line">    <span class="keyword">for</span> (<span class="built_in">int</span> idx = <span class="number">0</span>; idx &lt; editStreams.<span class="built_in">size</span>(); idx++) &#123;</span><br><span class="line">      <span class="keyword">long</span> curSize = editStreams.<span class="built_in">get</span>(idx).length();</span><br><span class="line">      <span class="keyword">assert</span> (<span class="built_in">size</span> == <span class="number">0</span> || <span class="built_in">size</span> == curSize) : <span class="string">"All streams must be the same"</span>;</span><br><span class="line">      <span class="built_in">size</span> = curSize;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> <span class="built_in">size</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，返回对应的编辑日志文件大小。所有的日志输出流EditLogFileOutputStream对应文件长度应该是一样的，因为每次都是往所有的输出流写数据(日志记录见<a href="../NameNode命名空间镜像和编辑日志">NameNode命名空间镜像和编辑日志</a>)。</p>
+<hr>
+<h2 id="2-_rollEditLog">2. rollEditLog</h2><p>SecondaryNameNode获取NameNode编辑日志大小后，判断是否大于某一值，如果大于再通过rollEditLog开始一个新的检查点。SecondaryNameNode的中间过程后面分析，这里假设编辑日志超过了阈值，通过NamenodeProtocol代理调用rollEditLog，NameNode上rollEditLog实现如下<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="function">CheckpointSignature <span class="title">rollEditLog</span><span class="params">()</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">return</span> namesystem.<span class="title">rollEditLog</span><span class="params">()</span></span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">synchronized</span> <span class="function">CheckpointSignature <span class="title">rollEditLog</span><span class="params">()</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">    checkSuperuserPrivilege();<span class="comment">//超级用户权限</span></span><br><span class="line">    <span class="keyword">synchronized</span> (<span class="keyword">this</span>) &#123;</span><br><span class="line">      <span class="keyword">if</span> (isInSafeMode()) &#123;</span><br><span class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> SafeModeException(<span class="string">"Log not rolled"</span>, safeMode);</span><br><span class="line">      &#125;</span><br><span class="line">      LOG.info(<span class="string">"Roll Edit Log from "</span> + Server.getRemoteAddress());</span><br><span class="line">      <span class="keyword">return</span> getFSImage().rollEditLog();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，还是通过FSNamesystem提供服务，rollEditLog要有超级用户权限，否则会抛出异常。在安全模式下时也不能开始检查点过程。<br>由FSNamesystem获取到FSImage对象后，FSImage对象调用rollEditLog完成<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="function">CheckpointSignature <span class="title">rollEditLog</span><span class="params">()</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">    getEditLog().rollEditLog();</span><br><span class="line">    ckptState = CheckpointStates.ROLLED_EDITS;</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">new</span> CheckpointSignature(<span class="keyword">this</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>最终通过FSImage管理的FSEditLog对象的rollEditLog方法完成相应的操作，FSImage对象的成员<code>ckptState</code>状态改为<code>ROLLED_EDITS</code>，ckptState为CheckpointStates枚举<br><figure class="highlight crystal"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">enum</span> <span class="title">CheckpointStates</span>&#123;<span class="title">START</span>, <span class="title">ROLLED_EDITS</span>, <span class="title">UPLOAD_START</span>, <span class="title">UPLOAD_DONE</span>;</span> &#125;</span><br></pre></td></tr></table></figure></p>
+<p>最开始为START。<br>更改状态后创建CheckpointSignature对象返回给SecondaryNameNode，作为一次检查点的标识<br><figure class="highlight dns"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">CheckpointSignature(FSImage fsImage) &#123;</span><br><span class="line">    super(fsImage)<span class="comment">;</span></span><br><span class="line">    editsTime = fsImage.getEditLog().getFsEditTime()<span class="comment">;</span></span><br><span class="line">    checkpointTime = fsImage.checkpointTime<span class="comment">;</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>CheckpointSignature继承自StorageInfo，父类构造保存当前FSImage的存储信息(layoutVersion,namespaceID，cTime)，成员<code>editsTime</code>为当前编辑日志的修改时间，checkpointTime为FSImage的检查点时间。这两个值标识一个检查点。  </p>
+<p>实际的操作由FSEditLog的rollEditLog完成，经前面分析，应该是关闭当前编辑日志，然后使用新的编辑日志文件(edits.new)记录。FSEditLog相关见<a href="../NameNode命名空间镜像和编辑日志">NameNode命名空间镜像和编辑日志</a><br><figure class="highlight gradle"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">synchronized</span> <span class="keyword">void</span> rollEditLog() <span class="keyword">throws</span> IOException &#123;</span><br><span class="line">    <span class="comment">//如果edits.new已经在某些存储目录中存在了，看是否在所有的存储目录中都存在</span></span><br><span class="line">    <span class="keyword">if</span> (existsNew()) &#123;</span><br><span class="line">      Iterator&lt;StorageDirectory&gt; it = fsimage.dirIterator(NameNodeDirType.EDITS);<span class="comment">//遍历EDITS类型存储目录</span></span><br><span class="line">      StringBuilder b = <span class="keyword">new</span> StringBuilder();</span><br><span class="line">      <span class="keyword">while</span> (it.hasNext()) &#123;</span><br><span class="line">        <span class="keyword">File</span> editsNew = getEditNewFile(it.<span class="keyword">next</span>());</span><br><span class="line">        b.<span class="keyword">append</span>(<span class="string">"\n  "</span>).<span class="keyword">append</span>(editsNew);</span><br><span class="line">        <span class="keyword">if</span> (!editsNew.exists()) &#123;<span class="comment">//并不是所有的EDITS存储目录都存在edits.new文件，异常</span></span><br><span class="line">          <span class="keyword">throw</span> <span class="keyword">new</span> IOException(</span><br><span class="line">              <span class="string">"Inconsistent existence of edits.new "</span> + editsNew);</span><br><span class="line">        &#125;</span><br><span class="line">      &#125;</span><br><span class="line">      LOG.warn(<span class="string">"Cannot roll edit log,"</span> + <span class="string">" edits.new files already exists in all healthy directories:"</span> + b);</span><br><span class="line">      <span class="keyword">return</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    close(); <span class="comment">//关闭当前日志文件</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">// After edit streams are closed, healthy edits files should be identical,</span></span><br><span class="line">    <span class="comment">// and same to fsimage files</span></span><br><span class="line">    fsimage.restoreStorageDirs();</span><br><span class="line">    </span><br><span class="line">    </span><br><span class="line">    Iterator&lt;StorageDirectory&gt; it = fsimage.dirIterator(NameNodeDirType.EDITS);<span class="comment">//所有的EDITS存储目录</span></span><br><span class="line">    LinkedList&lt;StorageDirectory&gt; toRemove = <span class="keyword">new</span> LinkedList&lt;StorageDirectory&gt;();</span><br><span class="line">    <span class="keyword">while</span> (it.hasNext()) &#123;</span><br><span class="line">      StorageDirectory sd = it.<span class="keyword">next</span>();</span><br><span class="line">      <span class="keyword">try</span> &#123;</span><br><span class="line">        <span class="comment">//每个EDITS存储目录下创建新的日志文件edits.new，写文件头版本号</span></span><br><span class="line">        EditLogFileOutputStream eStream = <span class="keyword">new</span> EditLogFileOutputStream(getEditNewFile(sd));</span><br><span class="line">        eStream.create();</span><br><span class="line">        editStreams.add(eStream);<span class="comment">//添加到editStreams中</span></span><br><span class="line">      &#125; <span class="keyword">catch</span> (IOException ioe) &#123;</span><br><span class="line">        LOG.error(<span class="string">"error retrying to reopen storage directory '"</span> +</span><br><span class="line">            sd.getRoot().getAbsolutePath() + <span class="string">"'"</span>, ioe);</span><br><span class="line">        toRemove.add(sd);</span><br><span class="line">        it.remove();</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">for</span> (StorageDirectory sd : toRemove) &#123;<span class="comment">//移除错误的EDITS存储目录</span></span><br><span class="line">      removeEditsForStorageDir(sd);</span><br><span class="line">      fsimage.updateRemovedDirs(sd);</span><br><span class="line">    &#125;</span><br><span class="line">    exitIfNoStreams();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，如果在EDITS存储目录中已经有了edits.new文件，检查是否所有的EDITS存储目录存在edits.new文件，如果都存在说明新的日至文件已经创建在使用了，返回。否则只有部分存在，存储目录不一致抛出异常。<br>edits.new文件需要创建时，首先通过close关闭当前使用的日至文件edits，close不再贴代码分析。<br>close方法中如果当前正在进行同步,等待同步完成。然后对管理的所有日志文件输出流EditLogFileOutputStream对象editStreams逐一刷出到底层文件中，然后关闭输出流的两个缓冲区，关闭底层文件通道。最终将editStreams中管理的输出流清空。  </p>
+<p>关闭原来的日志文件后，在每个EDITS存储目录下创建新的日志文件，如<a href="../NameNode命名空间镜像和编辑日志">NameNode命名空间镜像和编辑日志</a>中对日志文件输出流的分析，创建相应日志文件的输出流后，调用create方法往底层文件中写文件头(版本号)，完成日志文件的初始化过程，最终将所有的日志文件输出流添加到editStreams中进行管理。  </p>
+<p>至此，旧的日志文件已经关闭，新的日志文件已经打开，等待SecondaryNameNode下载命名空间镜像和旧的日志文件。  </p>
+<hr>
+<h2 id="3-_SecondaryNameNode">3. SecondaryNameNode</h2><p>SecondaryNameNode由main方法启动<br><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] argv)</span> throws Exception </span>&#123;</span><br><span class="line">    StringUtils.startupShutdownMessage(SecondaryNameNode.<span class="keyword">class</span>, argv, LOG);</span><br><span class="line">    Configuration tconf = <span class="keyword">new</span> Configuration();</span><br><span class="line">    <span class="keyword">if</span> (argv.length &gt;= <span class="number">1</span>) &#123;</span><br><span class="line">      SecondaryNameNode secondary = <span class="keyword">new</span> SecondaryNameNode(tconf);</span><br><span class="line">      <span class="keyword">int</span> ret = secondary.processArgs(argv);</span><br><span class="line">      System.<span class="built_in">exit</span>(ret);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    Daemon checkpointThread = <span class="keyword">new</span> Daemon(<span class="keyword">new</span> SecondaryNameNode(tconf)); </span><br><span class="line">    checkpointThread.start();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，可以带参数启动，如<code>-checkpoint</code>，<code>-geteditsize</code>，执行相应功能后，SecondaryNameNode就会退出。<br>checkpoint会尝试进行一次检查点过程，即先通过getEditLogSize获取日志大小，如果超过阈值或者没有超过阈值但同时指定了force(<code>-checkpoint force</code>)，则通过<code>doCheckpoint</code>执行一次检查点。而如果没有超过阈值且没有指定force，则记录日志。<br>geteditsize简单的在控制台打印当前NameNode日志大小。  </p>
+<p>如果不带参数启动则会开启一个线程，定期检查是否进行检查点。  </p>
+<h3 id="3-1_构造">3.1 构造</h3><p>SecondaryNameNode的构造函数中，通过<code>initialize(conf)</code>初始化，读取配置对基本成员进行设置，开启HTTP服务，创建NamenodeProtocol代理，创建检查点工作需要的CheckpointStorage对象，重要的初始化如下</p>
+<ul>
+<li><p>HTTPServer</p>
+  <figure class="highlight actionscript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">final</span> InetSocketAddress infoSocAddr = getHttpAddress(conf);<span class="comment">//HTTP服务地址</span></span><br><span class="line">infoBindAddress = infoSocAddr.getHostName();</span><br></pre></td></tr></table></figure>
+<p>  如上，HTTP地址新的使用配置项<code>dfs.secondary.http.address</code>，包含地址和端口，使用<code>:</code>分隔。旧的使用<code>dfs.secondary.info.bindAddress</code>配置地址，<code>dfs.secondary.info.port</code>配置端口。<br>  后面初始化HTTP服务</p>
+  <figure class="highlight xquery"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (SecurityUtil.useKsslAuth()) &#123;</span><br><span class="line">  initializeKsslWebServer(infoSocAddr);</span><br><span class="line">&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">  initializeHttpWebServer(infoSocAddr);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>  会初始化成员<code>infoServer</code>构造HTTPServer对象，名字为secondary。然后设置属性<code>secondary.name.node</code>为当前SecondaryNameNode对象，<code>name.system.image</code>为创建的CheckpointStorage对象，<code>current.conf</code>为当前使用的配置文件对象。然后创建名为getimage的Servlet，路径为<code>/getimage</code>，对应的类为<code>GetImageServlet</code>，启动HTTPServer。GetImageServlet的分析见后面。  </p>
+</li>
+<li><p>NameNode代理</p>
+  <figure class="highlight ini"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="setting">shouldRun = <span class="value"><span class="keyword">true</span>;</span></span></span><br><span class="line"><span class="setting">nameNodeAddr = <span class="value">NameNode.getServiceAddress(conf, <span class="keyword">true</span>);//NameNode代理地址</span></span></span><br></pre></td></tr></table></figure>
+<p>  NameNode代理服务地址，优先查找<code>dfs.namenode.servicerpc-address</code>配置，如果没有查找<code>dfs.namenode.rpc-address</code>，还是没有使用<code>fs.default.name</code>和缺省端口8020作为地址。  </p>
+</li>
+<li><p>CheckpointStorage</p>
+  <figure class="highlight stata"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">checkpointDirs = FSImage.getCheckpointDirs(<span class="keyword">conf</span>, <span class="string">"/tmp/hadoop/dfs/namesecondary"</span>);<span class="comment">//校验点命名空间镜像目录</span></span><br><span class="line">checkpointEditsDirs = FSImage.getCheckpointEditsDirs(<span class="keyword">conf</span>, <span class="string">"/tmp/hadoop/dfs/namesecondary"</span>);<span class="comment">//校验点日志目录</span></span><br><span class="line">checkpointImage = new CheckpointStorage();<span class="comment">//创建CheckpointStorage对象</span></span><br><span class="line">checkpointImage.recoverCreate(checkpointDirs, checkpointEditsDirs);<span class="comment">//从本地文件中恢复</span></span><br></pre></td></tr></table></figure>
+<p>  如上，校验点命名空间镜像目录为配置项<code>fs.checkpoint.dir</code>，默认<code>/tmp/hadoop/dfs/namesecondary</code>，校验点日志目录为配置项<code>fs.checkpoint.edits.dir</code>，默认<code>/tmp/hadoop/dfs/namesecondary</code>。<br>  CheckpointStorage继承自FSImage，构造函数中简单调用父类构造函数如下</p>
+  <figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">CheckpointStorage() <span class="keyword">throws</span> IOException &#123; <span class="keyword">super</span>(); &#125;</span><br></pre></td></tr></table></figure>
+<p>  recoverCreate中，设置CheckpointStorage的存储目录为checkpointDirs和checkpointEditsDirs，创建相应目录然后对每一个存储目录通过Storage的<code>analyzeStorage</code>方法分析存储目录当前状态，analyzeStorage见<a href="../DataNode本地存储管理">DataNode本地存储管理</a>。如果目录不存在或不可访问抛出异常，如果处于中间状态通过<code>doRecover</code>恢复到NORMAL状态，doRecover同样见<a href="../DataNode本地存储管理">DataNode本地存储管理</a>。recoverCreate具体代码不再贴出来。  </p>
+</li>
+<li><p>扫描线程配置</p>
+  <figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">checkpointPeriod = conf.getLong(<span class="string">"fs.checkpoint.period"</span>, <span class="number">3600</span>);<span class="comment">//时间阈值</span></span><br><span class="line">checkpointSize = conf.getLong(<span class="string">"fs.checkpoint.size"</span>, <span class="number">4194304</span>);<span class="comment">//日志文件阈值</span></span><br></pre></td></tr></table></figure>
+<p>  如上，线程中默认每过5min检查一次日志文件，日志文件超过4MB做一次检查点。而如果日志文件在1h内都没有超过4MB，则也会做一次检查点，即最长1h一次检查点。  </p>
+</li>
+</ul>
+<p>如main函数中，如果不是带参数的启动，则会开启线程</p>
+<h3 id="3-2_SecondaryNameNode线程">3.2 SecondaryNameNode线程</h3><p>线程中，通过doWork方法完成工作<br><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">doWork</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="keyword">long</span> period = <span class="number">5</span> * <span class="number">60</span>;              <span class="comment">//默认5m检查一次日志文件</span></span><br><span class="line">    <span class="keyword">if</span> (checkpointPeriod &lt; period) &#123;</span><br><span class="line">      period = checkpointPeriod;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">while</span> (shouldRun) &#123;</span><br><span class="line">      <span class="keyword">try</span> &#123;</span><br><span class="line">        Thread.sleep(<span class="number">1000</span> * period);</span><br><span class="line">      &#125; <span class="keyword">catch</span> (InterruptedException ie) &#123;</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="keyword">if</span> (!shouldRun) &#123;</span><br><span class="line">        <span class="keyword">break</span>;</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="keyword">try</span> &#123;</span><br><span class="line">        <span class="comment">// We may have lost our ticket since last checkpoint, log in again, just in case</span></span><br><span class="line">        <span class="keyword">if</span>(UserGroupInformation.isSecurityEnabled())</span><br><span class="line">          UserGroupInformation.getCurrentUser().reloginFromKeytab();</span><br><span class="line">        <span class="keyword">long</span> now = System.currentTimeMillis();</span><br><span class="line">        <span class="keyword">long</span> size = namenode.getEditLogSize();</span><br><span class="line">        <span class="keyword">if</span> (size &gt;= checkpointSize || now &gt;= lastCheckpointTime + <span class="number">1000</span> * checkpointPeriod) &#123;</span><br><span class="line">          doCheckpoint();<span class="comment">//执行一次检查点</span></span><br><span class="line">          lastCheckpointTime = now;<span class="comment">//更新检查点时间</span></span><br><span class="line">        &#125;</span><br><span class="line">      &#125; <span class="keyword">catch</span> (IOException e) &#123;</span><br><span class="line">        LOG.error(<span class="string">"Exception in doCheckpoint: "</span>);</span><br><span class="line">        LOG.error(StringUtils.stringifyException(e));</span><br><span class="line">        e.printStackTrace();</span><br><span class="line">      &#125; <span class="keyword">catch</span> (Throwable e) &#123;</span><br><span class="line">        LOG.error(<span class="string">"Throwable Exception in doCheckpoint: "</span>);</span><br><span class="line">        LOG.error(StringUtils.stringifyException(e));</span><br><span class="line">        e.printStackTrace();</span><br><span class="line">        Runtime.getRuntime().<span class="built_in">exit</span>(-<span class="number">1</span>);</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，默认5min执行一次检查，如果日志文件大小超过阈值checkpointSize(4MB)则执行一次检查点过程，或者没有超过阈值但是从上一次执行检查点过程到现在已经过去了checkpointPeriod s(1h),也要强行执行一次检查点过程。<br>检查点过程通过doCheckpoint完成，如带参数的启动一样。  </p>
+<h3 id="3-3_doCheckpoint">3.3 doCheckpoint</h3><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">doCheckpoint</span><span class="params">()</span> throws IOException </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="comment">//初始化</span></span><br><span class="line">    startCheckpoint();</span><br><span class="line"></span><br><span class="line">    <span class="comment">//通知NameNode开始校验点过程，关闭当前日志文件，使用新的日志文件</span></span><br><span class="line">    <span class="comment">//返回的校验点签名能够验证下载的命名空间镜像文件</span></span><br><span class="line">    CheckpointSignature sig = (CheckpointSignature)namenode.rollEditLog();</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (ErrorSimulator.getErrorSimulation(<span class="number">0</span>)) &#123;<span class="comment">//单元测试</span></span><br><span class="line">      <span class="keyword">throw</span> <span class="keyword">new</span> IOException(<span class="string">"Simulating error0 "</span> + <span class="string">"after creating edits.new"</span>);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    downloadCheckpointFiles(sig); <span class="comment">//下载命名空间镜像和日志文件</span></span><br><span class="line">    doMerge(sig);                 <span class="comment">//合并</span></span><br><span class="line">    </span><br><span class="line">    <span class="comment">//通知NameNode下载新的命名空间镜像</span></span><br><span class="line">    putFSImage(sig);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (ErrorSimulator.getErrorSimulation(<span class="number">1</span>)) &#123;</span><br><span class="line">      <span class="keyword">throw</span> <span class="keyword">new</span> IOException(<span class="string">"Simulating error1 "</span> +</span><br><span class="line">                            <span class="string">"after uploading new image to NameNode"</span>);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">//通知NameNode使用新的命名空间镜像代替原来的</span></span><br><span class="line">    namenode.rollFsImage();</span><br><span class="line">    checkpointImage.endCheckpoint();<span class="comment">//结束工作</span></span><br><span class="line"></span><br><span class="line">    LOG.info(<span class="string">"Checkpoint done. New Image Size: "</span> + checkpointImage.getFsImageName().length());</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>如上，分为几个步骤</p>
+<h4 id="3-3-1_startCheckpoint">3.3.1 startCheckpoint</h4><p>startCheckpoint是检查点的初始化过程<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="function"><span class="keyword">void</span> <span class="title">startCheckpoint</span><span class="params">()</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">    checkpointImage.unlockAll();<span class="comment">//释放所有存储目录锁</span></span><br><span class="line">    checkpointImage.getEditLog().close();<span class="comment">//关闭当前使用的编辑日志</span></span><br><span class="line">    <span class="comment">//分析所有的存储目录，如果不存在重新创建，如果处于中间状态恢复到NORMAL</span></span><br><span class="line">    checkpointImage.recoverCreate(checkpointDirs, checkpointEditsDirs);</span><br><span class="line">    <span class="comment">//所有存储目录的current重命名为lastcheckpoint.tmp，然后创建新的current目录</span></span><br><span class="line">    checkpointImage.startCheckpoint();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，初始化过程由成员CheckpointStorage完成，CheckpointStorage继承自FSImage，因此都是FSImage中的方法。<br>unlockAll为父类Storage中方法，释放锁对象，关闭in_use.lock文件。<br>getEditLog.close获取FSEditLog，关闭日志文件输出流，关闭底层缓冲和文件通道，即关闭当前日志文件相关资源。<br>recoverCreate会分析所有存储目录，如果不存在重新创建，对于处于中间状态的存储目录使用doRecover恢复到NORMAL，另见<a href="../DataNode本地存储管理">DataNode本地存储管理</a>。<br>startCheckpoint对所有存储目录，将current目录重命名为lastcheckpoint.tmp，然后创建新的current目录。  </p>
+<h4 id="3-3-2_namenode-rollEditLog">3.3.2 namenode.rollEditLog</h4><p>通过NameNode代理调用NameNode的rollEditLog，如前面分析，NameNode关闭当前正在使用的日志文件，使用新的日志文件edits.new记录日志。旧的日志文件和命名空间镜像等待SecondaryNameNode读取。  </p>
+<h4 id="3-3-3_downloadCheckpointFiles">3.3.3 downloadCheckpointFiles</h4><p>通过获取到的校验点签名对象CheckpointSignature下载命名空间镜像和日志文件。<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="function"><span class="keyword">void</span> <span class="title">downloadCheckpointFiles</span><span class="params">(<span class="keyword">final</span> CheckpointSignature sig)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">      UserGroupInformation.getCurrentUser().doAs(<span class="keyword">new</span> PrivilegedExceptionAction&lt;Void&gt;() &#123;</span><br><span class="line">        <span class="annotation">@Override</span></span><br><span class="line">        <span class="keyword">public</span> <span class="function">Void <span class="title">run</span><span class="params">()</span> <span class="keyword">throws</span> Exception </span>&#123;</span><br><span class="line">          checkpointImage.cTime = sig.cTime;<span class="comment">//更新CheckpointStorage的cTime</span></span><br><span class="line">          checkpointImage.checkpointTime = sig.checkpointTime;<span class="comment">//更新CheckpointStorage的checkpointTime</span></span><br><span class="line"></span><br><span class="line">          String fileid = <span class="string">"getimage=1"</span>;</span><br><span class="line">          File[] srcNames = checkpointImage.getImageFiles();</span><br><span class="line">          <span class="keyword">assert</span> srcNames.length &gt; <span class="number">0</span> : <span class="string">"No checkpoint targets."</span>;</span><br><span class="line">          <span class="comment">//下载fsimage到存储目录</span></span><br><span class="line">          TransferFsImage.getFileClient(fsName, fileid, srcNames, <span class="keyword">false</span>);</span><br><span class="line">          LOG.info(<span class="string">"Downloaded file "</span> + srcNames[<span class="number">0</span>].getName() + <span class="string">" size "</span> +</span><br><span class="line">                   srcNames[<span class="number">0</span>].length() + <span class="string">" bytes."</span>);</span><br><span class="line"></span><br><span class="line">          fileid = <span class="string">"getedit=1"</span>;</span><br><span class="line">          srcNames = checkpointImage.getEditsFiles();</span><br><span class="line">          <span class="keyword">assert</span> srcNames.length &gt; <span class="number">0</span> : <span class="string">"No checkpoint targets."</span>;</span><br><span class="line">          <span class="comment">//下载edits到存储目录</span></span><br><span class="line">          TransferFsImage.getFileClient(fsName, fileid, srcNames, <span class="keyword">false</span>);</span><br><span class="line">          LOG.info(<span class="string">"Downloaded file "</span> + srcNames[<span class="number">0</span>].getName() + <span class="string">" size "</span> +</span><br><span class="line">              srcNames[<span class="number">0</span>].length() + <span class="string">" bytes."</span>);</span><br><span class="line">          <span class="comment">//更新状态为UPLOAD_DONE</span></span><br><span class="line">          checkpointImage.checkpointUploadDone();</span><br><span class="line">          <span class="keyword">return</span> <span class="keyword">null</span>;</span><br><span class="line">        &#125;</span><br><span class="line">      &#125;);</span><br><span class="line">    &#125; <span class="keyword">catch</span> (InterruptedException e) &#123;</span><br><span class="line">      <span class="keyword">throw</span> <span class="keyword">new</span> RuntimeException(e);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，命名空间镜像和编辑日志通过TransferFsImage的静态方法getFileClient获取。<code>fsName</code>为NameNode地址。获取fsimage时传入的<code>fileid</code>为”getimage=1”，获取edits时传入的<code>fileid</code>为”getedit=1”。srcNames为对应存储目录下的相应文件，fsimage为IMAGE存储目录下的fsimage文件，edits为EDITS存储目录下的edits文件，即为输出文件。<br><figure class="highlight processing"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">static</span> MD5Hash getFileClient(<span class="keyword">String</span> fsName, <span class="keyword">String</span> id, File[] localPath, <span class="built_in">boolean</span> getChecksum) <span class="keyword">throws</span> IOException &#123;</span><br><span class="line">    <span class="built_in">byte</span>[] buf = <span class="keyword">new</span> <span class="built_in">byte</span>[BUFFER_SIZE];</span><br><span class="line">    <span class="keyword">String</span> <span class="built_in">str</span> = NameNode.getHttpUriScheme() + <span class="string">"://"</span> + fsName + <span class="string">"/getimage?"</span> + id;</span><br><span class="line">    LOG.info(<span class="string">"Opening connection to "</span> + <span class="built_in">str</span>);</span><br><span class="line">    URL url = <span class="keyword">new</span> URL(<span class="built_in">str</span>);</span><br><span class="line">    <span class="comment">//打开URL连接</span></span><br><span class="line">    URLConnection connection = SecurityUtil.openSecureHttpConnection(url);</span><br><span class="line">    InputStream stream = connection.getInputStream();<span class="comment">//URL连接输入流</span></span><br><span class="line">    MessageDigest digester = <span class="keyword">null</span>;</span><br><span class="line">    <span class="keyword">if</span> (getChecksum) &#123;<span class="comment">//false，不获取校验信息</span></span><br><span class="line">      digester = MD5Hash.getDigester();</span><br><span class="line">      stream = <span class="keyword">new</span> DigestInputStream(stream, digester);</span><br><span class="line">    &#125;</span><br><span class="line">    FileOutputStream[] output = <span class="keyword">null</span>;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">      <span class="keyword">if</span> (localPath != <span class="keyword">null</span>) &#123;<span class="comment">//输出文件创建输出流</span></span><br><span class="line">        output = <span class="keyword">new</span> FileOutputStream[localPath.length];</span><br><span class="line">        <span class="keyword">for</span> (<span class="built_in">int</span> i = <span class="number">0</span>; i &lt; output.length; i++) &#123;</span><br><span class="line">          output[i] = <span class="keyword">new</span> FileOutputStream(localPath[i]);</span><br><span class="line">        &#125;</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="built_in">int</span> num = <span class="number">1</span>;</span><br><span class="line">      <span class="keyword">while</span> (num &gt; <span class="number">0</span>) &#123;</span><br><span class="line">        num = stream.read(buf);<span class="comment">//URL连接输入流中读取数据</span></span><br><span class="line">        <span class="keyword">if</span> (num &gt; <span class="number">0</span> &amp;&amp; localPath != <span class="keyword">null</span>) &#123;<span class="comment">//写到每一个输出流中</span></span><br><span class="line">          <span class="keyword">for</span> (<span class="built_in">int</span> i = <span class="number">0</span>; i &lt; output.length; i++) &#123;</span><br><span class="line">            output[i].write(buf, <span class="number">0</span>, num);</span><br><span class="line">          &#125;</span><br><span class="line">        &#125;</span><br><span class="line">      &#125;</span><br><span class="line">    &#125; <span class="keyword">finally</span> &#123;<span class="comment">//关闭打开的流</span></span><br><span class="line">      stream.close();</span><br><span class="line">      <span class="keyword">if</span> (output != <span class="keyword">null</span>) &#123;</span><br><span class="line">        <span class="keyword">for</span> (<span class="built_in">int</span> i = <span class="number">0</span>; i &lt; output.length; i++) &#123;</span><br><span class="line">          <span class="keyword">if</span> (output[i] != <span class="keyword">null</span>) &#123;</span><br><span class="line">            output[i].close();</span><br><span class="line">          &#125;</span><br><span class="line">        &#125;</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> digester == <span class="keyword">null</span> ? <span class="keyword">null</span> : <span class="keyword">new</span> MD5Hash(digester.digest());</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，通过创建对应URL的URLConnection来获取数据，根据传入参数，对于fsimage其URL为<br><figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">http://<span class="tag">&lt;<span class="title">名字节点地址</span>&gt;</span>:<span class="tag">&lt;<span class="title">名字节点HTTP端口</span>&gt;</span>/getimage?getimage=1</span><br></pre></td></tr></table></figure></p>
+<p>而edits的URL为<br><figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">http://<span class="tag">&lt;<span class="title">名字节点地址</span>&gt;</span>:<span class="tag">&lt;<span class="title">名字节点HTTP端口</span>&gt;</span>/getimage?getedit=1</span><br></pre></td></tr></table></figure></p>
+<p>打开对应URLConnection的输入流读取数据写到每一个输出文件中，而在NameNode端由HTTPServer提供服务，传输对应的数据，具体见后分析</p>
+<h4 id="3-3-4_doMerge">3.3.4 doMerge</h4><p>下载了fsimage和edits后，进行合并操作<br><figure class="highlight gradle"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="keyword">void</span> doMerge(CheckpointSignature sig) <span class="keyword">throws</span> IOException &#123;</span><br><span class="line">    getEditLog().open();<span class="comment">//重新打开最新下载的edits文件</span></span><br><span class="line">    StorageDirectory sdName = <span class="keyword">null</span>;</span><br><span class="line">    StorageDirectory sdEdits = <span class="keyword">null</span>;</span><br><span class="line">    Iterator&lt;StorageDirectory&gt; it = <span class="keyword">null</span>;</span><br><span class="line">    it = dirIterator(NameNodeDirType.IMAGE);</span><br><span class="line">    <span class="keyword">if</span> (it.hasNext())</span><br><span class="line">        sdName = it.<span class="keyword">next</span>();<span class="comment">//获取其中一个IMAGE存储目录</span></span><br><span class="line">    it = dirIterator(NameNodeDirType.EDITS);</span><br><span class="line">    <span class="keyword">if</span> (it.hasNext())<span class="comment">//获取其中一个EDITS存储目录</span></span><br><span class="line">        sdEdits = it.<span class="keyword">next</span>();</span><br><span class="line">    <span class="keyword">if</span> ((sdName == <span class="keyword">null</span>) || (sdEdits == <span class="keyword">null</span>))</span><br><span class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> IOException(<span class="string">"Could not locate checkpoint directories"</span>);</span><br><span class="line">    loadFSImage(FSImage.getImageFile(sdName, NameNodeFile.IMAGE));<span class="comment">//加载fsimage</span></span><br><span class="line">    loadFSEdits(sdEdits, <span class="keyword">null</span>);<span class="comment">//加载edits和可能的edits.new，并更新整个目录树的配额</span></span><br><span class="line">    sig.validateStorageInfo(<span class="keyword">this</span>);<span class="comment">//验证校验点签名是否和当前CheckpointStorage相关信息匹配</span></span><br><span class="line">    <span class="comment">//保存内存中元数据到存储目录</span></span><br><span class="line">    saveNamespace(<span class="keyword">false</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，合并时从IMAGE存储目录中取出一个获得fsimage文件，从EDITS存储目录中取出一个获得edits文件，因为所有的存储目录都是一样的(从NameNode获取时写到所有存储目录中)。<br>然后通过FSImage的loadFSImage读取fsimage文件，这个在<a href="../NameNode命名空间镜像和编辑日志">NameNode命名空间镜像和编辑日志</a>已经分析过了。通过FSImage的loadFSEdits读取edits文件<br><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">loadFSEdits</span><span class="params">(StorageDirectory sd, MetaRecoveryContext recovery)</span> throws IOException </span>&#123;</span><br><span class="line">    <span class="keyword">int</span> numEdits = <span class="number">0</span>;</span><br><span class="line">    EditLogFileInputStream edits = <span class="keyword">new</span> EditLogFileInputStream(getImageFile(sd, NameNodeFile.EDITS));</span><br><span class="line">    numEdits = FSEditLog.loadFSEdits(edits, editsTolerationLength, recovery);<span class="comment">//加载edits文件</span></span><br><span class="line">    edits.close();</span><br><span class="line">    File editsNew = getImageFile(sd, NameNodeFile.EDITS_NEW);</span><br><span class="line">    <span class="keyword">if</span> (editsNew.exists() &amp;&amp; editsNew.length() &gt; <span class="number">0</span>) &#123;</span><br><span class="line">      edits = <span class="keyword">new</span> EditLogFileInputStream(editsNew);</span><br><span class="line">      numEdits += FSEditLog.loadFSEdits(edits, editsTolerationLength, recovery);<span class="comment">//如果存在edits.new，加载edits.new文件</span></span><br><span class="line">      edits.close();</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">// update the counts.</span></span><br><span class="line">    FSNamesystem.getFSNamesystem().dir.updateCountForINodeWithQuota();<span class="comment">//更新整个目录树的配额</span></span><br><span class="line">    <span class="keyword">return</span> numEdits;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，在<a href="../NameNode命名空间镜像和编辑日志">NameNode命名空间镜像和编辑日志</a>中已经分析过部分FSEditLog的loadFSEdits方法读取编辑日志，更新内存元数据。在FSImage的loadFSEdits方法中，通过FSEditLog的loadFSEdits读取最新下载到的edits文件，然后如果还存在edits.new文件(SecondaryNameNode一般不会存在)继续加载edits.new中的日志，加载完后内存中元数据已经为最新的了，然后遍历整个目录树，更新整个目录树的目录配额。  </p>
+<p>然后回到doMerge方法，加载完fsimage和日志文件后，通过validateStorageInfo验证SecondaryNameNode和校验点签名对象CheckpointSignature的<code>layoutVersion</code>，<code>namespaceID</code>，<code>cTime</code>是否一致，即获取的是否为指定的校验点，不一致抛出异常。  </p>
+<p>最终通过saveNamespace将内存元数据保存到存储目录中。saveNamespace会关闭当前日志文件，然后根据传入的参数更新checkpointTime(CheckpointStorage)，这里传入的为false，不更新检查点时间。<br>然后将所有存储目录的current重命名为lastcheckpoint.tmp，即保存当前信息。创建新的current目录，通过saveFSImage将内存元数据保存到新的current目录中，即创建新的检查点，saveFSImage在<a href="../NameNode命名空间镜像和编辑日志">NameNode命名空间镜像和编辑日志</a>分析过，并创建新的edits文件(只有文件头版本信息)。最终将lastcheckpoint.tmp重命名为previous.checkpoint完成一次检查点的更新过程。<br>最终重新打开新的edits文件，更新CheckpointStates为UPLOAD_DONE。完成合并过程。  </p>
+<h4 id="3-3-5_putFSImage">3.3.5 putFSImage</h4><p>合并后得通知NameNode获取最新的fsimage，通过putFSImage完成<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="function"><span class="keyword">void</span> <span class="title">putFSImage</span><span class="params">(CheckpointSignature sig)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">    String fileid = <span class="string">"putimage=1&amp;port="</span> + imagePort +</span><br><span class="line">      <span class="string">"&amp;machine="</span> + infoBindAddress +</span><br><span class="line">      <span class="string">"&amp;token="</span> + sig.toString() +</span><br><span class="line">      <span class="string">"&amp;newChecksum="</span> + getNewChecksum();</span><br><span class="line">    LOG.info(<span class="string">"Posted URL "</span> + fsName + fileid);</span><br><span class="line">    TransferFsImage.getFileClient(fsName, fileid, (File[])<span class="keyword">null</span>, <span class="keyword">false</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，建立URLConnection，URL为<br><figure class="highlight pf"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">http://<span class="variable">&lt;名字节点地址&gt;</span>:<span class="variable">&lt;名字节点HTTP端口&gt;</span>/getimage?putimage=<span class="number">1</span>&amp;<span class="keyword">port</span>=<span class="variable">&lt;第二名字节点HTTP端口&gt;</span>&amp;machine=<span class="variable">&lt;第二名字节点地址&gt;</span>&amp;token=<span class="variable">&lt;CheckpointSignature信息&gt;</span>&amp;newChecksum=<span class="variable">&lt;最新fsimage的MD5哈希值&gt;</span></span><br></pre></td></tr></table></figure></p>
+<p>其实还是通过向NameNode的HTTPServer发送get请求，不过如上getFileClient第三个参数为null，即实际不读取数据到SecondaryNameNode本地目录中。起到一个通知的作用，NameNode在收到该get请求后会从SecondaryNameNode的HTTPServer中下载最新的fsimage文件。见后分析。  </p>
+<h4 id="3-3-6_namenode-rollFsImage">3.3.6 namenode.rollFsImage</h4><p>通知NameNode下载最新fsimage后，通过NameNode代理通知开始NameNode使用新的fsimage代替原来的命名空间镜像，NameNode的rollFsImage方法实现见后分析。  </p>
+<h4 id="3-3-7_endCheckpoint">3.3.7 endCheckpoint</h4><p>最终的endCheckpoint做最后的清理工作<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">endCheckpoint</span><span class="params">()</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">    <span class="keyword">for</span>(StorageDirectory sd : storageDirs) &#123;</span><br><span class="line">        moveLastCheckpoint(sd);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，所有的存储目录通过moveLastCheckpoint完成清理工作。存储目录中如果存在<code>previous.checkpoint</code>即上一个检查点目录则删除，然后将<code>lastcheckpoint.tmp</code>重命名为<code>previous.checkpoint</code>(其实在前面saveNamespace时已经重命名了),完成清理工作</p>
+<hr>
+<h2 id="4-_NameNode的HTTP服务">4. NameNode的HTTP服务</h2><p>如前面分析，SecondaryNameNode下载fsimage和edits文件时，通过建立URLConnection获取数据，对应为HTTP的get方法，在NameNode中对应由HTTPServer提供服务。<br>因为还没分析NameNode的启动过程，这里单独分析HTTPServer的启动。在NameNode的初始化过程中，由startHttpServer启动HTTP服务器。<br>与SecondaryNameNode的HTTP服务类似，这里主要有以下几点</p>
+<ul>
+<li><p>地址</p>
+  <figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">final</span> <span class="built_in">String</span> infoAddr = NetUtils.getServerAddress(conf, <span class="string">"dfs.info.bindAddress"</span>, <span class="string">"dfs.info.port"</span>, <span class="string">"dfs.http.address"</span>);</span><br></pre></td></tr></table></figure>
+<p>  如上，旧的HTTP地址使用<code>dfs.info.bindAddress</code>作为地址，<code>dfs.info.port</code>作为端口。新的HTTP地址由<code>dfs.http.address</code>配置，包括端口。创建的HTTPServer对象为NameNode的成员<code>httpServer</code></p>
+</li>
+<li>属性  </li>
+</ul>
+<table>
+<thead>
+<tr>
+<th style="text-align:center">属性名称</th>
+<th style="text-align:center">对应值</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center"><code>name.node</code></td>
+<td style="text-align:center">对应的NameNode对象</td>
+</tr>
+<tr>
+<td style="text-align:center"><code>name.node.address</code></td>
+<td style="text-align:center">NameNode地址为InetSocketAddress</td>
+</tr>
+<tr>
+<td style="text-align:center"><code>name.system.image</code></td>
+<td style="text-align:center">NameNode中的FSImage对象</td>
+</tr>
+<tr>
+<td style="text-align:center"><code>current.conf</code></td>
+<td style="text-align:center">NameNode和HTTPServer的配置</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li>Servlet  </li>
+</ul>
+<table>
+<thead>
+<tr>
+<th style="text-align:center">名字</th>
+<th style="text-align:center">路径</th>
+<th style="text-align:center">对应类</th>
+<th style="text-align:center">是否要鉴权</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">getDelegationToken</td>
+<td style="text-align:center">/getDelegationToken</td>
+<td style="text-align:center">GetDelegationTokenServlet</td>
+<td style="text-align:center">true</td>
+</tr>
+<tr>
+<td style="text-align:center">renewDelegationToken</td>
+<td style="text-align:center">/renewDelegationToken</td>
+<td style="text-align:center">RenewDelegationTokenServlet</td>
+<td style="text-align:center">true</td>
+</tr>
+<tr>
+<td style="text-align:center">cancelDelegationToken</td>
+<td style="text-align:center">/cancelDelegationToken</td>
+<td style="text-align:center">CancelDelegationTokenServlet</td>
+<td style="text-align:center">true</td>
+</tr>
+<tr>
+<td style="text-align:center">fsck</td>
+<td style="text-align:center">/fsck</td>
+<td style="text-align:center">FsckServlet</td>
+<td style="text-align:center">true</td>
+</tr>
+<tr>
+<td style="text-align:center">getimage</td>
+<td style="text-align:center">/getimage</td>
+<td style="text-align:center">GetImageServlet</td>
+<td style="text-align:center">true</td>
+</tr>
+<tr>
+<td style="text-align:center">listPaths</td>
+<td style="text-align:center">/listPaths/*</td>
+<td style="text-align:center">ListPathsServlet</td>
+<td style="text-align:center">false</td>
+</tr>
+<tr>
+<td style="text-align:center">data</td>
+<td style="text-align:center">/data/*</td>
+<td style="text-align:center">FileDataServlet</td>
+<td style="text-align:center">false</td>
+</tr>
+<tr>
+<td style="text-align:center">checksum</td>
+<td style="text-align:center">/fileChecksum/*</td>
+<td style="text-align:center">FileChecksumServlets.RedirectServlet</td>
+<td style="text-align:center">false</td>
+</tr>
+<tr>
+<td style="text-align:center">contentSummary</td>
+<td style="text-align:center">/contentSummary/*</td>
+<td style="text-align:center">ContentSummaryServlet</td>
+<td style="text-align:center">false</td>
+</tr>
+</tbody>
+</table>
+<p>如上，SecondaryNameNode通过getimage获取fsimage和edits，对应的类GetImageServlet，其doGet方法如下<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">void</span> <span class="title">doGet</span><span class="params">(<span class="keyword">final</span> HttpServletRequest request, <span class="keyword">final</span> HttpServletResponse response</span><br><span class="line">                    )</span> <span class="keyword">throws</span> ServletException, IOException </span>&#123;</span><br><span class="line">    Map&lt;String,String[]&gt; pmap = request.getParameterMap();<span class="comment">//获取get请求的参数</span></span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">      ServletContext context = getServletContext();<span class="comment">//ServletContext</span></span><br><span class="line">      <span class="keyword">final</span> FSImage nnImage = (FSImage)context.getAttribute(<span class="string">"name.system.image"</span>);<span class="comment">//属性，NameNode中的FSImage</span></span><br><span class="line">      <span class="comment">//创建TransferFsImage对象，进行相应的数据读取或发送操作</span></span><br><span class="line">      <span class="keyword">final</span> TransferFsImage ff = <span class="keyword">new</span> TransferFsImage(pmap, request, response);</span><br><span class="line">      <span class="keyword">final</span> Configuration conf = (Configuration)getServletContext().getAttribute(JspHelper.CURRENT_CONF);<span class="comment">//读取属性配置</span></span><br><span class="line"></span><br><span class="line">      ...<span class="comment">//鉴权</span></span><br><span class="line">            </span><br><span class="line">      UserGroupInformation.getCurrentUser().doAs(<span class="keyword">new</span> PrivilegedExceptionAction&lt;Void&gt;() &#123;</span><br><span class="line">        <span class="annotation">@Override</span></span><br><span class="line">        <span class="keyword">public</span> <span class="function">Void <span class="title">run</span><span class="params">()</span> <span class="keyword">throws</span> Exception </span>&#123;</span><br><span class="line">          <span class="keyword">if</span> (ff.getImage()) &#123;<span class="comment">//发送fsimage</span></span><br><span class="line">            TransferFsImage.getFileServer(response.getOutputStream(), nnImage.getFsImageName(), getThrottler(conf)); </span><br><span class="line">          &#125; <span class="keyword">else</span> <span class="keyword">if</span> (ff.getEdit()) &#123;<span class="comment">//发送edits</span></span><br><span class="line">            TransferFsImage.getFileServer(response.getOutputStream(), nnImage.getFsEditName(), getThrottler(conf));</span><br><span class="line">          &#125; <span class="keyword">else</span> <span class="keyword">if</span> (ff.putImage()) &#123;<span class="comment">//读取新的fsimage</span></span><br><span class="line">            <span class="keyword">synchronized</span> (fsImageTransferLock) &#123;</span><br><span class="line">              <span class="keyword">final</span> MD5Hash expectedChecksum = ff.getNewChecksum();</span><br><span class="line">              nnImage.validateCheckpointUpload(ff.getToken());</span><br><span class="line">              reloginIfNecessary().doAs(<span class="keyword">new</span> PrivilegedExceptionAction&lt;Void&gt;() &#123;</span><br><span class="line">                <span class="annotation">@Override</span></span><br><span class="line">                <span class="keyword">public</span> <span class="function">Void <span class="title">run</span><span class="params">()</span> <span class="keyword">throws</span> Exception </span>&#123;</span><br><span class="line">                  MD5Hash actualChecksum = TransferFsImage.getFileClient(ff.getInfoServer(),</span><br><span class="line">                      <span class="string">"getimage=1"</span>, nnImage.getFsImageNameCheckpoint(), <span class="keyword">true</span>);</span><br><span class="line">                  LOG.info(<span class="string">"Downloaded new fsimage with checksum: "</span> + actualChecksum);</span><br><span class="line">                  <span class="keyword">if</span> (!actualChecksum.equals(expectedChecksum)) &#123;</span><br><span class="line">                    <span class="keyword">throw</span> <span class="keyword">new</span> IOException(<span class="string">"Actual checksum of transferred fsimage: "</span></span><br><span class="line">                        + actualChecksum + <span class="string">" does not match expected checksum: "</span></span><br><span class="line">                        + expectedChecksum);</span><br><span class="line">                  &#125;</span><br><span class="line">                  <span class="keyword">return</span> <span class="keyword">null</span>;</span><br><span class="line">                &#125;</span><br><span class="line">              &#125;);</span><br><span class="line">              nnImage.checkpointUploadDone();</span><br><span class="line">            &#125;</span><br><span class="line">          &#125;</span><br><span class="line">          <span class="keyword">return</span> <span class="keyword">null</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        ...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，通过请求的参数创建TransferFsImage对象，由参数判断执行的操作<br><figure class="highlight processing"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> TransferFsImage(Map&lt;<span class="keyword">String</span>,<span class="keyword">String</span>[]&gt; pmap, HttpServletRequest request, HttpServletResponse response</span><br><span class="line">                         ) <span class="keyword">throws</span> IOException &#123;</span><br><span class="line">    isGetImage = isGetEdit = isPutImage = <span class="keyword">false</span>;</span><br><span class="line">    remoteport = <span class="number">0</span>;</span><br><span class="line">    machineName = <span class="keyword">null</span>;</span><br><span class="line">    token = <span class="keyword">null</span>;</span><br><span class="line">    newChecksum = <span class="keyword">null</span>;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">for</span> (Iterator&lt;<span class="keyword">String</span>&gt; it = pmap.keySet().iterator(); it.hasNext();) &#123;</span><br><span class="line">      <span class="keyword">String</span> <span class="variable">key</span> = it.next();</span><br><span class="line">      <span class="keyword">if</span> (<span class="variable">key</span>.equals(<span class="string">"getimage"</span>)) &#123; <span class="comment">//请求读取fsimage</span></span><br><span class="line">        isGetImage = <span class="keyword">true</span>;</span><br><span class="line">      &#125; <span class="keyword">else</span> <span class="keyword">if</span> (<span class="variable">key</span>.equals(<span class="string">"getedit"</span>)) &#123; <span class="comment">//请求读取edits</span></span><br><span class="line">        isGetEdit = <span class="keyword">true</span>;</span><br><span class="line">      &#125; <span class="keyword">else</span> <span class="keyword">if</span> (<span class="variable">key</span>.equals(<span class="string">"putimage"</span>)) &#123; <span class="comment">//表示fsimage合并完，通知获取新的fsimage</span></span><br><span class="line">        isPutImage = <span class="keyword">true</span>;</span><br><span class="line">      &#125; <span class="keyword">else</span> <span class="keyword">if</span> (<span class="variable">key</span>.equals(<span class="string">"port"</span>)) &#123; <span class="comment">//SecondaryNameNode端口</span></span><br><span class="line">        remoteport = <span class="keyword">new</span> Integer(pmap.<span class="built_in">get</span>(<span class="string">"port"</span>)[<span class="number">0</span>]).intValue();</span><br><span class="line">      &#125; <span class="keyword">else</span> <span class="keyword">if</span> (<span class="variable">key</span>.equals(<span class="string">"machine"</span>)) &#123; <span class="comment">//SecondaryNameNode地址</span></span><br><span class="line">        machineName = pmap.<span class="built_in">get</span>(<span class="string">"machine"</span>)[<span class="number">0</span>];</span><br><span class="line">      &#125; <span class="keyword">else</span> <span class="keyword">if</span> (<span class="variable">key</span>.equals(<span class="string">"token"</span>)) &#123; <span class="comment">//访问SecondaryNameNode口令</span></span><br><span class="line">        token = <span class="keyword">new</span> CheckpointSignature(pmap.<span class="built_in">get</span>(<span class="string">"token"</span>)[<span class="number">0</span>]);</span><br><span class="line">      &#125; <span class="keyword">else</span> <span class="keyword">if</span> (<span class="variable">key</span>.equals(<span class="string">"newChecksum"</span>)) &#123; <span class="comment">//新fsimage的MD5哈希值</span></span><br><span class="line">        newChecksum = <span class="keyword">new</span> MD5Hash(pmap.<span class="built_in">get</span>(<span class="string">"newChecksum"</span>)[<span class="number">0</span>]);</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="built_in">int</span> numGets = (isGetImage?<span class="number">1</span>:<span class="number">0</span>) + (isGetEdit?<span class="number">1</span>:<span class="number">0</span>);</span><br><span class="line">    <span class="keyword">if</span> ((numGets &gt; <span class="number">1</span>) || (numGets == <span class="number">0</span>) &amp;&amp; !isPutImage) &#123;</span><br><span class="line">      <span class="keyword">throw</span> <span class="keyword">new</span> IOException(<span class="string">"Illegal parameters to TransferFsImage"</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，解析SecondaryNameNode的请求，由前面分析，SecondaryNameNode可能有获取fsimage，获取edits请求，也可能在fsimage合并完后发送putimage请求来表示合并完成，通知NameNode下载新的fsimage，因此分别进行标识。对于putimage还要读取SecondaryNameNode的相应信息。  </p>
+<p>然后回到GetImageServlet的doGet方法，对不同的请求进行不同操作</p>
+<h3 id="4-1_SecondaryNameNode获取fsimage和edits">4.1 SecondaryNameNode获取fsimage和edits</h3><p>在doGet中，如果构造的TransferFsImage解析到请求为getimage或者getedit，则通过TransferFsImage的静态方法getFileServer发送请求，对getimage发送fsimage文件，getedit发送edits文件。<br><figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="literal">static</span> <span class="keyword">void</span> getFileServer(OutputStream outstream, File localfile, DataTransferThrottler throttler) </span><br><span class="line">    throws IOException &#123;</span><br><span class="line">    byte buf[] = <span class="keyword">new</span> byte[BUFFER_SIZE];</span><br><span class="line">    FileInputStream infile = <span class="keyword">null</span>;</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">      infile = <span class="keyword">new</span> FileInputStream(localfile);</span><br><span class="line">      ...</span><br><span class="line">      <span class="built_in">int</span> <span class="built_in">num</span> = <span class="number">1</span>;</span><br><span class="line">      <span class="keyword">while</span> (<span class="built_in">num</span> &gt; <span class="number">0</span>) &#123;<span class="comment">//读取文件，循环发送到输出流</span></span><br><span class="line">        <span class="built_in">num</span> = infile.read(buf);</span><br><span class="line">        <span class="keyword">if</span> (<span class="built_in">num</span> &lt;= <span class="number">0</span>) &#123;</span><br><span class="line">          <span class="keyword">break</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        outstream.write(buf, <span class="number">0</span>, <span class="built_in">num</span>);</span><br><span class="line">        <span class="keyword">if</span> (throttler != <span class="keyword">null</span>) &#123;</span><br><span class="line">          throttler.throttle(<span class="built_in">num</span>);</span><br><span class="line">        &#125;</span><br><span class="line">      &#125;</span><br><span class="line">    &#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">      <span class="keyword">if</span> (infile != <span class="keyword">null</span>) &#123;</span><br><span class="line">        infile.close();</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，循环读取相应的文件发送到response的输出流中。  </p>
+<h3 id="4-2_SecondaryNameNode通知获取新的fsimage">4.2 SecondaryNameNode通知获取新的fsimage</h3><p>如doGet方法中，如果是putimage请求，则应该从SecondaryNameNode中获取新的fsimage，SecondaryNameNode相关信息从请求的参数中获取，通过TransferFsImage的静态方法getFileClient向SecondaryNameNode发送get请求<br><figure class="highlight sml"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">MD5Hash</span> actualChecksum = <span class="type">TransferFsImage</span>.getFileClient(ff.getInfoServer<span class="literal">()</span>, <span class="string">"getimage=1"</span>, nnImage.getFsImageNameCheckpoint<span class="literal">()</span>, <span class="literal">true</span>);</span><br></pre></td></tr></table></figure></p>
+<p>getFileClient前面分析过，URL为<br><figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">http://<span class="tag">&lt;<span class="title">第二名字节点地址</span>&gt;</span>:<span class="tag">&lt;<span class="title">第二名字节点HTTP端口</span>&gt;</span>/getimage?getimage=1</span><br></pre></td></tr></table></figure></p>
+<p>由前面SecondaryNameNode的HTTPServer可知，/getimage对应的Servlet也是GetImageServlet类，当NameNode发送getimage=1的请求时，如上分析SecondaryNameNode会发送fsimage文件。<br>NameNode获取新的fsimage文件写到<code>fsimage.ckpt</code>中(getFsImageNameCheckpoint)，最终通过checkpointUploadDone将CheckpointStates更新为UPLOAD_DONE。  </p>
+<p>之后接收到SecondaryNameNode的rollFsImage调用，实现如下</p>
+<h3 id="5-_rollFsImage">5. rollFsImage</h3><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">void</span> <span class="title">rollFsImage</span><span class="params">()</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">    namesystem.rollFSImage();</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">synchronized</span> <span class="function"><span class="keyword">void</span> <span class="title">rollFSImage</span><span class="params">()</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (isInSafeMode()) &#123;</span><br><span class="line">      <span class="keyword">throw</span> <span class="keyword">new</span> SafeModeException(<span class="string">"Checkpoint not created"</span>, safeMode);</span><br><span class="line">    &#125;</span><br><span class="line">    LOG.info(<span class="string">"Roll FSImage from "</span> + Server.getRemoteAddress());</span><br><span class="line">    getFSImage().rollFSImage();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>如上，由FSNamesystem提供服务，最终由FSNamesystem的FSImage的rollFSImage方法完成<br><figure class="highlight gradle"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">void</span> rollFSImage() <span class="keyword">throws</span> IOException &#123;</span><br><span class="line">    <span class="keyword">if</span> (ckptState != CheckpointStates.UPLOAD_DONE) &#123;</span><br><span class="line">      <span class="keyword">throw</span> <span class="keyword">new</span> IOException(<span class="string">"Cannot roll fsImage before rolling edits log."</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">//首先检查在所有存储目录下有edits.new和fsimage.ckpt</span></span><br><span class="line">    <span class="keyword">if</span> (!editLog.existsNew()) &#123;<span class="comment">//edits.new不存在</span></span><br><span class="line">      <span class="keyword">throw</span> <span class="keyword">new</span> IOException(<span class="string">"New Edits file does not exist"</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    Iterator&lt;StorageDirectory&gt; it = dirIterator(NameNodeDirType.IMAGE);</span><br><span class="line">    <span class="keyword">while</span> (it.hasNext()) &#123;<span class="comment">//保证所有存储目录下存在fsimage.ckpt</span></span><br><span class="line">      StorageDirectory sd = it.<span class="keyword">next</span>();</span><br><span class="line">      <span class="keyword">File</span> ckpt = getImageFile(sd, NameNodeFile.IMAGE_NEW);</span><br><span class="line">      <span class="keyword">if</span> (!ckpt.exists()) &#123;</span><br><span class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> IOException(<span class="string">"Checkpoint file "</span> + ckpt + <span class="string">" does not exist"</span>);</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    editLog.purgeEditLog(); <span class="comment">//重命名edits.new为edits</span></span><br><span class="line">    <span class="comment">//重命名fsimage.ckpt为fsimage</span></span><br><span class="line">    it = dirIterator(NameNodeDirType.IMAGE);</span><br><span class="line">    <span class="keyword">while</span> (it.hasNext()) &#123;</span><br><span class="line">      StorageDirectory sd = it.<span class="keyword">next</span>();</span><br><span class="line">      <span class="keyword">File</span> ckpt = getImageFile(sd, NameNodeFile.IMAGE_NEW);</span><br><span class="line">      <span class="keyword">File</span> curFile = getImageFile(sd, NameNodeFile.IMAGE);</span><br><span class="line">      <span class="keyword">if</span> (!ckpt.renameTo(curFile)) &#123;<span class="comment">//fsimage存在可能在Windows下重命名失败</span></span><br><span class="line">        curFile.<span class="keyword">delete</span>();<span class="comment">//先删除fsimage</span></span><br><span class="line">        <span class="keyword">if</span> (!ckpt.renameTo(curFile)) &#123;<span class="comment">//重命名</span></span><br><span class="line">          editLog.removeEditsForStorageDir(sd);</span><br><span class="line">          updateRemovedDirs(sd);</span><br><span class="line">          it.remove();</span><br><span class="line">        &#125;</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    editLog.exitIfNoStreams();</span><br><span class="line"></span><br><span class="line">    <span class="comment">//在所有存储目录下更新fstime文件，写版本文件</span></span><br><span class="line">    <span class="keyword">this</span>.layoutVersion = FSConstants.LAYOUT_VERSION;</span><br><span class="line">    <span class="keyword">this</span>.checkpointTime = FSNamesystem.now();<span class="comment">//更新检查点时间</span></span><br><span class="line">    it = dirIterator();</span><br><span class="line">    <span class="keyword">while</span> (it.hasNext()) &#123;</span><br><span class="line">      StorageDirectory sd = it.<span class="keyword">next</span>();</span><br><span class="line">      <span class="comment">//如果存储目录只有镜像文件(不存储日志文件，类型为IMAGE)，删除旧的日志文件</span></span><br><span class="line">      <span class="keyword">if</span> (!sd.getStorageDirType().isOfType(NameNodeDirType.EDITS)) &#123;</span><br><span class="line">        <span class="keyword">File</span> editsFile = getImageFile(sd, NameNodeFile.EDITS);</span><br><span class="line">        editsFile.<span class="keyword">delete</span>();</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="comment">//如果存储目录只存储日志文件(不存储镜像文件，类型为EDITS)，删除旧的镜像文件</span></span><br><span class="line">      <span class="keyword">if</span> (!sd.getStorageDirType().isOfType(NameNodeDirType.IMAGE)) &#123;</span><br><span class="line">        <span class="keyword">File</span> imageFile = getImageFile(sd, NameNodeFile.IMAGE);</span><br><span class="line">        imageFile.<span class="keyword">delete</span>();</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="keyword">try</span> &#123;</span><br><span class="line">        sd.<span class="keyword">write</span>();<span class="comment">//写新的版本文件</span></span><br><span class="line">      &#125; <span class="keyword">catch</span> (IOException ioe) &#123;</span><br><span class="line">        editLog.removeEditsForStorageDir(sd);</span><br><span class="line">        updateRemovedDirs(sd, ioe);</span><br><span class="line">        it.remove();</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    ckptState = FSImage.CheckpointStates.START;<span class="comment">//检查点完成，重置CheckpointStates状态为初始状态STRAT</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，首先得确保已经下载了最新的fsimage文件，即处于UPLOAD_DONE状态。且保证所有存储目录存在edits.new和fsimage.ckpt。<br>然后将edits.new重命名为edits，fsimage.ckpt重命名为fsimage，更新命名空间镜像和日志文件。<br>之后遍历存储目录，对于EDITS类型的存储目录，删除不应该存在的旧的fsimage文件，对于IMAGE类型的存储目录，删除不应该存在的edits文件，而IMAGE_AND_EDITS类型的存储目录可以同时存在fsimage和edits，并对每一个存储目录根据当前内存中版本信息重新写版本文件。<br>最终将FSImage的CheckpointStates成员ckptState重置为初始状态START。</p>
+<p>到这里完成了一个检查点过程，fsimage为合并过后的最新的命名空间镜像，edits也从原来的edits.new中恢复回来了，继续记录日志。  </p>
+</span>
+      
+    </div>
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/HDFS/" rel="tag">#HDFS</a>
+          
+            <a href="/tags/Hadoop-1-2-1/" rel="tag">#Hadoop-1.2.1</a>
+          
+            <a href="/tags/Java/" rel="tag">#Java</a>
+          
+            <a href="/tags/NameNode/" rel="tag">#NameNode</a>
+          
+            <a href="/tags/NameNode源码阅读/" rel="tag">#NameNode源码阅读</a>
+          
+            <a href="/tags/源码阅读/" rel="tag">#源码阅读</a>
+          
+        </div>
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/配置相关HDFS/" rel="next" title="Hadoop配置相关---HDFS">
+                <i class="fa fa-chevron-left"></i> Hadoop配置相关---HDFS
+              </a>
+            
+          </div>
+
+          <div class="post-nav-prev post-nav-item">
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </article>
+
+
+
+    <div class="post-spread">
+      
+        <!-- JiaThis Button BEGIN -->
+<div class="jiathis_style">
+  <a class="jiathis_button_tsina"></a>
+  <a class="jiathis_button_tqq"></a>
+  <a class="jiathis_button_weixin"></a>
+  <a class="jiathis_button_cqq"></a>
+  <a class="jiathis_button_douban"></a>
+  <a class="jiathis_button_renren"></a>
+  <a class="jiathis_button_qzone"></a>
+  <a class="jiathis_button_kaixin001"></a>
+  <a class="jiathis_button_copy"></a>
+  <a href="http://www.jiathis.com/share" class="jiathis jiathis_txt jiathis_separator jtico jtico_jiathis" target="_blank"></a>
+  <a class="jiathis_counter_style"></a>
+</div>
+<script type="text/javascript" >
+  var jiathis_config={
+    hideMore:false
+  }
+</script>
+<script type="text/javascript" src="http://v3.jiathis.com/code/jia.js" charset="utf-8"></script>
+<!-- JiaThis Button END -->
+
+      
+    </div>
+  </div>
+
+
+        </div>
+
+        
+
+
+        
+  <div class="comments" id="comments">
+    
+      <div class="ds-thread" data-thread-key="NameNode和SecondaryNameNode/"
+           data-title="NameNode实现源码分析---和SecondaryNameNode的交互" data-url="http://xiao-yun.github.io/NameNode和SecondaryNameNode/">
+      </div>
+    
+  </div>
+
+
+      </div>
+
+      
+        
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap" >
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel ">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+          <img class="site-author-image" src="/images/hero.jpg" alt="xiaoyun" itemprop="image"/>
+          <p class="site-author-name" itemprop="name">xiaoyun</p>
+        </div>
+        <p class="site-description motion-element" itemprop="description">学习笔记，网上资源摘要等</p>
+        <nav class="site-state motion-element">
+          <div class="site-state-item site-state-posts">
+            <a href="/archives">
+              <span class="site-state-item-count">37</span>
+              <span class="site-state-item-name">日志</span>
+            </a>
+          </div>
+
+          <div class="site-state-item site-state-categories">
+            <a href="/categories">
+              <span class="site-state-item-count">40</span>
+              <span class="site-state-item-name">分类</span>
+              </a>
+          </div>
+
+          <div class="site-state-item site-state-tags">
+            <a href="/tags">
+              <span class="site-state-item-count">21</span>
+              <span class="site-state-item-name">标签</span>
+              </a>
+          </div>
+
+        </nav>
+
+        
+
+        <div class="links-of-author motion-element">
+          
+            
+              <span class="links-of-author-item">
+                <a href="https://github.com/xiao-yun" target="_blank">
+                  
+                    <i class="fa fa-globe"></i> github
+                  
+                </a>
+              </span>
+            
+          
+        </div>
+
+        
+        
+
+        <div class="links-of-author motion-element">
+          
+        </div>
+
+      </section>
+
+      
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc-indicator-top post-toc-indicator">
+            <i class="fa fa-angle-double-up"></i>
+          </div>
+          <div class="post-toc">
+            
+              
+            
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-_getEditLogSize"><span class="nav-number">1.</span> <span class="nav-text">1. getEditLogSize</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-_rollEditLog"><span class="nav-number">2.</span> <span class="nav-text">2. rollEditLog</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-_SecondaryNameNode"><span class="nav-number">3.</span> <span class="nav-text">3. SecondaryNameNode</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#3-1_构造"><span class="nav-number">3.1.</span> <span class="nav-text">3.1 构造</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-2_SecondaryNameNode线程"><span class="nav-number">3.2.</span> <span class="nav-text">3.2 SecondaryNameNode线程</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-3_doCheckpoint"><span class="nav-number">3.3.</span> <span class="nav-text">3.3 doCheckpoint</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#3-3-1_startCheckpoint"><span class="nav-number">3.3.1.</span> <span class="nav-text">3.3.1 startCheckpoint</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-3-2_namenode-rollEditLog"><span class="nav-number">3.3.2.</span> <span class="nav-text">3.3.2 namenode.rollEditLog</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-3-3_downloadCheckpointFiles"><span class="nav-number">3.3.3.</span> <span class="nav-text">3.3.3 downloadCheckpointFiles</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-3-4_doMerge"><span class="nav-number">3.3.4.</span> <span class="nav-text">3.3.4 doMerge</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-3-5_putFSImage"><span class="nav-number">3.3.5.</span> <span class="nav-text">3.3.5 putFSImage</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-3-6_namenode-rollFsImage"><span class="nav-number">3.3.6.</span> <span class="nav-text">3.3.6 namenode.rollFsImage</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-3-7_endCheckpoint"><span class="nav-number">3.3.7.</span> <span class="nav-text">3.3.7 endCheckpoint</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-_NameNode的HTTP服务"><span class="nav-number">4.</span> <span class="nav-text">4. NameNode的HTTP服务</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#4-1_SecondaryNameNode获取fsimage和edits"><span class="nav-number">4.1.</span> <span class="nav-text">4.1 SecondaryNameNode获取fsimage和edits</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-2_SecondaryNameNode通知获取新的fsimage"><span class="nav-number">4.2.</span> <span class="nav-text">4.2 SecondaryNameNode通知获取新的fsimage</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#5-_rollFsImage"><span class="nav-number">4.3.</span> <span class="nav-text">5. rollFsImage</span></a></li></ol></li></ol></div>
+            
+          </div>
+          <div class="post-toc-indicator-bottom post-toc-indicator">
+            <i class="fa fa-angle-double-down"></i>
+          </div>
+        </section>
+      
+
+    </div>
+  </aside>
+
+
+      
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright" >
+  
+  &copy; 
+  <span itemprop="copyrightYear">2016</span>
+  <span class="with-love">
+    <i class="icon-next-heart fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">xiaoyun</span>
+</div>
+
+<div class="powered-by">
+  由 <a class="theme-link" href="http://hexo.io">Hexo</a> 强力驱动
+</div>
+
+<div class="theme-info">
+  主题 -
+  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
+    NexT.Mist
+  </a>
+</div>
+
+
+
+      </div>
+    </footer>
+
+    <div class="back-to-top"></div>
+  </div>
+
+  <script type="text/javascript" src="/vendors/jquery/index.js?v=2.1.3"></script>
+
+  
+  
+
+  
+    
+
+  
+    
+  
+
+  <script type="text/javascript">
+    var duoshuoQuery = {short_name:"xiaoyuncom"};
+    (function() {
+      var ds = document.createElement('script');
+      ds.type = 'text/javascript';ds.async = true;
+      ds.id = 'duoshuo-script';
+      ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+      ds.charset = 'UTF-8';
+      (document.getElementsByTagName('head')[0]
+      || document.getElementsByTagName('body')[0]).appendChild(ds);
+    })();
+  </script>
+    
+     
+
+
+    
+  
+
+  
+  <script type="text/javascript" src="/vendors/fancybox/source/jquery.fancybox.pack.js"></script>
+  <script type="text/javascript" src="/js/fancy-box.js?v=0.4.5.2"></script>
+
+
+  <script type="text/javascript" src="/js/helpers.js?v=0.4.5.2"></script>
+  <script type="text/javascript" src="/vendors/velocity/velocity.min.js"></script>
+<script type="text/javascript" src="/vendors/velocity/velocity.ui.min.js"></script>
+
+<script type="text/javascript" src="/js/motion.js?v=0.4.5.2" id="motion.global"></script>
+
+
+  <script type="text/javascript" src="/vendors/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  <script type="text/javascript" src="/vendors/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  
+<script type="text/javascript" src="/js/bootstrap.scrollspy.js?v=0.4.5.2" id="bootstrap.scrollspy.custom"></script>
+
+
+<script type="text/javascript" id="sidebar.toc.highlight">
+  $(document).ready(function () {
+    var tocSelector = '.post-toc';
+    var $tocSelector = $(tocSelector);
+    var activeCurrentSelector = '.active-current';
+
+    $tocSelector
+      .on('activate.bs.scrollspy', function () {
+        var $currentActiveElement = $(tocSelector + ' .active').last();
+
+        removeCurrentActiveClass();
+        $currentActiveElement.addClass('active-current');
+
+        $tocSelector[0].scrollTop = $currentActiveElement.position().top;
+      })
+      .on('clear.bs.scrollspy', function () {
+        removeCurrentActiveClass();
+      });
+
+    function removeCurrentActiveClass () {
+      $(tocSelector + ' ' + activeCurrentSelector)
+        .removeClass(activeCurrentSelector.substring(1));
+    }
+
+    function processTOC () {
+      getTOCMaxHeight();
+      toggleTOCOverflowIndicators();
+    }
+
+    function getTOCMaxHeight () {
+      var height = $('.sidebar').height() -
+                   $tocSelector.position().top -
+                   $('.post-toc-indicator-bottom').height();
+
+      $tocSelector.css('height', height);
+
+      return height;
+    }
+
+    function toggleTOCOverflowIndicators () {
+      tocOverflowIndicator(
+        '.post-toc-indicator-top',
+        $tocSelector.scrollTop() > 0 ? 'show' : 'hide'
+      );
+
+      tocOverflowIndicator(
+        '.post-toc-indicator-bottom',
+        $tocSelector.scrollTop() >= $tocSelector.find('ol').height() - $tocSelector.height() ? 'hide' : 'show'
+      )
+    }
+
+    $(document).on('sidebar.motion.complete', function () {
+      processTOC();
+    });
+
+    $('body').scrollspy({ target: tocSelector });
+    $(window).on('resize', function () {
+      if ( $('.sidebar').hasClass('sidebar-active') ) {
+        processTOC();
+      }
+    });
+
+    onScroll($tocSelector);
+
+    function onScroll (element) {
+      element.on('mousewheel DOMMouseScroll', function (event) {
+          var oe = event.originalEvent;
+          var delta = oe.wheelDelta || -oe.detail;
+
+          this.scrollTop += ( delta < 0 ? 1 : -1 ) * 30;
+          event.preventDefault();
+
+          toggleTOCOverflowIndicators();
+      });
+    }
+
+    function tocOverflowIndicator (indicator, action) {
+      var $indicator = $(indicator);
+      var opacity = action === 'show' ? 1 : 0;
+      $indicator.velocity ?
+        $indicator.velocity('stop').velocity({
+          opacity: opacity
+        }, { duration: 100 }) :
+        $indicator.stop().animate({
+          opacity: opacity
+        }, 100);
+    }
+
+  });
+</script>
+
+<script type="text/javascript" id="sidebar.nav">
+  $(document).ready(function () {
+    var html = $('html');
+    var TAB_ANIMATE_DURATION = 200;
+    var hasVelocity = $.isFunction(html.velocity);
+
+    $('.sidebar-nav li').on('click', function () {
+      var item = $(this);
+      var activeTabClassName = 'sidebar-nav-active';
+      var activePanelClassName = 'sidebar-panel-active';
+      if (item.hasClass(activeTabClassName)) {
+        return;
+      }
+
+      var currentTarget = $('.' + activePanelClassName);
+      var target = $('.' + item.data('target'));
+
+      hasVelocity ?
+        currentTarget.velocity('transition.slideUpOut', TAB_ANIMATE_DURATION, function () {
+          target
+            .velocity('stop')
+            .velocity('transition.slideDownIn', TAB_ANIMATE_DURATION)
+            .addClass(activePanelClassName);
+        }) :
+        currentTarget.animate({ opacity: 0 }, TAB_ANIMATE_DURATION, function () {
+          currentTarget.hide();
+          target
+            .stop()
+            .css({'opacity': 0, 'display': 'block'})
+            .animate({ opacity: 1 }, TAB_ANIMATE_DURATION, function () {
+              currentTarget.removeClass(activePanelClassName);
+              target.addClass(activePanelClassName);
+            });
+        });
+
+      item.siblings().removeClass(activeTabClassName);
+      item.addClass(activeTabClassName);
+    });
+
+    $('.post-toc a').on('click', function (e) {
+      e.preventDefault();
+      var targetSelector = escapeSelector(this.getAttribute('href'));
+      var offset = $(targetSelector).offset().top;
+      hasVelocity ?
+        html.velocity('stop').velocity('scroll', {
+          offset: offset  + 'px',
+          mobileHA: false
+        }) :
+        $('html, body').stop().animate({
+          scrollTop: offset
+        }, 500);
+    });
+
+    // Expand sidebar on post detail page by default, when post has a toc.
+    motionMiddleWares.sidebar = function () {
+      var $tocContent = $('.post-toc-content');
+      if (CONFIG.sidebar === 'post') {
+        if ($tocContent.length > 0 && $tocContent.html().trim().length > 0) {
+          displaySidebar();
+        }
+      }
+    };
+  });
+</script>
+
+
+
+  <script type="text/javascript" src="/js/bootstrap.js"></script>
+
+  
+  
+
+  
+  
+
+</body>
+</html>

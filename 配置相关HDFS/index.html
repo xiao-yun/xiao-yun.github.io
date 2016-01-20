@@ -95,7 +95,7 @@ FileSystem.get获取文件系统，默认为本地文件系统
 fs.%s.impl.disable.cache
 false
 其中%">
-<meta property="og:updated_time" content="2016-01-18T06:56:14.385Z">
+<meta property="og:updated_time" content="2016-01-20T07:27:27.013Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="Hadoop配置相关---HDFS">
 <meta name="twitter:description" content="Hadoop版本:Hadoop-1.2.1说明:缺省值为N/A是指在程序中没有指定，而不是在datanode-default.xml等缺省配置文件中没有设置。
@@ -288,8 +288,8 @@ false
         <div class="post-meta">
           <span class="post-time">
             发表于
-            <time itemprop="dateCreated" datetime="2016-01-18T14:56:14+08:00" content="2016-01-18">
-              2016-01-18
+            <time itemprop="dateCreated" datetime="2016-01-20T15:27:27+08:00" content="2016-01-20">
+              2016-01-20
             </time>
           </span>
 
@@ -628,6 +628,31 @@ false
 <td style="text-align:center">N/A</td>
 <td style="text-align:center">新的HTTP服务地址，包括端口</td>
 </tr>
+<tr>
+<td style="text-align:center">dfs.namenode.decommission.interval</td>
+<td style="text-align:center">30(单位s)</td>
+<td style="text-align:center">FSNamesystem的DecommissionManager.Monitor线程检查处于DECOMMISSION_INPROGRESS状态数据节点的周期，在所有区块副本达到期望值时更新为DECOMMISSIONED状态</td>
+</tr>
+<tr>
+<td style="text-align:center">dfs.namenode.decommission.nodes.per.interval</td>
+<td style="text-align:center">5</td>
+<td style="text-align:center">FSNamesystem的DecommissionManager.Monitor线程一个周期内检查DataNode的个数</td>
+</tr>
+<tr>
+<td style="text-align:center">dfs.replication.interval</td>
+<td style="text-align:center">3(单位s)</td>
+<td style="text-align:center">FSNamesystem的ReplicationMonitor操作周期</td>
+</tr>
+<tr>
+<td style="text-align:center">dfs.namenode.replication.work.multiplier.per.iteration</td>
+<td style="text-align:center">2</td>
+<td style="text-align:center">ReplicationMonitor线程每次处理复制操作，每个数据节点处理的区块数目</td>
+</tr>
+<tr>
+<td style="text-align:center">dfs.namenode.invalidate.work.pct.per.iteration</td>
+<td style="text-align:center">0.32</td>
+<td style="text-align:center">ReplicationMonitor线程每次处理删除操作，占总的数据节点百分比</td>
+</tr>
 </tbody>
 </table>
 <h2 id="SecondaryNameNode">SecondaryNameNode</h2><table>
@@ -707,16 +732,16 @@ false
         <div class="post-nav">
           <div class="post-nav-next post-nav-item">
             
-              <a href="/NameNode命名空间镜像和编辑日志/" rel="next" title="NameNode实现源码分析---命名空间镜像和编辑日志">
-                <i class="fa fa-chevron-left"></i> NameNode实现源码分析---命名空间镜像和编辑日志
+              <a href="/NameNode和SecondaryNameNode/" rel="next" title="NameNode实现源码分析---和SecondaryNameNode的交互">
+                <i class="fa fa-chevron-left"></i> NameNode实现源码分析---和SecondaryNameNode的交互
               </a>
             
           </div>
 
           <div class="post-nav-prev post-nav-item">
             
-              <a href="/NameNode和SecondaryNameNode/" rel="prev" title="NameNode实现源码分析---和SecondaryNameNode的交互">
-                NameNode实现源码分析---和SecondaryNameNode的交互 <i class="fa fa-chevron-right"></i>
+              <a href="/NameNode维护的数据结构/" rel="prev" title="NameNode实现源码分析---数据块和数据节点相关数据结构和线程">
+                NameNode实现源码分析---数据块和数据节点相关数据结构和线程 <i class="fa fa-chevron-right"></i>
               </a>
             
           </div>
@@ -812,7 +837,7 @@ false
         <nav class="site-state motion-element">
           <div class="site-state-item site-state-posts">
             <a href="/archives">
-              <span class="site-state-item-count">37</span>
+              <span class="site-state-item-count">38</span>
               <span class="site-state-item-name">日志</span>
             </a>
           </div>

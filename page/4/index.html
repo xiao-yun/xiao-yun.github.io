@@ -235,8 +235,8 @@
             
               
                 
-                <a class="post-title-link" href="/通道和选择器/" itemprop="url">
-                  Java NIO---通道和选择器
+                <a class="post-title-link" href="/配置相关RPC/" itemprop="url">
+                  Hadoop配置相关---RPC
                 </a>
               
             
@@ -256,8 +256,8 @@
               &nbsp; | &nbsp; 分类于
               
                 <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
-                  <a href="/categories/Java/" itemprop="url" rel="index">
-                    <span itemprop="name">Java</span>
+                  <a href="/categories/Hadoop-1-2-1/" itemprop="url" rel="index">
+                    <span itemprop="name">Hadoop-1.2.1</span>
                   </a>
                 </span>
 
@@ -268,8 +268,20 @@
 
               
                 <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
-                  <a href="/categories/Java/Java基础/" itemprop="url" rel="index">
-                    <span itemprop="name">Java基础</span>
+                  <a href="/categories/Hadoop-1-2-1/Common/" itemprop="url" rel="index">
+                    <span itemprop="name">Common</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Hadoop-1-2-1/Common/配置/" itemprop="url" rel="index">
+                    <span itemprop="name">配置</span>
                   </a>
                 </span>
 
@@ -284,8 +296,8 @@
             
               <span class="post-comments-count">
                 &nbsp; | &nbsp;
-                <a href="/通道和选择器/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="通道和选择器/" itemprop="commentsCount"></span>
+                <a href="/配置相关RPC/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="配置相关RPC/" itemprop="commentsCount"></span>
                 </a>
               </span>
             
@@ -307,15 +319,30 @@
         
           <span itemprop="articleBody">
             
-            Java NIO提供了通道,缓冲区,选择器，字符集等多项特性。缓冲区另见Java NIO—缓冲区。Java NIO的通道类似于流，不同点在于:
+            Hadoop版本:Hadoop-1.2.1  
 
-通道支持双向的数据读写，但流通常是单向的；
-通道支持异步操作，流只能是同步的；
-通道的读写基于块(使用缓冲区)，而流基于字节。流一个字节一个字节按顺序传输
+Client
+
+
+属性
+缺省值
+说明
+
+
+
+
+ipc.client.tcpnodelay
+false
+socket连接Nagel算法
+
+
+ipc.client.connection.maxidletime
+10000(10s)
+连接最大空闲时间，超过
             ...
           </span>
           <div class="post-more-link text-center">
-            <a class="btn" href="/通道和选择器/#more" rel="contents">
+            <a class="btn" href="/配置相关RPC/#more" rel="contents">
               阅读全文 &raquo;
             </a>
           </div>
@@ -358,8 +385,8 @@
             
               
                 
-                <a class="post-title-link" href="/缓冲区/" itemprop="url">
-                  Java NIO---缓冲区
+                <a class="post-title-link" href="/配置相关RaidNode/" itemprop="url">
+                  Hadoop配置相关---RaidNode
                 </a>
               
             
@@ -379,8 +406,8 @@
               &nbsp; | &nbsp; 分类于
               
                 <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
-                  <a href="/categories/Java/" itemprop="url" rel="index">
-                    <span itemprop="name">Java</span>
+                  <a href="/categories/Hadoop-0-20/" itemprop="url" rel="index">
+                    <span itemprop="name">Hadoop-0.20</span>
                   </a>
                 </span>
 
@@ -391,8 +418,20 @@
 
               
                 <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
-                  <a href="/categories/Java/Java基础/" itemprop="url" rel="index">
-                    <span itemprop="name">Java基础</span>
+                  <a href="/categories/Hadoop-0-20/RaidNode/" itemprop="url" rel="index">
+                    <span itemprop="name">RaidNode</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Hadoop-0-20/RaidNode/配置/" itemprop="url" rel="index">
+                    <span itemprop="name">配置</span>
                   </a>
                 </span>
 
@@ -407,8 +446,8 @@
             
               <span class="post-comments-count">
                 &nbsp; | &nbsp;
-                <a href="/缓冲区/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="缓冲区/" itemprop="commentsCount"></span>
+                <a href="/配置相关RaidNode/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="配置相关RaidNode/" itemprop="commentsCount"></span>
                 </a>
               </span>
             
@@ -430,12 +469,31 @@
         
           <span itemprop="articleBody">
             
-            先看ByteBuffer的父类Buffer
-Buffer(java.nio)成员12345// Invariants: mark &lt;= position &lt;= limit &lt;= capacityprivate int mark = -1;//若设置，则reset时postion变为
+            
+Hadoop版本:hadoop-20-master
+
+
+源码阅读配置记录
+RaidNode
+
+
+属性
+缺省值
+说明
+
+
+
+
+raid.classname
+DistRaidNode
+RaidNode实现类,默认DistRaidNode在createRaidNode中读取conf设置
+
+
+fs.rai
             ...
           </span>
           <div class="post-more-link text-center">
-            <a class="btn" href="/缓冲区/#more" rel="contents">
+            <a class="btn" href="/配置相关RaidNode/#more" rel="contents">
               阅读全文 &raquo;
             </a>
           </div>
@@ -637,6 +695,126 @@ ConfigManager主要成员12345678910111213public static final long RELOAD_WAIT =
             
               
                 
+                <a class="post-title-link" href="/缓冲区/" itemprop="url">
+                  Java NIO---缓冲区
+                </a>
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            发表于
+            <time itemprop="dateCreated" datetime="2016-01-08T14:45:06+08:00" content="2016-01-08">
+              2016-01-08
+            </time>
+          </span>
+
+          
+            <span class="post-category" >
+              &nbsp; | &nbsp; 分类于
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Java/" itemprop="url" rel="index">
+                    <span itemprop="name">Java</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Java/Java基础/" itemprop="url" rel="index">
+                    <span itemprop="name">Java基础</span>
+                  </a>
+                </span>
+
+                
+                
+
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                &nbsp; | &nbsp;
+                <a href="/缓冲区/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="缓冲区/" itemprop="commentsCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+
+        </div>
+      </header>
+    
+
+
+    <div class="post-body">
+
+      
+      
+
+      
+        
+          <span itemprop="articleBody">
+            
+            先看ByteBuffer的父类Buffer
+Buffer(java.nio)成员12345// Invariants: mark &lt;= position &lt;= limit &lt;= capacityprivate int mark = -1;//若设置，则reset时postion变为
+            ...
+          </span>
+          <div class="post-more-link text-center">
+            <a class="btn" href="/缓冲区/#more" rel="contents">
+              阅读全文 &raquo;
+            </a>
+          </div>
+        
+      
+    </div>
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </article>
+
+
+    
+      
+
+  
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                
                 <a class="post-title-link" href="/Socket选项/" itemprop="url">
                   TCP Socket选项
                 </a>
@@ -736,173 +914,6 @@ ConfigManager主要成员12345678910111213public static final long RELOAD_WAIT =
 
 
     
-      
-
-  
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-            
-            
-              
-                
-                <a class="post-title-link" href="/RPC源码分析下篇/" itemprop="url">
-                  RPC源码阅读---源码分析下篇
-                </a>
-              
-            
-          </h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            发表于
-            <time itemprop="dateCreated" datetime="2016-01-08T14:45:06+08:00" content="2016-01-08">
-              2016-01-08
-            </time>
-          </span>
-
-          
-            <span class="post-category" >
-              &nbsp; | &nbsp; 分类于
-              
-                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
-                  <a href="/categories/Java/" itemprop="url" rel="index">
-                    <span itemprop="name">Java</span>
-                  </a>
-                </span>
-
-                
-                
-                  ， 
-                
-
-              
-                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
-                  <a href="/categories/Java/Hadoop-1-2-1/" itemprop="url" rel="index">
-                    <span itemprop="name">Hadoop-1.2.1</span>
-                  </a>
-                </span>
-
-                
-                
-                  ， 
-                
-
-              
-                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
-                  <a href="/categories/Java/Hadoop-1-2-1/Common/" itemprop="url" rel="index">
-                    <span itemprop="name">Common</span>
-                  </a>
-                </span>
-
-                
-                
-                  ， 
-                
-
-              
-                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
-                  <a href="/categories/Java/Hadoop-1-2-1/Common/RPC/" itemprop="url" rel="index">
-                    <span itemprop="name">RPC</span>
-                  </a>
-                </span>
-
-                
-                
-                  ， 
-                
-
-              
-                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
-                  <a href="/categories/Java/Hadoop-1-2-1/Common/RPC/源码阅读/" itemprop="url" rel="index">
-                    <span itemprop="name">源码阅读</span>
-                  </a>
-                </span>
-
-                
-                
-                  ， 
-                
-
-              
-                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
-                  <a href="/categories/Java/Hadoop-1-2-1/Common/RPC/源码阅读/RPC源码阅读/" itemprop="url" rel="index">
-                    <span itemprop="name">RPC源码阅读</span>
-                  </a>
-                </span>
-
-                
-                
-
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                &nbsp; | &nbsp;
-                <a href="/RPC源码分析下篇/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="RPC源码分析下篇/" itemprop="commentsCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-
-        </div>
-      </header>
-    
-
-
-    <div class="post-body">
-
-      
-      
-
-      
-        
-          <span itemprop="articleBody">
-            
-            Hadoop版本:Hadoop-1.2.1参考：《Hadoop技术内幕-深入解析Hadoop Common和HDFS架构设计与实现原理》,后文简称技术内幕RPC中用到的通道和选择器另见通道和选择器，缓冲区另见缓冲区,以及序列化(主要是ObjectWritable)另见序列化下文所说的[概述]为上篇R
-            ...
-          </span>
-          <div class="post-more-link text-center">
-            <a class="btn" href="/RPC源码分析下篇/#more" rel="contents">
-              阅读全文 &raquo;
-            </a>
-          </div>
-        
-      
-    </div>
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </article>
-
-
-    
 
   </section>
 
@@ -949,7 +960,7 @@ ConfigManager主要成员12345678910111213public static final long RELOAD_WAIT =
         <nav class="site-state motion-element">
           <div class="site-state-item site-state-posts">
             <a href="/archives">
-              <span class="site-state-item-count">37</span>
+              <span class="site-state-item-count">38</span>
               <span class="site-state-item-name">日志</span>
             </a>
           </div>

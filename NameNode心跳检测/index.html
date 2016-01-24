@@ -1,0 +1,851 @@
+<!doctype html>
+<html class="theme-next   use-motion ">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+  <link href="/vendors/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css"/>
+
+
+
+
+  <link href="//fonts.googleapis.com/css?family=Lato:300,400,700,400italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+
+
+
+<link href="/vendors/font-awesome/css/font-awesome.min.css?v=4.4.0" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=0.4.5.2" rel="stylesheet" type="text/css" />
+
+
+  <meta name="keywords" content="HDFS,Hadoop-1.2.1,Java,NameNode,NameNode源码阅读,源码阅读," />
+
+
+
+
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=0.4.5.2" />
+
+
+
+
+
+
+<meta name="description" content="Hadoop版本:Hadoop-1.2.1参考：《Hadoop技术内幕-深入解析Hadoop Common和HDFS架构设计与实现原理》  
+
+数据节点会周期性通过DatanodeProtocol代理向NameNode发送心跳，在NameNode中更新数据节点的活动时间，如果数据节点长时间没有心跳到来，则NameNode会判断该数据节点死亡，由HeartbeatMonitor执行该扫描操作
+1.">
+<meta property="og:type" content="article">
+<meta property="og:title" content="NameNode实现源码分析---心跳检测">
+<meta property="og:url" content="http://xiao-yun.github.io/NameNode心跳检测/index.html">
+<meta property="og:site_name" content="xiaoyun">
+<meta property="og:description" content="Hadoop版本:Hadoop-1.2.1参考：《Hadoop技术内幕-深入解析Hadoop Common和HDFS架构设计与实现原理》  
+
+数据节点会周期性通过DatanodeProtocol代理向NameNode发送心跳，在NameNode中更新数据节点的活动时间，如果数据节点长时间没有心跳到来，则NameNode会判断该数据节点死亡，由HeartbeatMonitor执行该扫描操作
+1.">
+<meta property="og:updated_time" content="2016-01-24T03:27:53.755Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="NameNode实现源码分析---心跳检测">
+<meta name="twitter:description" content="Hadoop版本:Hadoop-1.2.1参考：《Hadoop技术内幕-深入解析Hadoop Common和HDFS架构设计与实现原理》  
+
+数据节点会周期性通过DatanodeProtocol代理向NameNode发送心跳，在NameNode中更新数据节点的活动时间，如果数据节点长时间没有心跳到来，则NameNode会判断该数据节点死亡，由HeartbeatMonitor执行该扫描操作
+1.">
+
+
+
+<script type="text/javascript" id="hexo.configuration">
+  var CONFIG = {
+    scheme: 'Mist',
+    sidebar: 'hide',
+    motion: true
+  };
+</script>
+
+  <title> NameNode实现源码分析---心跳检测 | xiaoyun </title>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  <!--[if lte IE 8]>
+  <div style=' clear: both; height: 59px; padding:0 0 0 15px; position: relative;margin:0 auto;'>
+    <a href="http://windows.microsoft.com/en-US/internet-explorer/products/ie/home?ocid=ie6_countdown_bannercode">
+      <img src="http://7u2nvr.com1.z0.glb.clouddn.com/picouterie.jpg" border="0" height="42" width="820"
+           alt="You are using an outdated browser. For a faster, safer browsing experience, upgrade for free today or use other browser ,like chrome firefox safari."
+           style='margin-left:auto;margin-right:auto;display: block;'/>
+    </a>
+  </div>
+<![endif]-->
+  
+
+
+
+  <script type="text/javascript">
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "//hm.baidu.com/hm.js?caeb4129c91d1e6fb3d562d35fedef0d";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+  <div class="container one-column page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-meta ">
+  
+
+  <div class="custom-logo-site-title">
+    <a href="/"  class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <span class="site-title">xiaoyun</span>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+  <p class="site-subtitle"></p>
+</div>
+
+<div class="site-nav-toggle">
+  <button>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+  </button>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu ">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-home fa-fw"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives" rel="section">
+            
+              <i class="menu-item-icon fa fa-archive fa-fw"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories" rel="section">
+            
+              <i class="menu-item-icon fa fa-th fa-fw"></i> <br />
+            
+            分类
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+              <i class="menu-item-icon fa fa-tags fa-fw"></i> <br />
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about" rel="section">
+            
+              <i class="menu-item-icon fa fa-user fa-fw"></i> <br />
+            
+            关于
+          </a>
+        </li>
+      
+
+      
+      
+    </ul>
+  
+
+  
+</nav>
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div id="content" class="content">
+          
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                NameNode实现源码分析---心跳检测
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            发表于
+            <time itemprop="dateCreated" datetime="2016-01-24T11:27:53+08:00" content="2016-01-24">
+              2016-01-24
+            </time>
+          </span>
+
+          
+            <span class="post-category" >
+              &nbsp; | &nbsp; 分类于
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Java/" itemprop="url" rel="index">
+                    <span itemprop="name">Java</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Java/Hadoop-1-2-1/" itemprop="url" rel="index">
+                    <span itemprop="name">Hadoop-1.2.1</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Java/Hadoop-1-2-1/HDFS/" itemprop="url" rel="index">
+                    <span itemprop="name">HDFS</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Java/Hadoop-1-2-1/HDFS/NameNode/" itemprop="url" rel="index">
+                    <span itemprop="name">NameNode</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Java/Hadoop-1-2-1/HDFS/NameNode/源码阅读/" itemprop="url" rel="index">
+                    <span itemprop="name">源码阅读</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Java/Hadoop-1-2-1/HDFS/NameNode/源码阅读/NameNode源码阅读/" itemprop="url" rel="index">
+                    <span itemprop="name">NameNode源码阅读</span>
+                  </a>
+                </span>
+
+                
+                
+
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                &nbsp; | &nbsp;
+                <a href="/NameNode心跳检测/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="NameNode心跳检测/" itemprop="commentsCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+
+        </div>
+      </header>
+    
+
+
+    <div class="post-body">
+
+      
+      
+
+      
+        <span itemprop="articleBody"><p>Hadoop版本:<a href="https://archive.apache.org/dist/hadoop/core/hadoop-1.2.1/" target="_blank" rel="external">Hadoop-1.2.1</a><br>参考：《Hadoop技术内幕-深入解析Hadoop Common和HDFS架构设计与实现原理》  </p>
+<hr>
+<p>数据节点会周期性通过DatanodeProtocol代理向NameNode发送心跳，在NameNode中更新数据节点的活动时间，如果数据节点长时间没有心跳到来，则NameNode会判断该数据节点死亡，由HeartbeatMonitor执行该扫描操作</p>
+<h2 id="1-_HeartbeatMonitor">1. HeartbeatMonitor</h2><p>HeartbeatMonitor线程用于周期性检查注册的数据节点心跳和更新访问令牌信息。HeartbeatMonitor线程初始化如下<br><figure class="highlight actionscript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">this</span>.hbthread = <span class="keyword">new</span> Daemon(<span class="keyword">new</span> HeartbeatMonitor());</span><br><span class="line">hbthread.start();</span><br></pre></td></tr></table></figure></p>
+<p>HeartbeatMonitor包含两个成员<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="keyword">long</span> lastHeartbeatCheck;<span class="comment">//上次心跳检查时间</span></span><br><span class="line"><span class="keyword">private</span> <span class="keyword">long</span> lastAccessKeyUpdate;<span class="comment">//上次访问令牌更新时间</span></span><br></pre></td></tr></table></figure></p>
+<p>线程主程序如下<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">void</span> <span class="title">run</span><span class="params">()</span> </span>&#123;</span><br><span class="line">  <span class="keyword">while</span> (fsRunning) &#123;</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">      <span class="keyword">long</span> now = now();</span><br><span class="line">      <span class="keyword">if</span> (lastHeartbeatCheck + heartbeatRecheckInterval &lt; now) &#123;<span class="comment">//达到心跳检查时间，心跳检查</span></span><br><span class="line">        heartbeatCheck();</span><br><span class="line">        lastHeartbeatCheck = now;</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="comment">//使能了口令检查且达到了检查时间，口令更新</span></span><br><span class="line">      <span class="keyword">if</span> (isAccessTokenEnabled &amp;&amp; (lastAccessKeyUpdate + accessKeyUpdateInterval &lt; now)) &#123;</span><br><span class="line">        updateAccessKey();</span><br><span class="line">        lastAccessKeyUpdate = now;</span><br><span class="line">      &#125;</span><br><span class="line">    &#125; <span class="keyword">catch</span> (Exception e) &#123;</span><br><span class="line">      FSNamesystem.LOG.<span class="keyword">error</span>(StringUtils.stringifyException(e));</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">      Thread.sleep(<span class="number">5000</span>);  <span class="comment">// 5 seconds</span></span><br><span class="line">    &#125; <span class="keyword">catch</span> (InterruptedException ie) &#123;</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，每5s查看是否达到了心跳检查时间，心跳检查周期为FSNamesystem成员<code>heartbeatRecheckInterval</code>，配置项<code>heartbeat.recheck.interval</code>，默认5min。<br>如果配置了执行口令更新操作，即配置项<code>dfs.block.access.token.enable</code>(默认为false)，则每过<code>dfs.block.access.key.update.interval</code>(默认10h)更新一次数据节点访问口令。这里不分析口令的更新。  </p>
+<p>心跳检查由heartbeatCheck完成，检查完后更新lastHeartbeatCheck上次检查时间</p>
+<h2 id="2-_heartbeatCheck">2. heartbeatCheck</h2><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">heartbeatCheck</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (isInSafeMode()) &#123;<span class="comment">//安全模式不进行心跳检查</span></span><br><span class="line">      <span class="keyword">return</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">boolean</span> allAlive = <span class="keyword">false</span>;</span><br><span class="line">    <span class="keyword">while</span> (!allAlive) &#123;<span class="comment">//循环检查直到没有过期节点</span></span><br><span class="line">      <span class="keyword">boolean</span> foundDead = <span class="keyword">false</span>;</span><br><span class="line">      DatanodeID dead = <span class="keyword">null</span>;</span><br><span class="line">      <span class="keyword">int</span> numOfStaleNodes = <span class="number">0</span>;</span><br><span class="line"></span><br><span class="line">      <span class="keyword">synchronized</span> (heartbeats) &#123;</span><br><span class="line">        <span class="keyword">for</span> (Iterator&lt;DatanodeDescriptor&gt; it = heartbeats.iterator(); it .hasNext();) &#123;</span><br><span class="line">          DatanodeDescriptor nodeInfo = it.next();</span><br><span class="line">          <span class="keyword">if</span> (dead == <span class="keyword">null</span> &amp;&amp; isDatanodeDead(nodeInfo)) &#123;<span class="comment">//一次处理一个过期节点</span></span><br><span class="line">            foundDead = <span class="keyword">true</span>;</span><br><span class="line">            dead = nodeInfo;</span><br><span class="line">          &#125;</span><br><span class="line">          <span class="keyword">if</span> (nodeInfo.isStale(<span class="keyword">this</span>.staleInterval)) &#123;<span class="comment">//统计所有陈旧节点数目</span></span><br><span class="line">            numOfStaleNodes++;</span><br><span class="line">          &#125;</span><br><span class="line">        &#125;</span><br><span class="line">        setNumStaleNodes(numOfStaleNodes);<span class="comment">//更新成员numStaleNodes</span></span><br><span class="line">      &#125;</span><br><span class="line"></span><br><span class="line">      <span class="keyword">if</span> (foundDead) &#123;</span><br><span class="line">        <span class="keyword">synchronized</span> (<span class="keyword">this</span>) &#123;</span><br><span class="line">          <span class="keyword">synchronized</span>(heartbeats) &#123;</span><br><span class="line">            <span class="keyword">synchronized</span> (datanodeMap) &#123;</span><br><span class="line">              DatanodeDescriptor nodeInfo = <span class="keyword">null</span>;</span><br><span class="line">              <span class="keyword">try</span> &#123;</span><br><span class="line">                nodeInfo = getDatanode(dead);</span><br><span class="line">              &#125; <span class="keyword">catch</span> (IOException e) &#123;</span><br><span class="line">                nodeInfo = <span class="keyword">null</span>;</span><br><span class="line">              &#125;</span><br><span class="line">              <span class="keyword">if</span> (nodeInfo != <span class="keyword">null</span> &amp;&amp; isDatanodeDead(nodeInfo)) &#123;</span><br><span class="line">                NameNode.stateChangeLog.info(<span class="string">"BLOCK* heartbeatCheck: "</span> + <span class="string">"lost heartbeat from "</span> + nodeInfo.getName());</span><br><span class="line">                removeDatanode(nodeInfo);<span class="comment">//移除过期节点，一次循环中移除一个过期节点</span></span><br><span class="line">              &#125;</span><br><span class="line">            &#125;</span><br><span class="line">          &#125;</span><br><span class="line">        &#125;</span><br><span class="line">      &#125;</span><br><span class="line">      allAlive = !foundDead;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>如上，会循环判断并移除过期(expired)或者说死亡(dead，以下说的过期节点都等同死亡节点)节点，直到没有过期节点，每次移除一个过期节点。<br>在移除过期节点的过程中会持有heartbeats对象锁，如果在持有该锁过程中处理多个过期节点，则因为更新数据节点的心跳时间也需要持有heartbeats锁(handleHeartbeat中)，这样多个数据节点的移除时间过长，数据节点心跳到来时长时间获取不到heartbeats锁，长时间更新不了自己的心跳时间，可能会导致越来越多的数据节点误判为过期节点。因此每次只移除一个过期节点，多次判断处理，直到所有的过期节点移除完，如上。  </p>
+<p>判断数据节点是否过期由isDatanodeDead完成<br><figure class="highlight crmsh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">private boolean isDatanodeDead(DatanodeDescriptor <span class="keyword">node</span><span class="identifier"></span><span class="title">) &#123;</span><br><span class="line">    return</span> (<span class="keyword">node</span>.<span class="identifier"></span><span class="title">getLastUpdate</span>() <span class="tag">&lt; (now() - heartbeatExpireInterval));</span><br><span class="line">&#125;</span></span><br></pre></td></tr></table></figure></p>
+<p>即当前时间超出了上次心跳时间加上数据节点过期周期，过期周期由FSNamesystem成员<code>heartbeatExpireInterval</code>，初始化如下<br><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">long</span> heartbeatInterval = conf.getLong(<span class="string">"dfs.heartbeat.interval"</span>, <span class="number">3</span>) * <span class="number">1000</span>;</span><br><span class="line"><span class="keyword">this</span>.heartbeatExpireInterval = <span class="number">2</span> * heartbeatRecheckInterval + <span class="number">10</span> * heartbeatInterval;</span><br></pre></td></tr></table></figure></p>
+<p>如上，过期时间为2倍的心跳检查周期加上10倍的心跳周期heartbeatInterval，即默认情况下数据节点过期时间为2*5min+10*3s=10分钟30s。超过这个10min30s还没收到数据节点的心跳，则NameNode判断该数据节点死亡。  </p>
+<p>另外，每次循环中还会统计当前陈旧(stale)的数据节点，更新FSNamesystem的成员<code>numStaleNodes</code>，是否成旧由DatanodeDescriptor的isStale方法判断，成旧时间为FSNamesystem成员<code>staleInterval</code>，为配置项<code>dfs.namenode.stale.datanode.interval</code>，默认为30s，最小为<code>dfs.namenode.stale.datanode.minimum.interval</code>(默认3)倍的心跳周期，即最小为3*3s=9s，默认情况下，NameNode至少要经过三个心跳周期，如果还没收到数据节点心跳，才会判定该数据节点成旧。  </p>
+<p>对于过期节点，通过<code>removeDatanode</code>移除，移除过期节点的过程中，需要获取heartbeats锁</p>
+<h2 id="3-_removeDatanode">3. removeDatanode</h2><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="function"><span class="keyword">void</span> <span class="title">removeDatanode</span><span class="params">(DatanodeDescriptor nodeInfo)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">synchronized</span> (heartbeats) &#123;</span><br><span class="line">      <span class="keyword">if</span> (nodeInfo.isAlive) &#123;<span class="comment">//节点当前还活着</span></span><br><span class="line">        updateStats(nodeInfo, <span class="keyword">false</span>);<span class="comment">//更新集群数据统计信息</span></span><br><span class="line">        heartbeats.remove(nodeInfo);<span class="comment">//从heartbeats中移除该数据节点</span></span><br><span class="line">        nodeInfo.isAlive = <span class="keyword">false</span>;<span class="comment">//置isAlive为false</span></span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">//移除所有的区块</span></span><br><span class="line">    <span class="keyword">for</span> (Iterator&lt;Block&gt; it = nodeInfo.getBlockIterator(); it.hasNext();) &#123;</span><br><span class="line">      removeStoredBlock(it.next(), nodeInfo);</span><br><span class="line">    &#125;</span><br><span class="line">    unprotectedRemoveDatanode(nodeInfo);<span class="comment">//重置数据节点的成员，从recentInvalidateSets中移除记录</span></span><br><span class="line">    clusterMap.remove(nodeInfo);<span class="comment">//从网络拓扑中移除</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (safeMode != <span class="keyword">null</span>) &#123;<span class="comment">//检查并根据条件触发安全模式</span></span><br><span class="line">      safeMode.checkMode();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>如上，如果当前节点还是存活状态，则更新集群的数据统计信息(如使用量，剩余量等)，然后从heartbeats中移除该数据节点，设置数据节点的isAlive为false。<br>然后通过removeStoredBlock移除该数据节点上的所有区块，将区块信息从相应的数据结构中移除，通过unprotectedRemoveDatanode重置数据节点的成员，并从recentInvalidateSets中移除数据节点记录，从网络拓扑clusterMap中移除数据节点信息。总的来说就是从与数据节点和区块相关的数据节点中移除相关记录。<br>最后，因为移除了一个数据节点，要检查安全模式，如果满足条件要进入安全模式进行相关操作。安全模式后文会详细分析。</p>
+<h3 id="3-1_updateStats">3.1 updateStats</h3><p>updateStats根据传入的数据节点信息，更新集群中资源统计信息，数据节点可能加入到集群中，也可能从集群中移除，加入时第二个参数为true，移除时为false。<br><figure class="highlight crmsh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">private void updateStats(DatanodeDescriptor <span class="keyword">node</span><span class="identifier"></span><span class="title">, boolean</span> isAdded) &#123;</span><br><span class="line">    //统计信息被heartbeats锁保护，该方法调用前确保已经获得了heartbeats锁</span><br><span class="line">    assert(Thread.holdsLock(heartbeats));</span><br><span class="line">    if (isAdded) &#123;//添加数据节点</span><br><span class="line">      capacityTotal += <span class="keyword">node</span>.<span class="identifier"></span><span class="title">getCapacity</span>();</span><br><span class="line">      capacityUsed += <span class="keyword">node</span>.<span class="identifier"></span><span class="title">getDfsUsed</span>();</span><br><span class="line">      capacityRemaining += <span class="keyword">node</span>.<span class="identifier"></span><span class="title">getRemaining</span>();</span><br><span class="line">      totalLoad += <span class="keyword">node</span>.<span class="identifier"></span><span class="title">getXceiverCount</span>();</span><br><span class="line">    &#125; else &#123;//移除数据节点</span><br><span class="line">      capacityTotal -= <span class="keyword">node</span>.<span class="identifier"></span><span class="title">getCapacity</span>();</span><br><span class="line">      capacityUsed -= <span class="keyword">node</span>.<span class="identifier"></span><span class="title">getDfsUsed</span>();</span><br><span class="line">      capacityRemaining -= <span class="keyword">node</span>.<span class="identifier"></span><span class="title">getRemaining</span>();</span><br><span class="line">      totalLoad -= <span class="keyword">node</span>.<span class="identifier"></span><span class="title">getXceiverCount</span>();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，添加数据节点时，根据添加的数据节点统计信息，相应的增加集群中总容量<code>capacityTotal</code>，已使用容量<code>capacityUsed</code>，剩余容量<code>capacityRemaining</code>，总负载(流操作相关线程个数)，而移除数据节点时减少对应的值。</p>
+<h3 id="3-2_removeStoredBlock">3.2 removeStoredBlock</h3><figure class="highlight pf"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line">synchronized void removeStoredBlock(Block <span class="built_in">block</span>, DatanodeDescriptor node) &#123;</span><br><span class="line">    NameNode.<span class="keyword">state</span>ChangeLog.<span class="keyword">debug</span>(<span class="string">"BLOCK* removeStoredBlock: "</span> +<span class="built_in">block</span> + <span class="string">" from "</span>+node.getName());</span><br><span class="line">    if (!blocksMap.removeNode(<span class="built_in">block</span>, node)) &#123;//从<span class="built_in">block</span>Map中移除记录</span><br><span class="line">      NameNode.<span class="keyword">state</span>ChangeLog.<span class="keyword">debug</span>(<span class="string">"BLOCK* removeStoredBlock: "</span> +<span class="built_in">block</span>+<span class="string">" has already been removed from node "</span>+node);</span><br><span class="line">      return;</span><br><span class="line">    &#125;</span><br><span class="line">        </span><br><span class="line">    //如果对应文件还存在，更新在neededReplications中优先级</span><br><span class="line">    //文件还存在，只是说因为数据节点关闭该文件区块副本少了一个，因此更新neededReplications</span><br><span class="line">    //即如果之前副本数满足期望值，减少了一个少于期望值会增加到neededReplications中，进行复制操作</span><br><span class="line">    //而如果之前就在neededReplications中，减少了副本数会相应增加优先级，从一个队列中移到更高优先级队列中，更优先复制</span><br><span class="line">    INode fileINode = blocksMap.getINode(<span class="built_in">block</span>);</span><br><span class="line">    if (fileINode != null) &#123;</span><br><span class="line">      decrementSafeBlockCount(<span class="built_in">block</span>);</span><br><span class="line">      updateNeededReplications(<span class="built_in">block</span>, -<span class="number">1</span>, <span class="number">0</span>);//更新neededReplications</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    //区块在数据节点上已经移除了，所以在excessReplicateMap中对应的记录删除</span><br><span class="line">    Collection<span class="variable">&lt;Block&gt;</span> excessBlocks = excessReplicateMap.get(node.getStorageID());</span><br><span class="line">    if (excessBlocks != null) &#123;</span><br><span class="line">      if (excessBlocks.remove(<span class="built_in">block</span>)) &#123;</span><br><span class="line">        excessBlocksCount--;</span><br><span class="line">        NameNode.<span class="keyword">state</span>ChangeLog.<span class="keyword">debug</span>(<span class="string">"BLOCK* removeStoredBlock: "</span> + <span class="built_in">block</span> + <span class="string">" is removed from excessBlocks"</span>);</span><br><span class="line">        if (excessBlocks.size() == <span class="number">0</span>) &#123;//数据节点上所有的超出期望值的副本区块都处理完了，移除该数据节点对应记录</span><br><span class="line">          excessReplicateMap.remove(node.getStorageID());</span><br><span class="line">        &#125;</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    //区块在数据节点上已经移除了，所以在corruptReplicas中移除记录</span><br><span class="line">    corruptReplicas.removeFromCorruptReplicasMap(<span class="built_in">block</span>, node);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>如上，removeStoredBlock会更新数据节点和数据节点相关区块的大部分元数据信息。  </p>
+<p>首先从BlocksMap中更新记录，包括移除区块和数据节点的双向关系，如果BlocksMap中区块对应所有副本都不存在了且文件不存在了则会从BlocksMap移除区块记录。  </p>
+<p>然后通过<code>updateNeededReplications</code>更新在neededReplications中的元数据，即如果之前副本数满足要求，在neededReplications中应该没有记录，这时删除了一个副本，副本数应该会小于期望值，则会添加到neededReplications中的相应队列中。而如果之前副本数本来不满足要求，存在于neededReplications中，这时副本数减少，则在neededReplications的相应优先级会增加，从低优先级队列中移到高优先级队列中。  </p>
+<p>然后从excessReplicateMap和corruptReplicas中移除相关元数据。</p>
+<h4 id="3-2-1_BlocksMap-removeNode">3.2.1 BlocksMap.removeNode</h4><figure class="highlight armasm"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">boolean </span>removeNode(<span class="keyword">Block </span><span class="keyword">b, </span>DatanodeDescriptor node) &#123;</span><br><span class="line">    <span class="keyword">BlockInfo </span><span class="preprocessor">info</span> = <span class="keyword">blocks.get(b);</span><br><span class="line"></span>    <span class="preprocessor">if</span> (<span class="preprocessor">info</span> == null)//不存在该区块元数据信息</span><br><span class="line">      return false<span class="comment">;</span></span><br><span class="line"></span><br><span class="line">    //从数据节点区块列表中移除区块，从区块信息<span class="keyword">BlockInfo中移除数据节点，即解除区块和数据节点的双向关系</span><br><span class="line"></span>    <span class="keyword">boolean </span>removed = node.removeBlock(<span class="preprocessor">info</span>)<span class="comment">;</span></span><br><span class="line">    </span><br><span class="line">    //区块不存在任何数据节点上，且不属于一个文件，从<span class="keyword">blocks中移除</span><br><span class="line"></span>    <span class="preprocessor">if</span> (<span class="preprocessor">info</span>.getDatanode(<span class="number">0</span>) == null &amp;&amp; <span class="preprocessor">info</span>.inode == null) &#123;</span><br><span class="line">      <span class="keyword">blocks.remove(b); </span> // remove <span class="keyword">block </span>from the <span class="preprocessor">map</span></span><br><span class="line">    &#125;</span><br><span class="line">    return removed<span class="comment">;</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>如上，通过DatanodeDescriptor的removeBlock方法从数据节点区块列表中移除区块，并从对应区块信息BlockInfo中移除数据节点，即解除区块和数据节点的双向关系。解除双向关系后，区块不存在任何数据节点上，且不属于一个文件，从blocks中移除，即所有区块副本和区块对应文件已经删除了，从blocks中移除。<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">boolean</span> <span class="title">removeBlock</span><span class="params">(BlockInfo b)</span> </span>&#123;</span><br><span class="line">    blockList = b.listRemove(blockList, <span class="keyword">this</span>);<span class="comment">//从数据节点区块列表中移除区块</span></span><br><span class="line">    <span class="function"><span class="keyword">return</span> b.<span class="title">removeNode</span><span class="params">(<span class="keyword">this</span>)</span></span>;<span class="comment">//BlockInfo中移除数据节点</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，blockList是数据节点DatanodeDescriptor的区块列表头，为BlockInfo类型。首先，将区块从数据节点区块列表中移除，如果区块是区块列表头，设置数据节点的区块列表头为该区块的下一个区块，此时通过数据节点的区块链表已经找不到该区块了。接着从区块BlockInfo的triplets中移除数据节点相关信息，这样通过BlockInfo也找不到数据节点的信息了，双向解除了区块和数据节点的关系。<br><figure class="highlight gradle"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line">BlockInfo listRemove(BlockInfo head, DatanodeDescriptor dn) &#123;</span><br><span class="line">  <span class="keyword">if</span>(head == <span class="keyword">null</span>)</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">null</span>;</span><br><span class="line">  <span class="keyword">int</span> dnIndex = <span class="keyword">this</span>.findDatanode(dn);<span class="comment">//查找数据节点所在索引</span></span><br><span class="line">  <span class="keyword">if</span>(dnIndex &lt; <span class="number">0</span>) <span class="comment">//区块不再数据节点列表中</span></span><br><span class="line">    <span class="keyword">return</span> head;</span><br><span class="line"></span><br><span class="line">  BlockInfo <span class="keyword">next</span> = <span class="keyword">this</span>.getNext(dnIndex);<span class="comment">//获取该区块在数据节点区块列表的下一个区块</span></span><br><span class="line">  BlockInfo prev = <span class="keyword">this</span>.getPrevious(dnIndex);<span class="comment">//该区块在数据节点列表中前一个区块</span></span><br><span class="line">  </span><br><span class="line">  <span class="comment">//当前区块下一个区块和前一个区块(triplets中)置空，即从数据节点区块列表中移除</span></span><br><span class="line">  <span class="keyword">this</span>.setNext(dnIndex, <span class="keyword">null</span>);</span><br><span class="line">  <span class="keyword">this</span>.setPrevious(dnIndex, <span class="keyword">null</span>);</span><br><span class="line">  </span><br><span class="line">  <span class="comment">//重新连接数据节点区块列表</span></span><br><span class="line">  <span class="keyword">if</span>(prev != <span class="keyword">null</span>)</span><br><span class="line">    prev.setNext(prev.findDatanode(dn), <span class="keyword">next</span>);</span><br><span class="line">  <span class="keyword">if</span>(<span class="keyword">next</span> != <span class="keyword">null</span>)</span><br><span class="line">    <span class="keyword">next</span>.setPrevious(<span class="keyword">next</span>.findDatanode(dn), prev);</span><br><span class="line">    </span><br><span class="line">  <span class="comment">//如果当前要移除的区块为区块列表头，则区块列表头置为当前区块移除前的下一个区块  </span></span><br><span class="line">  <span class="keyword">if</span>(<span class="keyword">this</span> == head)  <span class="comment">// removing the head</span></span><br><span class="line">    head = <span class="keyword">next</span>;</span><br><span class="line">  <span class="keyword">return</span> head;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，主要是BlockInfo和DatanodeDescriptor的相关操作，相关见<a href="../NameNode维护的数据结构">NameNode实现源码分析—数据块和数据节点相关数据结构和线程</a>。<br>获取区块在数据节点区块列表的下一个和前一个区块后，将区块从列表中移除，然后重新连接链表。如果当前区块为数据节点区块链表头即<code>blockList</code>，则重新设置blockList为区块移除前在链表中的下一个区块。  </p>
+<p>从数据节点区块列表中移除后，只是解除了数据节点区块链表到区块的单向关系，即通过数据节点区块链表找不到该区块了，不过在区块的的<code>triplets</code>中还记录者数据节点的信息，因此需要移除，如前面DatanodeDescriptor的removeBlock方法中，通过BlockInfo的removeNode方法完成<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">boolean</span> <span class="title">removeNode</span><span class="params">(DatanodeDescriptor node)</span> </span>&#123;</span><br><span class="line">      <span class="keyword">int</span> dnIndex = findDatanode(node);<span class="comment">//要移除的数据节点在triplets中索引</span></span><br><span class="line">      <span class="keyword">if</span>(dnIndex &lt; <span class="number">0</span>) <span class="comment">//不存在该数据节点信息</span></span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">false</span>;</span><br><span class="line">      <span class="comment">//此时区块应该从数据节点的区块链表中移除了</span></span><br><span class="line">      <span class="function"><span class="keyword">assert</span> <span class="title">getPrevious</span><span class="params">(dnIndex)</span> </span>== <span class="keyword">null</span> &amp;&amp; getNext(dnIndex) == <span class="keyword">null</span> : </span><br><span class="line">        <span class="string">"Block is still in the list and must be removed first."</span>;</span><br><span class="line">        </span><br><span class="line">      <span class="keyword">int</span> lastNode = numNodes()-<span class="number">1</span>; </span><br><span class="line">      <span class="comment">//使用最后一个数据节点代替当前节点</span></span><br><span class="line">      setDatanode(dnIndex, getDatanode(lastNode));</span><br><span class="line">      setNext(dnIndex, getNext(lastNode)); </span><br><span class="line">      setPrevious(dnIndex, getPrevious(lastNode)); </span><br><span class="line">      </span><br><span class="line">      <span class="comment">//替代后，最后索引位置的相关信息置null</span></span><br><span class="line">      setDatanode(lastNode, <span class="keyword">null</span>);</span><br><span class="line">      setNext(lastNode, <span class="keyword">null</span>); </span><br><span class="line">      setPrevious(lastNode, <span class="keyword">null</span>); </span><br><span class="line">      <span class="keyword">return</span> <span class="keyword">true</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，从BlockInfo中移除数据节点信息时，保证该区块已经从数据节点的区块链表中移除了。然后使用最后索引的triplets三个引用(数据节点，下一个区块，前一个区块)代替当前索引位置的相关引用，然后设置最后索引位置的引用为null，这样来移除当前索引位置的数据节点信息。  </p>
+<p>到这里BlocksMap.removeNode分析完了，回到1.2.2 removeStoredBlock的下一步骤，更新区块在neededReplications中状态</p>
+<h4 id="3-2-2_updateNeededReplications">3.2.2 updateNeededReplications</h4><p>区块对应的文件还存在，即只是移除了一个区块副本，需要更新neededReplications中的状态。如果原来副本数满足要求，则因为删除了一个副本，需要添加区块到neededReplications中，或者原来neededReplications中存在区块记录(副本数没有达到期望值)，则更新区块在neededReplications中所在的优先级队列。<br><figure class="highlight nimrod"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">synchronized <span class="type">void</span> updateNeededReplications(<span class="type">Block</span> <span class="keyword">block</span>, <span class="type">int</span> curReplicasDelta, <span class="type">int</span> expectedReplicasDelta) &#123;</span><br><span class="line">    <span class="type">NumberReplicas</span> repl = countNodes(<span class="keyword">block</span>);</span><br><span class="line">    <span class="type">int</span> curExpectedReplicas = getReplication(<span class="keyword">block</span>);</span><br><span class="line">    neededReplications.update(<span class="keyword">block</span>, repl.liveReplicas(), repl.decommissionedReplicas(), </span><br><span class="line">                              curExpectedReplicas, curReplicasDelta, expectedReplicasDelta);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，参数<code>curReplicasDelta</code>为当前副本的改变值，小于0表示副本减少，大于0副本数增加，等于0当前副本数不变。参数<code>expectedReplicasDelta</code>表示期望的副本数改变值，数值意义和curReplicasDelta类似。removeStoredBlock中传入的第二个参数为-1，对应删除区块，副本数减少一个。  </p>
+<p>首先通过countNodes统计区块的副本数情况，包括损坏的(在corruptReplicas中)，处于撤销的(对应副本所在数据节点处于DECOMMISSION_INPROGRESS或DECOMMISSIONED状态)，超过期望副本值的(在excessReplicateMap中)，这些都不是有效副本数，除这些外的副本数即为有效的副本数。<br>然后获取区块的期望副本数，使用neededReplications的update方法更新在neededReplications的状态，如上，传入有效副本数，撤销副本数等信息<br><figure class="highlight processing"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">synchronized</span> <span class="keyword">void</span> update(Block block, <span class="built_in">int</span> curReplicas, <span class="built_in">int</span> decommissionedReplicas,</span><br><span class="line">                   <span class="built_in">int</span> curExpectedReplicas, <span class="built_in">int</span> curReplicasDelta, <span class="built_in">int</span> expectedReplicasDelta) &#123;</span><br><span class="line">    <span class="built_in">int</span> oldReplicas = curReplicas-curReplicasDelta;<span class="comment">//操作之前的副本数</span></span><br><span class="line">    <span class="built_in">int</span> oldExpectedReplicas = curExpectedReplicas-expectedReplicasDelta;<span class="comment">//操作前期望副本数</span></span><br><span class="line">    <span class="built_in">int</span> curPri = getPriority(block, curReplicas, decommissionedReplicas, curExpectedReplicas);<span class="comment">//当前优先级</span></span><br><span class="line">    <span class="built_in">int</span> oldPri = getPriority(block, oldReplicas, decommissionedReplicas, oldExpectedReplicas);<span class="comment">//之前优先级</span></span><br><span class="line">    ...<span class="comment">//日志</span></span><br><span class="line">    <span class="keyword">if</span>(oldPri != LEVEL &amp;&amp; oldPri != curPri) &#123;<span class="comment">//从之前优先级队列中移除区块记录</span></span><br><span class="line">      remove(block, oldPri);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span>(curPri != LEVEL &amp;&amp; priorityQueues.<span class="built_in">get</span>(curPri).<span class="built_in">add</span>(block)) &#123;</span><br><span class="line">        ...<span class="comment">//日志</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，首先根据之前的副本数和期望副本数计算在队列中优先级，根据当前副本数和期望副本数计算现在在队列中应该所属的优先级，当前副本数和之前副本数差值即为curReplicasDelta，而当前期望副本数和之前期望副本数差值即为<code>expectedReplicasDelta</code>，优先级计算见<a href="../NameNode维护的数据结构">NameNode实现源码分析—数据块和数据节点相关数据结构和线程</a>的1.8小节。<br>计算了优先级之后，首先从原来优先级队列中移除区块记录，即如果原来区块副本数满足要求，肯定不存在neededReplications中移除操作无效，而如果原来区块在neededReplications中，则先移除。<br>然后如果新的优先级在[0,2]范围内，需要添加到优先级队列中。则添加。<br>这样便完成了更新操作。  </p>
+<p>到这里removeStoredBlock方法分析完成，回到<code>removeDatanode</code>中，通过removeStoredBlock移除所有数据节点区块后，调用<code>unprotectedRemoveDatanode</code>移除数据节点</p>
+<h3 id="3-3_unprotectedRemoveDatanode">3.3 unprotectedRemoveDatanode</h3><figure class="highlight pf"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">void unprotectedRemoveDatanode(DatanodeDescriptor nodeDescr) &#123;</span><br><span class="line">    nodeDescr.resetBlocks();</span><br><span class="line">    removeFromInvalidates(nodeDescr.getStorageID());</span><br><span class="line">    NameNode.<span class="keyword">state</span>ChangeLog.<span class="keyword">debug</span>(<span class="string">"BLOCK* unprotectedRemoveDatanode: "</span></span><br><span class="line">                                  + nodeDescr.getName() + <span class="string">" is out of service now"</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>如上，首先通过unprotectedRemoveDatanode重置数据节点的成员变量<br><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">resetBlocks</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="keyword">this</span>.capacity = <span class="number">0</span>;<span class="comment">//容量</span></span><br><span class="line">    <span class="keyword">this</span>.remaining = <span class="number">0</span>;<span class="comment">//剩余容量</span></span><br><span class="line">    <span class="keyword">this</span>.dfsUsed = <span class="number">0</span>;<span class="comment">//使用量</span></span><br><span class="line">    <span class="keyword">this</span>.xceiverCount = <span class="number">0</span>;<span class="comment">//流操作活动线程数</span></span><br><span class="line">    <span class="keyword">this</span>.blockList = null;<span class="comment">//区块链表</span></span><br><span class="line">    <span class="keyword">this</span>.invalidateBlocks.clear();<span class="comment">//待删除区块列表</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，resetBlocks中重置基本成员和invalidateBlocks，清除invalidateBlocks，即当前需要删除的区块失效，因为我们已经将所有的区块都移除了。  </p>
+<p>然后通过removeFromInvalidates从recentInvalidateSets中移除该数据节点的待删除区块元数据<br><figure class="highlight armasm"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="label">void</span> removeFromInvalidates(<span class="keyword">String </span>storageID) &#123;</span><br><span class="line">    Collection&lt;<span class="keyword">Block&gt; </span><span class="keyword">blocks </span>= recentInvalidateSets.remove(storageID)<span class="comment">;</span></span><br><span class="line">    <span class="preprocessor">if</span> (<span class="keyword">blocks </span>!= null) &#123; pendingDeletionBlocksCount -= <span class="keyword">blocks.size(); </span>&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>到这里，removeDatanode方法已经分析完了，总结下NameNode中与数据块相关的元数据的相关清理工作。  </p>
+<ul>
+<li>首先从<code>heartbeats</code>中移除了数据节点记录</li>
+<li>removeStoredBlock中，更新了<code>blocksMap</code>，<code>neededReplications</code>，<code>excessReplicateMap</code>，<code>corruptReplicas</code>中与数据节点中数据块相关元数据</li>
+<li>unprotectedRemoveDatanode中，更新了<code>recentInvalidateSets</code>中与数据节点相关元数据(移除)</li>
+</ul>
+<p>因此，NameNode中相关元数据除了pendingReplications和datanodeMap都已经处理了。<br>那么在pendingReplications中的区块记录怎么办，数据节点移除了，正在执行的复制操作失败，则在pendingReplications相关的ReplicationMonitor线程中会判断复制超时，从而重新添加到neededReplications中，下次处理时重新选择复制的源数据节点和目标数据节点执行复制。<br>datanodeMap通过<code>refreshNodes</code>读取配置文件，进行相应的操作。</p>
+<hr>
+<h2 id="疑问">疑问</h2><p>DatanodeDescriptor中有<code>replicateBlocks</code>，<code>recoverBlocks</code>，<code>invalidateBlocks</code>三个对应的数据结构，分别管理需要复制的区块，需要恢复的区块和需要删除的区块，在下次心跳到来时会发送相应的命令。<br>HeartbeatMonitor线程中，发现数据节点长时间没有发送心跳信息，判断为死亡移除该数据节点。从removeDatanode的整个流程来看，在resetBlocks中已经清理了invalidateBlocks，那么replicateBlocks和recoverBlocks为什么不清理呢？<br>数据节点已经移除了，当然不会继续添加区块到replicatedBlocks和recoverBlocks中了，但是现存的为什么不进行清理呢？<br>如果说要等待复制或者恢复操作完成，那么该数据节点已经死了，不可能完成这些操作(对应的也没有设置该数据节点为DECOMMISSION_INPROGRESS)。还是说数据节点死了，这些不会用到了，也就没必要清理了，感觉有点乱。<br><strong>可能解答:</strong><br>对于replicateBlocks中区块，数据节点被移除后，如果通过refreshNodes将数据节点状态设置为<code>DECOMMISSION_INPROGRESS</code>，这样便会继续执行未完成的复制操作。而如果没有继续执行未完成的复制操作，则只是这些由NameNode下达的复制操作命令执行失败，在NameNode的pendingReplications相关线程ReplicationMonitor中会判断复制失败从而重新添加到neededReplications中(见<a href="../NameNode维护的数据结构">NameNode实现源码分析—数据块和数据节点相关数据结构和线程</a>)，从而重新选择源数据节点和目标数据节点进行重新复制。<br>同样的恢复操作相应的如果为执行成功，则NameNode端判断失败时也应该做相应处理(待分析)</p>
+</span>
+      
+    </div>
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/HDFS/" rel="tag">#HDFS</a>
+          
+            <a href="/tags/Hadoop-1-2-1/" rel="tag">#Hadoop-1.2.1</a>
+          
+            <a href="/tags/Java/" rel="tag">#Java</a>
+          
+            <a href="/tags/NameNode/" rel="tag">#NameNode</a>
+          
+            <a href="/tags/NameNode源码阅读/" rel="tag">#NameNode源码阅读</a>
+          
+            <a href="/tags/源码阅读/" rel="tag">#源码阅读</a>
+          
+        </div>
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/NameNode维护的数据结构/" rel="next" title="NameNode实现源码分析---区块和数据节点相关数据结构">
+                <i class="fa fa-chevron-left"></i> NameNode实现源码分析---区块和数据节点相关数据结构
+              </a>
+            
+          </div>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/配置相关HDFS/" rel="prev" title="Hadoop配置相关---HDFS">
+                Hadoop配置相关---HDFS <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </article>
+
+
+
+    <div class="post-spread">
+      
+        <!-- JiaThis Button BEGIN -->
+<div class="jiathis_style">
+  <a class="jiathis_button_tsina"></a>
+  <a class="jiathis_button_tqq"></a>
+  <a class="jiathis_button_weixin"></a>
+  <a class="jiathis_button_cqq"></a>
+  <a class="jiathis_button_douban"></a>
+  <a class="jiathis_button_renren"></a>
+  <a class="jiathis_button_qzone"></a>
+  <a class="jiathis_button_kaixin001"></a>
+  <a class="jiathis_button_copy"></a>
+  <a href="http://www.jiathis.com/share" class="jiathis jiathis_txt jiathis_separator jtico jtico_jiathis" target="_blank"></a>
+  <a class="jiathis_counter_style"></a>
+</div>
+<script type="text/javascript" >
+  var jiathis_config={
+    hideMore:false
+  }
+</script>
+<script type="text/javascript" src="http://v3.jiathis.com/code/jia.js" charset="utf-8"></script>
+<!-- JiaThis Button END -->
+
+      
+    </div>
+  </div>
+
+
+        </div>
+
+        
+
+
+        
+  <div class="comments" id="comments">
+    
+      <div class="ds-thread" data-thread-key="NameNode心跳检测/"
+           data-title="NameNode实现源码分析---心跳检测" data-url="http://xiao-yun.github.io/NameNode心跳检测/">
+      </div>
+    
+  </div>
+
+
+      </div>
+
+      
+        
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap" >
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel ">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+          <img class="site-author-image" src="/images/hero.jpg" alt="xiaoyun" itemprop="image"/>
+          <p class="site-author-name" itemprop="name">xiaoyun</p>
+        </div>
+        <p class="site-description motion-element" itemprop="description">学习笔记，网上资源摘要等</p>
+        <nav class="site-state motion-element">
+          <div class="site-state-item site-state-posts">
+            <a href="/archives">
+              <span class="site-state-item-count">42</span>
+              <span class="site-state-item-name">日志</span>
+            </a>
+          </div>
+
+          <div class="site-state-item site-state-categories">
+            <a href="/categories">
+              <span class="site-state-item-count">40</span>
+              <span class="site-state-item-name">分类</span>
+              </a>
+          </div>
+
+          <div class="site-state-item site-state-tags">
+            <a href="/tags">
+              <span class="site-state-item-count">21</span>
+              <span class="site-state-item-name">标签</span>
+              </a>
+          </div>
+
+        </nav>
+
+        
+
+        <div class="links-of-author motion-element">
+          
+            
+              <span class="links-of-author-item">
+                <a href="https://github.com/xiao-yun" target="_blank">
+                  
+                    <i class="fa fa-globe"></i> github
+                  
+                </a>
+              </span>
+            
+          
+        </div>
+
+        
+        
+
+        <div class="links-of-author motion-element">
+          
+        </div>
+
+      </section>
+
+      
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc-indicator-top post-toc-indicator">
+            <i class="fa fa-angle-double-up"></i>
+          </div>
+          <div class="post-toc">
+            
+              
+            
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-_HeartbeatMonitor"><span class="nav-number">1.</span> <span class="nav-text">1. HeartbeatMonitor</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-_heartbeatCheck"><span class="nav-number">2.</span> <span class="nav-text">2. heartbeatCheck</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-_removeDatanode"><span class="nav-number">3.</span> <span class="nav-text">3. removeDatanode</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#3-1_updateStats"><span class="nav-number">3.1.</span> <span class="nav-text">3.1 updateStats</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-2_removeStoredBlock"><span class="nav-number">3.2.</span> <span class="nav-text">3.2 removeStoredBlock</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#3-2-1_BlocksMap-removeNode"><span class="nav-number">3.2.1.</span> <span class="nav-text">3.2.1 BlocksMap.removeNode</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-2-2_updateNeededReplications"><span class="nav-number">3.2.2.</span> <span class="nav-text">3.2.2 updateNeededReplications</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-3_unprotectedRemoveDatanode"><span class="nav-number">3.3.</span> <span class="nav-text">3.3 unprotectedRemoveDatanode</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#疑问"><span class="nav-number">4.</span> <span class="nav-text">疑问</span></a></li></ol></div>
+            
+          </div>
+          <div class="post-toc-indicator-bottom post-toc-indicator">
+            <i class="fa fa-angle-double-down"></i>
+          </div>
+        </section>
+      
+
+    </div>
+  </aside>
+
+
+      
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright" >
+  
+  &copy; 
+  <span itemprop="copyrightYear">2016</span>
+  <span class="with-love">
+    <i class="icon-next-heart fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">xiaoyun</span>
+</div>
+
+<div class="powered-by">
+  由 <a class="theme-link" href="http://hexo.io">Hexo</a> 强力驱动
+</div>
+
+<div class="theme-info">
+  主题 -
+  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
+    NexT.Mist
+  </a>
+</div>
+
+
+
+      </div>
+    </footer>
+
+    <div class="back-to-top"></div>
+  </div>
+
+  <script type="text/javascript" src="/vendors/jquery/index.js?v=2.1.3"></script>
+
+  
+  
+
+  
+    
+
+  
+    
+  
+
+  <script type="text/javascript">
+    var duoshuoQuery = {short_name:"xiaoyuncom"};
+    (function() {
+      var ds = document.createElement('script');
+      ds.type = 'text/javascript';ds.async = true;
+      ds.id = 'duoshuo-script';
+      ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+      ds.charset = 'UTF-8';
+      (document.getElementsByTagName('head')[0]
+      || document.getElementsByTagName('body')[0]).appendChild(ds);
+    })();
+  </script>
+    
+     
+
+
+    
+  
+
+  
+  <script type="text/javascript" src="/vendors/fancybox/source/jquery.fancybox.pack.js"></script>
+  <script type="text/javascript" src="/js/fancy-box.js?v=0.4.5.2"></script>
+
+
+  <script type="text/javascript" src="/js/helpers.js?v=0.4.5.2"></script>
+  <script type="text/javascript" src="/vendors/velocity/velocity.min.js"></script>
+<script type="text/javascript" src="/vendors/velocity/velocity.ui.min.js"></script>
+
+<script type="text/javascript" src="/js/motion.js?v=0.4.5.2" id="motion.global"></script>
+
+
+  <script type="text/javascript" src="/vendors/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  <script type="text/javascript" src="/vendors/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  
+<script type="text/javascript" src="/js/bootstrap.scrollspy.js?v=0.4.5.2" id="bootstrap.scrollspy.custom"></script>
+
+
+<script type="text/javascript" id="sidebar.toc.highlight">
+  $(document).ready(function () {
+    var tocSelector = '.post-toc';
+    var $tocSelector = $(tocSelector);
+    var activeCurrentSelector = '.active-current';
+
+    $tocSelector
+      .on('activate.bs.scrollspy', function () {
+        var $currentActiveElement = $(tocSelector + ' .active').last();
+
+        removeCurrentActiveClass();
+        $currentActiveElement.addClass('active-current');
+
+        $tocSelector[0].scrollTop = $currentActiveElement.position().top;
+      })
+      .on('clear.bs.scrollspy', function () {
+        removeCurrentActiveClass();
+      });
+
+    function removeCurrentActiveClass () {
+      $(tocSelector + ' ' + activeCurrentSelector)
+        .removeClass(activeCurrentSelector.substring(1));
+    }
+
+    function processTOC () {
+      getTOCMaxHeight();
+      toggleTOCOverflowIndicators();
+    }
+
+    function getTOCMaxHeight () {
+      var height = $('.sidebar').height() -
+                   $tocSelector.position().top -
+                   $('.post-toc-indicator-bottom').height();
+
+      $tocSelector.css('height', height);
+
+      return height;
+    }
+
+    function toggleTOCOverflowIndicators () {
+      tocOverflowIndicator(
+        '.post-toc-indicator-top',
+        $tocSelector.scrollTop() > 0 ? 'show' : 'hide'
+      );
+
+      tocOverflowIndicator(
+        '.post-toc-indicator-bottom',
+        $tocSelector.scrollTop() >= $tocSelector.find('ol').height() - $tocSelector.height() ? 'hide' : 'show'
+      )
+    }
+
+    $(document).on('sidebar.motion.complete', function () {
+      processTOC();
+    });
+
+    $('body').scrollspy({ target: tocSelector });
+    $(window).on('resize', function () {
+      if ( $('.sidebar').hasClass('sidebar-active') ) {
+        processTOC();
+      }
+    });
+
+    onScroll($tocSelector);
+
+    function onScroll (element) {
+      element.on('mousewheel DOMMouseScroll', function (event) {
+          var oe = event.originalEvent;
+          var delta = oe.wheelDelta || -oe.detail;
+
+          this.scrollTop += ( delta < 0 ? 1 : -1 ) * 30;
+          event.preventDefault();
+
+          toggleTOCOverflowIndicators();
+      });
+    }
+
+    function tocOverflowIndicator (indicator, action) {
+      var $indicator = $(indicator);
+      var opacity = action === 'show' ? 1 : 0;
+      $indicator.velocity ?
+        $indicator.velocity('stop').velocity({
+          opacity: opacity
+        }, { duration: 100 }) :
+        $indicator.stop().animate({
+          opacity: opacity
+        }, 100);
+    }
+
+  });
+</script>
+
+<script type="text/javascript" id="sidebar.nav">
+  $(document).ready(function () {
+    var html = $('html');
+    var TAB_ANIMATE_DURATION = 200;
+    var hasVelocity = $.isFunction(html.velocity);
+
+    $('.sidebar-nav li').on('click', function () {
+      var item = $(this);
+      var activeTabClassName = 'sidebar-nav-active';
+      var activePanelClassName = 'sidebar-panel-active';
+      if (item.hasClass(activeTabClassName)) {
+        return;
+      }
+
+      var currentTarget = $('.' + activePanelClassName);
+      var target = $('.' + item.data('target'));
+
+      hasVelocity ?
+        currentTarget.velocity('transition.slideUpOut', TAB_ANIMATE_DURATION, function () {
+          target
+            .velocity('stop')
+            .velocity('transition.slideDownIn', TAB_ANIMATE_DURATION)
+            .addClass(activePanelClassName);
+        }) :
+        currentTarget.animate({ opacity: 0 }, TAB_ANIMATE_DURATION, function () {
+          currentTarget.hide();
+          target
+            .stop()
+            .css({'opacity': 0, 'display': 'block'})
+            .animate({ opacity: 1 }, TAB_ANIMATE_DURATION, function () {
+              currentTarget.removeClass(activePanelClassName);
+              target.addClass(activePanelClassName);
+            });
+        });
+
+      item.siblings().removeClass(activeTabClassName);
+      item.addClass(activeTabClassName);
+    });
+
+    $('.post-toc a').on('click', function (e) {
+      e.preventDefault();
+      var targetSelector = escapeSelector(this.getAttribute('href'));
+      var offset = $(targetSelector).offset().top;
+      hasVelocity ?
+        html.velocity('stop').velocity('scroll', {
+          offset: offset  + 'px',
+          mobileHA: false
+        }) :
+        $('html, body').stop().animate({
+          scrollTop: offset
+        }, 500);
+    });
+
+    // Expand sidebar on post detail page by default, when post has a toc.
+    motionMiddleWares.sidebar = function () {
+      var $tocContent = $('.post-toc-content');
+      if (CONFIG.sidebar === 'post') {
+        if ($tocContent.length > 0 && $tocContent.html().trim().length > 0) {
+          displaySidebar();
+        }
+      }
+    };
+  });
+</script>
+
+
+
+  <script type="text/javascript" src="/js/bootstrap.js"></script>
+
+  
+  
+
+  
+  
+
+</body>
+</html>

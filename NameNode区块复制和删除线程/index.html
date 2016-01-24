@@ -1,0 +1,868 @@
+<!doctype html>
+<html class="theme-next   use-motion ">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+  <link href="/vendors/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css"/>
+
+
+
+
+  <link href="//fonts.googleapis.com/css?family=Lato:300,400,700,400italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+
+
+
+<link href="/vendors/font-awesome/css/font-awesome.min.css?v=4.4.0" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=0.4.5.2" rel="stylesheet" type="text/css" />
+
+
+  <meta name="keywords" content="HDFS,Hadoop-1.2.1,Java,NameNode,NameNode源码阅读,源码阅读," />
+
+
+
+
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=0.4.5.2" />
+
+
+
+
+
+
+<meta name="description" content="Hadoop版本:Hadoop-1.2.1参考：《Hadoop技术内幕-深入解析Hadoop Common和HDFS架构设计与实现原理》  
+
+在NameNode实现源码分析—区块和数据节点相关数据结构中分析了NameNode中维护的与区块和数据节点相关的数据结构，其中neededReplications管理着当前需要复制的区块信息，区块副本数没有达到期望值需要复制时会添加到该结构中。recent">
+<meta property="og:type" content="article">
+<meta property="og:title" content="NameNode实现源码分析---区块复制和删除线程">
+<meta property="og:url" content="http://xiao-yun.github.io/NameNode区块复制和删除线程/index.html">
+<meta property="og:site_name" content="xiaoyun">
+<meta property="og:description" content="Hadoop版本:Hadoop-1.2.1参考：《Hadoop技术内幕-深入解析Hadoop Common和HDFS架构设计与实现原理》  
+
+在NameNode实现源码分析—区块和数据节点相关数据结构中分析了NameNode中维护的与区块和数据节点相关的数据结构，其中neededReplications管理着当前需要复制的区块信息，区块副本数没有达到期望值需要复制时会添加到该结构中。recent">
+<meta property="og:image" content="http://xiao-yun.github.io/../images/网络拓扑.png">
+<meta property="og:image" content="http://xiao-yun.github.io/../images/DNSToSwitchMapping接口实现.png">
+<meta property="og:updated_time" content="2016-01-24T03:27:53.719Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="NameNode实现源码分析---区块复制和删除线程">
+<meta name="twitter:description" content="Hadoop版本:Hadoop-1.2.1参考：《Hadoop技术内幕-深入解析Hadoop Common和HDFS架构设计与实现原理》  
+
+在NameNode实现源码分析—区块和数据节点相关数据结构中分析了NameNode中维护的与区块和数据节点相关的数据结构，其中neededReplications管理着当前需要复制的区块信息，区块副本数没有达到期望值需要复制时会添加到该结构中。recent">
+
+
+
+<script type="text/javascript" id="hexo.configuration">
+  var CONFIG = {
+    scheme: 'Mist',
+    sidebar: 'hide',
+    motion: true
+  };
+</script>
+
+  <title> NameNode实现源码分析---区块复制和删除线程 | xiaoyun </title>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  <!--[if lte IE 8]>
+  <div style=' clear: both; height: 59px; padding:0 0 0 15px; position: relative;margin:0 auto;'>
+    <a href="http://windows.microsoft.com/en-US/internet-explorer/products/ie/home?ocid=ie6_countdown_bannercode">
+      <img src="http://7u2nvr.com1.z0.glb.clouddn.com/picouterie.jpg" border="0" height="42" width="820"
+           alt="You are using an outdated browser. For a faster, safer browsing experience, upgrade for free today or use other browser ,like chrome firefox safari."
+           style='margin-left:auto;margin-right:auto;display: block;'/>
+    </a>
+  </div>
+<![endif]-->
+  
+
+
+
+  <script type="text/javascript">
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "//hm.baidu.com/hm.js?caeb4129c91d1e6fb3d562d35fedef0d";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+  <div class="container one-column page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-meta ">
+  
+
+  <div class="custom-logo-site-title">
+    <a href="/"  class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <span class="site-title">xiaoyun</span>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+  <p class="site-subtitle"></p>
+</div>
+
+<div class="site-nav-toggle">
+  <button>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+  </button>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu ">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-home fa-fw"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives" rel="section">
+            
+              <i class="menu-item-icon fa fa-archive fa-fw"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories" rel="section">
+            
+              <i class="menu-item-icon fa fa-th fa-fw"></i> <br />
+            
+            分类
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+              <i class="menu-item-icon fa fa-tags fa-fw"></i> <br />
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about" rel="section">
+            
+              <i class="menu-item-icon fa fa-user fa-fw"></i> <br />
+            
+            关于
+          </a>
+        </li>
+      
+
+      
+      
+    </ul>
+  
+
+  
+</nav>
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div id="content" class="content">
+          
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                NameNode实现源码分析---区块复制和删除线程
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            发表于
+            <time itemprop="dateCreated" datetime="2016-01-24T11:27:53+08:00" content="2016-01-24">
+              2016-01-24
+            </time>
+          </span>
+
+          
+            <span class="post-category" >
+              &nbsp; | &nbsp; 分类于
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Java/" itemprop="url" rel="index">
+                    <span itemprop="name">Java</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Java/Hadoop-1-2-1/" itemprop="url" rel="index">
+                    <span itemprop="name">Hadoop-1.2.1</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Java/Hadoop-1-2-1/HDFS/" itemprop="url" rel="index">
+                    <span itemprop="name">HDFS</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Java/Hadoop-1-2-1/HDFS/NameNode/" itemprop="url" rel="index">
+                    <span itemprop="name">NameNode</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Java/Hadoop-1-2-1/HDFS/NameNode/源码阅读/" itemprop="url" rel="index">
+                    <span itemprop="name">源码阅读</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Java/Hadoop-1-2-1/HDFS/NameNode/源码阅读/NameNode源码阅读/" itemprop="url" rel="index">
+                    <span itemprop="name">NameNode源码阅读</span>
+                  </a>
+                </span>
+
+                
+                
+
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                &nbsp; | &nbsp;
+                <a href="/NameNode区块复制和删除线程/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="NameNode区块复制和删除线程/" itemprop="commentsCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+
+        </div>
+      </header>
+    
+
+
+    <div class="post-body">
+
+      
+      
+
+      
+        <span itemprop="articleBody"><p>Hadoop版本:<a href="https://archive.apache.org/dist/hadoop/core/hadoop-1.2.1/" target="_blank" rel="external">Hadoop-1.2.1</a><br>参考：《Hadoop技术内幕-深入解析Hadoop Common和HDFS架构设计与实现原理》  </p>
+<hr>
+<p>在<a href="../NameNode维护的数据结构">NameNode实现源码分析—区块和数据节点相关数据结构</a>中分析了NameNode中维护的与区块和数据节点相关的数据结构，其中neededReplications管理着当前需要复制的区块信息，区块副本数没有达到期望值需要复制时会添加到该结构中。recentInvalidateSets管理着需要删除的区块信息，区块删除时添加到该结构中。  </p>
+<p>在NameNode中由FSNamesystem的ReplicationMonitor线程负责处理neededReplications和recentInvalidateSets中的区块。<br>对于neededReplications中区块信息，每次根据优先级取出一定数量的区块，然后选择源数据节点和目标数据节点，将复制信息添加到源数据节点的待复制区块队列replicateBlocks中，然后在数据节点心跳到来时发送区块复制命令。正在执行复制操作的区块信息同时添加到pendingReplications中进行管理，复制失败的区块会重新添加到neededReplications中。<br>而对于recentInvalidateSets中的区块，因为维护了其所属的数据节点，每次从中选取一定数量的数据节点，并选取数据节点中需要删除区块，添加到数据节点的待删除区块队列invalidateBlocks中，下次心跳到来时，发送区块删除命令。  </p>
+<p>本文分析ReplicationMonitor线程的实现</p>
+<hr>
+<h2 id="1-_ReplicationMonitor线程">1. ReplicationMonitor线程</h2><p>FSNamesystem成员<code>replthread</code>对应的线程，负责recentInvalidateSets和neededReplications相关操作，即区块删除和复制，初始化如下<br><figure class="highlight actionscript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">this</span>.replmon = <span class="keyword">new</span> ReplicationMonitor();</span><br><span class="line"><span class="keyword">this</span>.replthread = <span class="keyword">new</span> Daemon(replmon);</span><br><span class="line">replthread.start();</span><br></pre></td></tr></table></figure></p>
+<p>线程如下<br><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">run</span><span class="params">()</span> </span>&#123;</span><br><span class="line">  <span class="keyword">while</span> (fsRunning) &#123;</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">      computeDatanodeWork();</span><br><span class="line">      processPendingReplications();</span><br><span class="line">      Thread.sleep(replicationRecheckInterval);</span><br><span class="line">    &#125; <span class="keyword">catch</span> (InterruptedException ie) &#123;</span><br><span class="line">      LOG.warn(<span class="string">"ReplicationMonitor thread received InterruptedException"</span> + ie);</span><br><span class="line">      <span class="keyword">break</span>;</span><br><span class="line">    &#125; <span class="keyword">catch</span> (IOException ie) &#123;</span><br><span class="line">      LOG.warn(<span class="string">"ReplicationMonitor thread received exception. "</span> + ie +  <span class="string">" "</span> +</span><br><span class="line">               StringUtils.stringifyException(ie));</span><br><span class="line">    &#125; <span class="keyword">catch</span> (Throwable t) &#123;</span><br><span class="line">      LOG.warn(<span class="string">"ReplicationMonitor thread received Runtime exception. "</span> + t + <span class="string">" "</span> +</span><br><span class="line">               StringUtils.stringifyException(t));</span><br><span class="line">      Runtime.getRuntime().<span class="built_in">exit</span>(-<span class="number">1</span>);</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>每过replicationRecheckInterval进行一次操作，replicationRecheckInterval为FSNamesystem成员，默认3s<br><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">this</span>.replicationRecheckInterval = conf.getInt(<span class="string">"dfs.replication.interval"</span>, <span class="number">3</span>) * <span class="number">1000L</span>;</span><br></pre></td></tr></table></figure></p>
+<p>主要的工作由computeDatanodeWork完成，processPendingReplications将pendingReplications线程PendingReplicationMonitor检测到复制超时的区块重新添加到neededReplications中。  </p>
+<h2 id="2-_computeDatanodeWork">2. computeDatanodeWork</h2><figure class="highlight processing"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="built_in">int</span> computeDatanodeWork() <span class="keyword">throws</span> IOException &#123;</span><br><span class="line">    ...</span><br><span class="line">    <span class="keyword">synchronized</span>(heartbeats) &#123;</span><br><span class="line">      <span class="comment">//一次处理复制的区块数</span></span><br><span class="line">      blocksToProcess = (<span class="built_in">int</span>)(heartbeats.<span class="built_in">size</span>() * <span class="keyword">this</span>.blocksReplWorkMultiplier);</span><br><span class="line">      <span class="comment">//一次处理删除的节点数，节点上所有该删除的都会处理</span></span><br><span class="line">      nodesToProcess = (<span class="built_in">int</span>)Math.<span class="built_in">ceil</span>((<span class="keyword">double</span>)heartbeats.<span class="built_in">size</span>() * <span class="keyword">this</span>.blocksInvalidateWorkPct);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    replmon.replicateQueueStats.startCycle(blocksToProcess);</span><br><span class="line">    replicationWorkFound = computeReplicationWork(blocksToProcess);</span><br><span class="line">    replmon.replicateQueueStats.endCycle(replicationWorkFound);</span><br><span class="line">    </span><br><span class="line">    ...<span class="comment">//更新FSNamesystemMetrics计数器</span></span><br><span class="line">    </span><br><span class="line">    replmon.invalidateQueueStats.startCycle(nodesToProcess);</span><br><span class="line">    invalidationWorkFound = computeInvalidateWork(nodesToProcess);</span><br><span class="line">    replmon.invalidateQueueStats.endCycle(invalidationWorkFound);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> replicationWorkFound + invalidationWorkFound;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>如上，blocksProcess为一次可以处理复制的区块数，每个数据节点处理个数由配置项<code>dfs.namenode.replication.work.multiplier.per.iteration</code>，默认一次一个数据节点处理两个<br>nodesToProcess为一次可以处理删除操作的节点数，由配置项<code>dfs.namenode.invalidate.work.pct.per.iteration</code>决定，默认0.32，即每次处理32%的数据节点的删除操作。<br>复制操作由<code>computeReplicationWork</code>负责，删除操作由<code>computeInvalidateWork</code>完成</p>
+<h2 id="3-_computeReplicationWork复制操作">3. computeReplicationWork复制操作</h2><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="function"><span class="keyword">int</span> <span class="title">computeReplicationWork</span><span class="params">(<span class="keyword">int</span> blocksToProcess)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (stallReplicationWork)  &#123;</span><br><span class="line">      <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">//从neededReplications中根据优先级选择blocksToProcess个待复制的区块</span></span><br><span class="line">    List&lt;List&lt;Block&gt;&gt; blocksToReplicate = chooseUnderReplicatedBlocks(blocksToProcess);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">int</span> scheduledReplicationCount = <span class="number">0</span>;</span><br><span class="line">    <span class="keyword">for</span> (<span class="keyword">int</span> i=<span class="number">0</span>; i&lt;blocksToReplicate.size(); i++) &#123;</span><br><span class="line">      <span class="keyword">for</span>(Block block : blocksToReplicate.<span class="keyword">get</span>(i)) &#123;</span><br><span class="line">        <span class="comment">//每一个区块进行操作，选择源数据节点，目标数据节点，添加到源数据节点的replicateBlocks中，等待复制命令，并更新pendingReplications</span></span><br><span class="line">        <span class="keyword">if</span> (computeReplicationWorkForBlock(block, i)) &#123;</span><br><span class="line">          scheduledReplicationCount++;</span><br><span class="line">        &#125;</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> scheduledReplicationCount;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>如上，首先通过chooseUnderReplicatedBlocks从neededReplications中按照优先级选择最多blocksToProcess个待复制的区块，然后对每一个区块通过computeReplicationWorkForBlock进行处理。<br>如果给定Block是成功添加到选取的源数据节点待复制区块队列中，则能够在下一次心跳到来时发送复制命令，执行复制，此时computeReplicationWorkForBlock返回true。而如果发现因为种种原因不能执行复制，返回false。因此computeReplicationWork返回值就是有效的添加执行复制操作的区块数。</p>
+<h3 id="3-1_chooseUnderReplicatedBlocks选择待复制区块">3.1  chooseUnderReplicatedBlocks选择待复制区块</h3><figure class="highlight processing"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">synchronized</span> List&lt;List&lt;Block&gt;&gt; chooseUnderReplicatedBlocks(<span class="built_in">int</span> blocksToProcess) &#123;</span><br><span class="line">    List&lt;List&lt;Block&gt;&gt; blocksToReplicate = <span class="keyword">new</span> ArrayList&lt;List&lt;Block&gt;&gt;(UnderReplicatedBlocks.LEVEL);</span><br><span class="line">    <span class="keyword">for</span> (<span class="built_in">int</span> i=<span class="number">0</span>; i&lt;UnderReplicatedBlocks.LEVEL; i++) &#123;</span><br><span class="line">      blocksToReplicate.<span class="built_in">add</span>(<span class="keyword">new</span> ArrayList&lt;Block&gt;());</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">synchronized</span>(neededReplications) &#123;</span><br><span class="line">      <span class="keyword">if</span> (neededReplications.<span class="built_in">size</span>() == <span class="number">0</span>) &#123;<span class="comment">//没有要复制的区块</span></span><br><span class="line">        missingBlocksInCurIter = <span class="number">0</span>;</span><br><span class="line">        missingBlocksInPrevIter = <span class="number">0</span>;</span><br><span class="line">        <span class="keyword">return</span> blocksToReplicate;</span><br><span class="line">      &#125;</span><br><span class="line">      </span><br><span class="line">      <span class="comment">//neededReplications的迭代器，按照优先级顺序遍历其中的区块</span></span><br><span class="line">      BlockIterator neededReplicationsIterator = neededReplications.iterator();</span><br><span class="line">      <span class="comment">//跳到第一个未处理的区块，由replIndex标识 </span></span><br><span class="line">      <span class="keyword">for</span>(<span class="built_in">int</span> i=<span class="number">0</span>; i &lt; replIndex &amp;&amp; neededReplicationsIterator.hasNext(); i++) &#123;</span><br><span class="line">        neededReplicationsIterator.next();</span><br><span class="line">      &#125;</span><br><span class="line">      blocksToProcess = Math.<span class="built_in">min</span>(blocksToProcess, neededReplications.<span class="built_in">size</span>());<span class="comment">//调整要选取的区块数</span></span><br><span class="line"></span><br><span class="line">      <span class="keyword">for</span> (<span class="built_in">int</span> blkCnt = <span class="number">0</span>; blkCnt &lt; blocksToProcess; blkCnt++, replIndex++) &#123;</span><br><span class="line">        <span class="keyword">if</span>( ! neededReplicationsIterator.hasNext()) &#123;<span class="comment">//到达尾部，从头开始</span></span><br><span class="line">          replIndex = <span class="number">0</span>;<span class="comment">//从头开始</span></span><br><span class="line">          missingBlocksInPrevIter = missingBlocksInCurIter;</span><br><span class="line">          missingBlocksInCurIter = <span class="number">0</span>;</span><br><span class="line">          blocksToProcess = Math.<span class="built_in">min</span>(blocksToProcess, neededReplications.<span class="built_in">size</span>());</span><br><span class="line">          <span class="keyword">if</span>(blkCnt &gt;= blocksToProcess)</span><br><span class="line">            <span class="keyword">break</span>;</span><br><span class="line">          neededReplicationsIterator = neededReplications.iterator();<span class="comment">//重新创建迭代器</span></span><br><span class="line">          <span class="keyword">assert</span> neededReplicationsIterator.hasNext() : <span class="string">"neededReplications should not be empty"</span>;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        Block block = neededReplicationsIterator.next();</span><br><span class="line">        <span class="built_in">int</span> priority = neededReplicationsIterator.getPriority();</span><br><span class="line">        <span class="keyword">if</span> (priority &lt; <span class="number">0</span> || priority &gt;= blocksToReplicate.<span class="built_in">size</span>()) &#123;</span><br><span class="line">          LOG.warn(<span class="string">"Unexpected replication priority: "</span> + priority + <span class="string">" "</span> + block);</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">          blocksToReplicate.<span class="built_in">get</span>(priority).<span class="built_in">add</span>(block);<span class="comment">//添加到选取的结果中</span></span><br><span class="line">        &#125;</span><br><span class="line">      &#125; <span class="comment">// end for</span></span><br><span class="line">    &#125; <span class="comment">// end synchronized</span></span><br><span class="line">    <span class="keyword">return</span> blocksToReplicate;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>如上，因为neededReplications有三个优先级队列，因此结果列表也分配了三个优先级队列。<br>通过neededReplications创建的迭代器，会根据优先级获取下一个Block(从neededReplications.get(0)开始)，然后定位到上次结束的下一个位置，由replIndex标识，就可以开始获取待复制的Block了。<br>如果到达neededReplications的尾部，则从头开始获取Block，重新创建迭代器。由前面neededReplications的相关分析可知，neededReplications中的Block在副本数达到期望值时(判断时机见前面)，或者区块对应元数据不存在时会从neededReplications中移除，因此存在neededReplications的Block就是需要进行复制的，例如某个区块有效副本数为1，在优先级最高的队列中，进行了一次复制操作后，副本数没有达到3，还是存在neededReplications中，只不过因为执行了复制操作，不是在最高优先级的队列中了。因此达到尾部了可以从头循环读取Block进行复制操作。  </p>
+<h3 id="3-2_computeReplicationWorkForBlock对每个待复制区块进行处理">3.2 computeReplicationWorkForBlock对每个待复制区块进行处理</h3><p>computeReplicationWorkForBlock中首先选取源数据节点，做相应的检查<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">synchronized</span> (<span class="keyword">this</span>) &#123;</span><br><span class="line">  <span class="keyword">synchronized</span> (neededReplications) &#123;</span><br><span class="line">    fileINode = blocksMap.getINode(block);</span><br><span class="line">    <span class="comment">//Block对应的文件不存在，或者文件正在写，不能复制，从neededReplications中移除，返回false</span></span><br><span class="line">    <span class="keyword">if</span>(fileINode == <span class="keyword">null</span> || fileINode.isUnderConstruction()) &#123;</span><br><span class="line">      neededReplications.remove(block, priority); <span class="comment">// remove from neededReplications</span></span><br><span class="line">      replIndex--;</span><br><span class="line">      <span class="keyword">return</span> <span class="keyword">false</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    requiredReplication = fileINode.getReplication(); </span><br><span class="line"></span><br><span class="line">    containingNodes = <span class="keyword">new</span> ArrayList&lt;DatanodeDescriptor&gt;();</span><br><span class="line">    NumberReplicas numReplicas = <span class="keyword">new</span> NumberReplicas();</span><br><span class="line">    srcNode = chooseSourceDatanode(block, containingNodes, numReplicas);<span class="comment">//获取源数据节点</span></span><br><span class="line">    <span class="keyword">if</span> ((numReplicas.liveReplicas() + numReplicas.decommissionedReplicas()) &lt;= <span class="number">0</span>) &#123;          </span><br><span class="line">      missingBlocksInCurIter++;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span>(srcNode == <span class="keyword">null</span>) <span class="comment">//没有源数据节点可以用来复制，返回false</span></span><br><span class="line">      <span class="keyword">return</span> <span class="keyword">false</span>;</span><br><span class="line"></span><br><span class="line">    <span class="comment">//有效副本数加正在复制的副本数已经满足了副本期望值，不需要复制，从neededReplications中移除，返回false</span></span><br><span class="line">    numEffectiveReplicas = numReplicas.liveReplicas() + pendingReplications.getNumReplicas(block);</span><br><span class="line">    <span class="keyword">if</span>(numEffectiveReplicas &gt;= requiredReplication) &#123;</span><br><span class="line">      neededReplications.remove(block, priority); <span class="comment">// remove from neededReplications</span></span><br><span class="line">      replIndex--;</span><br><span class="line">      NameNode.stateChangeLog.info(<span class="string">"BLOCK* Removing "</span> + block + <span class="string">" from neededReplications as it has enough replicas"</span>);</span><br><span class="line">      <span class="keyword">return</span> <span class="keyword">false</span>;</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，首先检查对应的文件是否存在，如果不存在或者文件正在写，则不能执行复制，从neededReplications中移除记录并返回false。<br>然后通过chooseSourceDatanode选择源数据节点，并统计副本信息NumberReplicas，如果没有可以复制的源数据节点，则不能复制返回false。或者说当前有效副本数加上正在复制的副本数已经达到了期望值，不需要复制，从neededReplications中移除并返回false。  </p>
+<h4 id="3-2-1_选择源数据节点">3.2.1 选择源数据节点</h4><p>chooseSourceDatanode如下<br><figure class="highlight processing"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> DatanodeDescriptor chooseSourceDatanode(Block block,</span><br><span class="line">                    List&lt;DatanodeDescriptor&gt; containingNodes, NumberReplicas numReplicas) &#123;</span><br><span class="line">    containingNodes.<span class="built_in">clear</span>();</span><br><span class="line">    DatanodeDescriptor srcNode = <span class="keyword">null</span>;</span><br><span class="line">    <span class="built_in">int</span> live = <span class="number">0</span>;</span><br><span class="line">    <span class="built_in">int</span> decommissioned = <span class="number">0</span>;</span><br><span class="line">    <span class="built_in">int</span> corrupt = <span class="number">0</span>;</span><br><span class="line">    <span class="built_in">int</span> excess = <span class="number">0</span>;</span><br><span class="line">    Iterator&lt;DatanodeDescriptor&gt; it = blocksMap.nodeIterator(block);<span class="comment">//Block的数据节点迭代器</span></span><br><span class="line">    Collection&lt;DatanodeDescriptor&gt; nodesCorrupt = corruptReplicas.getNodes(block);<span class="comment">//Block对应的损坏信息</span></span><br><span class="line">    <span class="keyword">while</span>(it.hasNext()) &#123;</span><br><span class="line">      DatanodeDescriptor node = it.next();</span><br><span class="line">      Collection&lt;Block&gt; excessBlocks = excessReplicateMap.<span class="built_in">get</span>(node.getStorageID());<span class="comment">//超过期望副本数信息</span></span><br><span class="line">      <span class="keyword">if</span> ((nodesCorrupt != <span class="keyword">null</span>) &amp;&amp; (nodesCorrupt.contains(node)))</span><br><span class="line">        corrupt++;<span class="comment">//区块损坏的数据节点计数</span></span><br><span class="line">      <span class="keyword">else</span> <span class="keyword">if</span> (node.isDecommissionInProgress() || node.isDecommissioned())</span><br><span class="line">        decommissioned++;<span class="comment">//区块所属正在退役或已经退役的数据节点计数</span></span><br><span class="line">      <span class="keyword">else</span> <span class="keyword">if</span> (excessBlocks != <span class="keyword">null</span> &amp;&amp; excessBlocks.contains(block)) &#123;</span><br><span class="line">        excess++;<span class="comment">//所在数据节点上区块超过期望副本数计数，应该删除，不是有效的副本</span></span><br><span class="line">      &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        live++;<span class="comment">//有效副本</span></span><br><span class="line">      &#125;</span><br><span class="line">      containingNodes.<span class="built_in">add</span>(node);</span><br><span class="line">      <span class="keyword">if</span> ((nodesCorrupt != <span class="keyword">null</span>) &amp;&amp; nodesCorrupt.contains(node))<span class="comment">//区块损坏，数据节点不能作为源数据节点</span></span><br><span class="line">        <span class="keyword">continue</span>;</span><br><span class="line">      <span class="keyword">if</span>(node.getNumberOfBlocksToBeReplicated() &gt;= maxReplicationStreams)<span class="comment">//数据节点正在复制的区块达到阈值，不能作为源数据节点</span></span><br><span class="line">        <span class="keyword">continue</span>; <span class="comment">// already reached replication limit</span></span><br><span class="line">      <span class="keyword">if</span>(excessBlocks != <span class="keyword">null</span> &amp;&amp; excessBlocks.contains(block))<span class="comment">//数据节点上区块副本属于超过期望值的，需要删除，不能作为源数据节点</span></span><br><span class="line">        <span class="keyword">continue</span>;</span><br><span class="line">      <span class="keyword">if</span>(node.isDecommissioned())<span class="comment">//数据节点已经退役，不能作为源数据节点</span></span><br><span class="line">        <span class="keyword">continue</span>;</span><br><span class="line">      <span class="keyword">if</span>(node.isDecommissionInProgress() || srcNode == <span class="keyword">null</span>) &#123;<span class="comment">//优先选择正在退役状态的数据节点</span></span><br><span class="line">        srcNode = node;</span><br><span class="line">        <span class="keyword">continue</span>;</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="keyword">if</span>(srcNode.isDecommissionInProgress())</span><br><span class="line">        <span class="keyword">continue</span>;</span><br><span class="line">      <span class="comment">//没有选择到正在退役状态的数据节点，随机选择一个可用数据节点</span></span><br><span class="line">      <span class="keyword">if</span>(r.nextBoolean())</span><br><span class="line">        srcNode = node;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span>(numReplicas != <span class="keyword">null</span>)</span><br><span class="line">      numReplicas.initialize(live, decommissioned, corrupt, excess);<span class="comment">//更新副本状态</span></span><br><span class="line">    <span class="keyword">return</span> srcNode;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，containingNodes是该区块副本所有所在的数据节点，不管是否有效。<br>选择时，不选择已经处于DECOMMISSIONED即退役的数据节点，不选择所在区块已经损坏的数据节点，不选择正在执行的复制操作达到阈值的数据节点，不选择所在区块为超过副本期望值应该删除的数据节点。优先选择处于DECOMMISSION_INPROGRESS状态的数据节点，因为没有写数据流量(不会有其他节点往该数据节点写数据)，相对其他数据节点更闲一点。如果没有选择到DECOMMISSION_INPROGRESS的数据节点，则从剩余可用数据节点中随机选择一个。<br>在选择源数据节点时还会更新区块副本状态NumberReplicas对象，如下<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="keyword">int</span> liveReplicas;<span class="comment">//有效副本数</span></span><br><span class="line"><span class="keyword">private</span> <span class="keyword">int</span> decommissionedReplicas;<span class="comment">//已撤销或正在撤销节点上的副本数</span></span><br><span class="line"><span class="keyword">private</span> <span class="keyword">int</span> corruptReplicas;<span class="comment">//损坏副本数</span></span><br><span class="line"><span class="keyword">private</span> <span class="keyword">int</span> excessReplicas;<span class="comment">//超过期望副本值的副本数</span></span><br></pre></td></tr></table></figure></p>
+<p>如上，处于已撤销或正在撤销节点上的副本，损坏的副本，超过期望副本值的副本都不是有效副本。<br>这里在选择源数据节点之前的副本状态更新是很有必要的，确保确实需要执行复制操作。想象这样一种情况，某个数据节点被撤销了，因此所有区块都不是有效副本，对应区块有效副本减少，会触发复制操作，添加到neededReplications中。而在数据节点撤销一段时间后，因为某种原因又停止撤销了(如手动停止撤销)，即数据节点不处于已撤销或正在撤销状态，上面的区块为有效副本了，这样在选择源数据节点前更新副本状态能够避免剩下的复制操作的执行(副本数正常了，没必要复制了)。当然了，对于已经复制的副本，则只能在之后发现超出期望副本数，从而触发多余副本的删除操作。  </p>
+<p>这样的检查在后面选择目标数据节点时也会执行，同样的道理。</p>
+<h4 id="3-2-2_选择目标数据节点">3.2.2 选择目标数据节点</h4><figure class="highlight applescript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">DatanodeDescriptor targets[] = replicator.chooseTarget(fileINode,</span><br><span class="line">    requiredReplication - numEffectiveReplicas, srcNode, containingNodes, block.getNumBytes());</span><br><span class="line"><span class="keyword">if</span>(targets.<span class="property">length</span> == <span class="number">0</span>)</span><br><span class="line"><span class="command">  return</span> <span class="constant">false</span>;</span><br></pre></td></tr></table></figure>
+<p>如上，如果目标数据节点没有，则不能复制返回false。<br>目标数据节点的选择由BlockPlacementPolicy对象replicator的chooseTarget方法完成<br>传入参数<code>fileINode</code>为对应文件，<code>requiredReplication-numEffectiveReplicas</code>为需要复制的份数也就是要选择的目标数据节点个数。<code>srcNode</code>为前面选择的源数据节点，<code>containingNodes</code>为前面选择出来的包含区块的所有数据节点。<br>最终会调用BlockPlacementPolicy的同名方法，为抽象方法，实现在BlockPlacementPolicyDefault类中，如下<br><figure class="highlight groovy"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line">DatanodeDescriptor[] chooseTarget(<span class="typename">int</span> numOfReplicas, DatanodeDescriptor writer,</span><br><span class="line">            List&lt;DatanodeDescriptor&gt; chosenNodes, HashMap&lt;Node, Node&gt; excludedNodes, <span class="typename">long</span> blocksize) &#123;</span><br><span class="line">    ...<span class="comment">//初始化，要选择节点数调整等</span></span><br><span class="line">    <span class="comment">//根据副本总数和机架数计算每个机架上最大可选择节点数</span></span><br><span class="line">    <span class="typename">int</span> maxNodesPerRack = (totalNumOfReplicas-<span class="number">1</span>)/clusterMap.getNumOfRacks()+<span class="number">2</span>;</span><br><span class="line">    <span class="comment">//选择结果初始化为chosenNodes</span></span><br><span class="line">    List&lt;DatanodeDescriptor&gt; results = <span class="keyword">new</span> ArrayList&lt;DatanodeDescriptor&gt;(chosenNodes);</span><br><span class="line">    <span class="keyword">for</span> (DatanodeDescriptor <span class="string">node:</span>chosenNodes) &#123;<span class="comment">//选择前已经存在区块副本的数据节点添加到excludedNodes中，不重复选择</span></span><br><span class="line">      <span class="comment">// add localMachine and related nodes to excludedNodes</span></span><br><span class="line">      addToExcludedNodes(node, excludedNodes);</span><br><span class="line">      adjustExcludedNodes(excludedNodes, node);</span><br><span class="line">    &#125;</span><br><span class="line">      </span><br><span class="line">    <span class="keyword">if</span> (!clusterMap.contains(writer)) &#123;</span><br><span class="line">      writer=<span class="literal">null</span>;</span><br><span class="line">    &#125;</span><br><span class="line">      </span><br><span class="line">    <span class="typename">boolean</span> avoidStaleNodes = (stats != <span class="literal">null</span> &amp;&amp; stats.shouldAvoidStaleDataNodesForWrite());<span class="comment">//是否选择过时的节点</span></span><br><span class="line">    <span class="comment">//选择目标节点</span></span><br><span class="line">    DatanodeDescriptor localNode = chooseTarget(numOfReplicas, writer,</span><br><span class="line">        excludedNodes, blocksize, maxNodesPerRack, results, avoidStaleNodes);</span><br><span class="line">      </span><br><span class="line">    results.removeAll(chosenNodes);<span class="comment">//从结果中移除选择操作之前的节点</span></span><br><span class="line">      </span><br><span class="line">    <span class="comment">//排序结果，形成管道</span></span><br><span class="line">    <span class="keyword">return</span> getPipeline((writer==<span class="literal">null</span>)?localNode:writer, results.toArray(<span class="keyword">new</span> DatanodeDescriptor[results.size()]));</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，给定源数据节点和目前已经存在区块的数据节点，最多选择numOfReplicas个数据节点，我们这里传入的excludedNodes为null。做了相应的处理后，通过同名方法chooseTarget选择目标节点，需要注意的是根据总的副本数和集群中机架数需要计算一个机架上最大可以选择的节点数maxNodesPerRack。<br>注意的是，选择目标数据节点前已经存在区块副本的数据节点chosenNodes会添加到excludedNodes中不会重复选择这些数据节点。同时chosenNodes会作为results的初始值，根据这些初始值做出选择，在选择完后从results中删除  </p>
+<h5 id="3-2-2-1_目标数据节点选择原则">3.2.2.1 目标数据节点选择原则</h5><p>在新的chooseTarget方法中，选择节点时有一下规则:</p>
+<ul>
+<li><p>第一个节点，尽量和源数据节点选在同一个机架上</p>
+  <figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (numOfResults == <span class="number">0</span>) &#123;</span><br><span class="line">    writer = chooseLocalNode(writer, excludedNodes, blocksize, maxNodesPerRack, results, avoidStaleNodes);</span><br><span class="line">    <span class="keyword">if</span> (--numOfReplicas == <span class="number">0</span>) &#123;</span><br><span class="line">      <span class="keyword">return</span> writer;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>  如上，选择和源数据节点writer同一个机架上节点，不过要满足不能是excludedNodes中节点(excludedNodes中包括chosenNodes)，一个机架上选择的节点数不能超出maxNodesPerRack。选择同一机架上的一个数据节点由chooseLocalNode完成，具体代码不再分析。</p>
+</li>
+<li><p>第二个节点，必须选择和第一个数据节点不同机架上的另一个节点</p>
+  <figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (numOfResults &lt;= <span class="number">1</span>) &#123;<span class="comment">//小于等于1，等于0的情况前面已经处理，这里处理等于1的情况，即选择第二个节点</span></span><br><span class="line">    <span class="comment">//与第一个数据节点(results.get(0))所在机架不同机架上选择一个数据节点，满足excludedNodes和maxNodesPerRack等条件</span></span><br><span class="line">    chooseRemoteRack(<span class="number">1</span>, results.get(<span class="number">0</span>), excludedNodes, blocksize, maxNodesPerRack, results, avoidStaleNodes);</span><br><span class="line">    <span class="keyword">if</span> (--numOfReplicas == <span class="number">0</span>) &#123;</span><br><span class="line">      <span class="keyword">return</span> writer;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>  如上，处理results中已经有一个数据节点，选择第二个数据节点的情况。通过chooseRemoteRack选择一个与第一个数据节点机架不同机架上的数据节点，满足excludedNodes和maxNodesPerRack等条件。  </p>
+</li>
+<li>第三个节点，如果<ul>
+<li>前两个节点在同一机架上，则选择和前两个节点所在机架不同机架上的一个数据节点  </li>
+<li>前两个节点不在同一机架上，如果<ul>
+<li>之前没有存在区块副本的数据节点，选择前results.size()==0，即results中所有节点都是这次选择结果，不包含原来存在的数据节点，则选择和第二个节点同一机架上的一个节点。<br>因为选择区块复制的目标数据节点时，该区块目前存在的副本数所在数据节点会在选择时添加到results中，根据现存区块副本的数据节点来选择新的数据节点，以防止选择的数据节点与现存数据节点一样而导致原来本来有问题的数据节点又被选择，或者原来数据节点选择复制后存在多个副本等情况。在选择完后，原来的数据节点会从results中移除。  </li>
+<li>之前有存在区块副本的数据节点，选择前results.size()!=0，即前面chosenNodes初始化results，results有初始值，则选择和源数据节点统一机架上的一个节点<br>代码如下<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">int</span> numOfResults = results.size();</span><br><span class="line">boolean newBlock = (numOfResults==<span class="number">0</span>);</span><br><span class="line">...</span><br><span class="line"><span class="keyword">if</span> (numOfResults &lt;= <span class="number">2</span>) &#123;<span class="comment">//小于等于2，0,1前面分析了，因此这里处理等于2即选择第三个数据节点的情况</span></span><br><span class="line">    <span class="keyword">if</span> (clusterMap.isOnSameRack(results.get(<span class="number">0</span>), results.get(<span class="number">1</span>))) &#123;<span class="comment">//第一个和第二个节点在一个机架上</span></span><br><span class="line">      <span class="comment">//选择一个和前面两个节点不同机架的节点，满足excludedNodes和maxNodesPerRack</span></span><br><span class="line">      chooseRemoteRack(<span class="number">1</span>, results.get(<span class="number">0</span>), excludedNodes, blocksize, maxNodesPerRack, results, avoidStaleNodes);</span><br><span class="line">    &#125; <span class="keyword">else</span> <span class="keyword">if</span> (newBlock)&#123;<span class="comment">//前两个节点机架不同，且results没有初始节点，选择和第二个数据节点(results.get(1))同一机架上的一个数据节点</span></span><br><span class="line">      chooseLocalRack(results.get(<span class="number">1</span>), excludedNodes, blocksize, maxNodesPerRack, results, avoidStaleNodes);</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;<span class="comment">//前两个节点机架不同，且results中有初始节点，选择和源数据节点(writer)同一机架的一个数据节点</span></span><br><span class="line">      chooseLocalRack(writer, excludedNodes, blocksize, maxNodesPerRack, results, avoidStaleNodes);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> (--numOfReplicas == <span class="number">0</span>) &#123;</span><br><span class="line">      <span class="keyword">return</span> writer;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<ul>
+<li><p>超过3个节点的其他节点，从集群中随机选择</p>
+  <figure class="highlight stylus"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="title">chooseRandom</span><span class="params">(numOfReplicas, NodeBase.ROOT, excludedNodes, blocksize, maxNodesPerRack, results, avoidStaleNodes)</span></span></span><br></pre></td></tr></table></figure>
+<p>  如果要选择的副本数超过3个，则剩下的从集群中随机选择，当然要满足excludedNodes和maxNodesPerRack等条件。注意这里选择的是剩下的numOfReplicas个数据节点，前面的都是一次处理一种情况，选择一个节点，选择到一个节点后numOfReplicas减一，因此这里的numOfReplicas为剩下的要选择的数据节点。</p>
+</li>
+</ul>
+<h4 id="3-2-2-2_选择的目标数据节点形成管道(网络拓扑)">3.2.2.2 选择的目标数据节点形成管道(网络拓扑)</h4><p>如前，通过chooseTarget选择完数据节点后，因为在选择前将之前存在副本的数据节点添加到results作为初始值，选择后要移除。移除后的results为最新选择的数据节点，通过getPipeline方法排序选择结果，形成管道返回，前面方法最后部分如下<br><figure class="highlight gradle"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">results.removeAll(chosenNodes);<span class="comment">//从结果中移除选择操作之前的节点</span></span><br><span class="line"><span class="comment">//排序结果，形成管道</span></span><br><span class="line"><span class="keyword">return</span> getPipeline((writer==<span class="keyword">null</span>)?localNode:writer, results.toArray(<span class="keyword">new</span> DatanodeDescriptor[results.<span class="keyword">size</span>()]));</span><br></pre></td></tr></table></figure></p>
+<p>getPipeline同样为BlockPlacementPolicyDefault中的方法，会将选择结果results根据在集群中节点之间的距离进行排序，第一个节点与源数据节点最近，第二个节点为剩下的与第一个节点最近，第三个为剩下的与第二个距离最近，以此类推。<br>两个节点间的距离由BlockPlacementPolicyDefault中成员<code>clusterMap</code>的<code>getDistance</code>方法计算，clusterMap为NetworkTopology类。<br>NetworkTopology即网络拓扑，Hadoop中把数据节点形成的网络拓扑看成一棵树，如/datacenter1/rack1/node1，/datacenter1/rack1/node2，分别为数据中心中某一机架上的两个数据节点。<br>网络拓扑中节点表示为接口<code>org.apache.hadoop.net.Node</code>的实现，DatanodeDescriptor实现了该接口，主要方法如下<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="function">String <span class="title">getNetworkLocation</span><span class="params">()</span></span>;<span class="comment">//获取网络位置，如/rack1/node1</span></span><br><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">void</span> <span class="title">setNetworkLocation</span><span class="params">(String location)</span></span>;<span class="comment">//设置网络位置</span></span><br><span class="line"><span class="keyword">public</span> <span class="function">String <span class="title">getName</span><span class="params">()</span></span>;<span class="comment">//节点名字</span></span><br><span class="line"><span class="keyword">public</span> <span class="function">Node <span class="title">getParent</span><span class="params">()</span></span>;<span class="comment">//节点的父节点</span></span><br><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">void</span> <span class="title">setParent</span><span class="params">(Node parent)</span></span>;<span class="comment">//设置父节点</span></span><br><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">int</span> <span class="title">getLevel</span><span class="params">()</span></span>;<span class="comment">//节点在树中的层级，根节点的层级为0，根节点子节点层级为1</span></span><br><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">void</span> <span class="title">setLevel</span><span class="params">(<span class="keyword">int</span> i)</span></span>;<span class="comment">//设置在树中层级</span></span><br></pre></td></tr></table></figure></p>
+<p>计算两个节点的距离直观的即为树中两个节点的距离，例如下图<br><img src="../images/网络拓扑.png" alt="网络拓扑"><br><code>/rack1/node1</code>到<code>/rack1/node2</code>之间距离为2，<code>rack1/node1</code>到<code>rack2/node1</code>之间距离为4<br>前面第三个节点选择时，isOnSameRack判断是否为一个机架也是根据网络拓扑来的，两个节点的父节点如果相同，则在一个机架上。  </p>
+<p>那么节点的网络位置是怎么来的呢？由DNSToSwitchMapping接口提供<code>DNS名字</code>或者<code>IP地址</code>到网络拓扑中的网络位置转换，该接口被HDFS和MapReduce等组件使用<br><figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">public <span class="class"><span class="keyword">interface</span> <span class="title">DNSToSwitchMapping</span> </span>&#123;</span><br><span class="line">  public <span class="built_in">List</span>&lt;<span class="built_in">String</span>&gt; resolve(<span class="built_in">List</span>&lt;<span class="built_in">String</span>&gt; names);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，只有一个方法resolve，将保存节点名字或IP地址的参数names转换成对应的网络位置。<br>配置项<code>topology.node.switch.mapping.impl</code>用于指定它的一个实现，目前其实现有<br><img src="../images/DNSToSwitchMapping接口实现.png" alt="DNSToSwitchMapping接口实现"><br>ScriptBasedMapping类，可以通过运行一个Shell脚本，完成转换。<br>没有配置的情况下，DatanodeDescriptor缺省网络位置为<code>/default-rack</code>。</p>
+<p>有了节点间的距离计算，对results的排序就比较好处理了，首先查找与源数据节点writer最近的一个节点排在results的第一个节点位置，然后查找与当前第一个节点距离最近的数据节点排在第二个节点位置，以此类推，代码不再贴出。这样，建立数据流管道时，每个节点到直接下游节点的网络距离是最短的，减少网络损耗。</p>
+<h4 id="3-2-3_添加到源数据节点的待复制队列">3.2.3 添加到源数据节点的待复制队列</h4><p>到这里目标节点选择完成，回到computeReplicationWorkForBlock中，接下来进行相关检查，将区块和目标数据节点等信息添加到源数据节点的replicateBlocks中，更新pendingReplications<br><figure class="highlight d"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">synchronized</span> (<span class="keyword">this</span>) &#123;</span><br><span class="line">  <span class="keyword">synchronized</span> (neededReplications) &#123;</span><br><span class="line">    ...<span class="comment">//如前重新检查区块元信息，如果区块对应文件不存在或者正在写则不能复制，从neededReplications中移除记录，并返回false</span></span><br><span class="line">    ...<span class="comment">//如前重新检查副本数是否满足了期望值，如果满足了则不需要进行复制，从neededReplications中移除记录，返回false</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">//添加区块到源数据节点的待复制列表replicateBlocks中，通知指定目标数据节点</span></span><br><span class="line">    srcNode.addBlockToBeReplicated(block, targets);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">for</span> (DatanodeDescriptor dn : targets) &#123;</span><br><span class="line">      dn.incBlocksScheduled();</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">//更新区块在pendingReplications中的记录，原来没记录则新增该区块正在复制副本数为targets长度，原来有记录则增加正在复制的副本数</span></span><br><span class="line">    pendingReplications.increment(block, targets.length);</span><br><span class="line">    NameNode.stateChangeLog.<span class="keyword">debug</span>(<span class="string">"BLOCK* "</span> + block + <span class="string">" is moved from neededReplications to pendingReplications"</span>);</span><br><span class="line"></span><br><span class="line">    <span class="comment">//如果本次添加到源数据节点后，使得正在复制的副本数加上有效副本数达到了期望值，则从neededReplications中移除记录</span></span><br><span class="line">    <span class="keyword">if</span>(numEffectiveReplicas + targets.length &gt;= requiredReplication) &#123;</span><br><span class="line">      neededReplications.remove(block, priority); <span class="comment">// remove from neededReplications</span></span><br><span class="line">      replIndex--;</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，首先重新检查相关元数据，这里需要重新检查是因为在选择目标数据节点前释放了相关锁，选择目标过程中不使用全局锁，因为在选择目标数据节点过程中持有锁代价太高，如下为代码中不使用锁的注释<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">// choose replication targets: NOT HOLDING THE GLOBAL <span class="operator"><span class="keyword">LOCK</span></span><br><span class="line">// It <span class="keyword">is</span> costly <span class="keyword">to</span> <span class="keyword">extract</span> the filename <span class="keyword">for</span> which chooseTargets <span class="keyword">is</span> called,</span><br><span class="line">// so <span class="keyword">for</span> <span class="keyword">now</span> we pass <span class="keyword">in</span> the Inode itself.</span></span><br></pre></td></tr></table></figure></p>
+<p>因此重新获取锁后要进行检查。相关检查后，添加区块到源数据节点的待复制区块队列replicateBlocks中，复制的目标数据节点为targets，如前面对replicateBlocks的介绍，根据Block和targets创建BlockTargetPair对象，添加到队列中。<br>然后更新pendingReplications，因为新增了正在复制的副本数。如果本次新增后正在复制的副本数和之前有效副本数(集群中存储的)达到了期望值，则从neededReplications中移除。  </p>
+<p>这样复制操作完成，可以返回true了。等待源数据节点下一次心跳到来，FSNamesystem在处理心跳时发现源数据节点有待复制的区块，发送相应的区块复制命令，执行复制。</p>
+<h2 id="4-_computeInvalidateWork删除操作">4. computeInvalidateWork删除操作</h2><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">computeInvalidateWork</span><span class="params">(<span class="keyword">int</span> nodesToProcess)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">int</span> numOfNodes = <span class="number">0</span>;</span><br><span class="line">    ArrayList&lt;String&gt; keyArray;</span><br><span class="line">    synchronized (<span class="keyword">this</span>) &#123;</span><br><span class="line">      numOfNodes = recentInvalidateSets.size();<span class="comment">//需要执行删除操作的数据节点个数</span></span><br><span class="line">      keyArray = <span class="keyword">new</span> ArrayList&lt;String&gt;(recentInvalidateSets.keySet());</span><br><span class="line">    &#125;</span><br><span class="line">    nodesToProcess = Math.min(numOfNodes, nodesToProcess);<span class="comment">//更新执行删除操作的数据节点个数</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">//随机选择nodesToProcess个数据节点，放到keyArray的[0,nodesToProcess)</span></span><br><span class="line">    <span class="keyword">int</span> remainingNodes = numOfNodes - nodesToProcess;</span><br><span class="line">    <span class="keyword">if</span> (nodesToProcess &lt; remainingNodes) &#123;</span><br><span class="line">      <span class="keyword">for</span>(<span class="keyword">int</span> i=<span class="number">0</span>; i&lt;nodesToProcess; i++) &#123;</span><br><span class="line">        <span class="keyword">int</span> keyIndex = r.nextInt(numOfNodes-i)+i;</span><br><span class="line">        Collections.swap(keyArray, keyIndex, i); <span class="comment">// swap to front</span></span><br><span class="line">      &#125;</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">      <span class="keyword">for</span>(<span class="keyword">int</span> i=<span class="number">0</span>; i&lt;remainingNodes; i++) &#123;</span><br><span class="line">        <span class="keyword">int</span> keyIndex = r.nextInt(numOfNodes-i);</span><br><span class="line">        Collections.swap(keyArray, keyIndex, numOfNodes-i-<span class="number">1</span>); <span class="comment">// swap to end</span></span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">int</span> blockCnt = <span class="number">0</span>;</span><br><span class="line">    <span class="keyword">for</span>(<span class="keyword">int</span> nodeCnt = <span class="number">0</span>; nodeCnt &lt; nodesToProcess; nodeCnt++ ) &#123;</span><br><span class="line">      blockCnt += invalidateWorkForOneNode(keyArray.get(nodeCnt));</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> blockCnt;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>如上，传入参数nodesToProcess为一次处理的节点个数，默认为所有数据节点的32%，根据recentInvalidateSets中可以处理的数据节点进行调节。<br>然后随机选择nodesToProcess个nodesToProcess个数据节点，对每一个数据节点通过invalidateWorkForOneNode进行处理</p>
+<h3 id="4-1_invalidateWorkForOneNode">4.1 invalidateWorkForOneNode</h3><figure class="highlight processing"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="built_in">int</span> invalidateWorkForOneNode(<span class="keyword">String</span> nodeId) &#123;</span><br><span class="line">    ArrayList&lt;Block&gt; blocksToInvalidate = <span class="keyword">new</span> ArrayList&lt;Block&gt;(blockInvalidateLimit);</span><br><span class="line">    DatanodeDescriptor dn = <span class="keyword">null</span>;</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">synchronized</span> (<span class="keyword">this</span>) &#123;</span><br><span class="line">      <span class="keyword">if</span> (isInSafeMode())<span class="comment">//安全模式，不能执行删除操作，返回0</span></span><br><span class="line">        <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">      <span class="keyword">assert</span> nodeId != <span class="keyword">null</span>;</span><br><span class="line">      dn = datanodeMap.<span class="built_in">get</span>(nodeId);</span><br><span class="line">      <span class="keyword">if</span> (dn == <span class="keyword">null</span>) &#123;<span class="comment">//数据节点不存在了，移除recentInvalidateSets中记录</span></span><br><span class="line">        recentInvalidateSets.remove(nodeId);</span><br><span class="line">        <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">      &#125;</span><br><span class="line">      Collection&lt;Block&gt; invalidateSet = recentInvalidateSets.<span class="built_in">get</span>(nodeId);</span><br><span class="line">      <span class="keyword">if</span> (invalidateSet == <span class="keyword">null</span>) &#123;<span class="comment">//数据节点没有要删除的区块，返回0</span></span><br><span class="line">        <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">      &#125;</span><br><span class="line">  </span><br><span class="line">      Iterator&lt;Block&gt; it = invalidateSet.iterator();</span><br><span class="line">      <span class="comment">//添加最多blockInvalidateLimit个该数据节点上的待删除区块到blockstoInvalidate中，并从原来recentInvalidateSets中移除记录</span></span><br><span class="line">      <span class="keyword">for</span>(<span class="built_in">int</span> blkCount = <span class="number">0</span>; blkCount &lt; blockInvalidateLimit &amp;&amp; it.hasNext(); blkCount++) &#123;</span><br><span class="line">        blocksToInvalidate.<span class="built_in">add</span>(it.next());</span><br><span class="line">        it.remove();</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="comment">//如果数据节点待删除区块都处理了，从recentInvalidateSets中移除整个数据节点对应记录</span></span><br><span class="line">      <span class="keyword">if</span> (!it.hasNext()) &#123;</span><br><span class="line">        recentInvalidateSets.remove(nodeId);</span><br><span class="line">      &#125;</span><br><span class="line">  </span><br><span class="line">      dn.addBlocksToBeInvalidated(blocksToInvalidate);<span class="comment">//添加到数据节点待删除列表中</span></span><br><span class="line">      pendingDeletionBlocksCount -= blocksToInvalidate.<span class="built_in">size</span>();</span><br><span class="line">    &#125;</span><br><span class="line">    ...<span class="comment">//日志记录</span></span><br><span class="line">    <span class="keyword">return</span> blocksToInvalidate.<span class="built_in">size</span>();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>如上，每个数据节点每次能个处理的待删除区块最多为blockInvalidateLimit，为FSNamesystem的成员，默认100。<br>进行相关检查后，从recentInvalidateSets中数据节点的待删除区块集合中添加最多blockInvalidateLimit个区块记录，并且从recentInvalidateSets中移除添加的记录。<br>添加完后，相应的区块记录从recentInvalidateSets中移除了，如果此时该数据节点没有待删除区块，都被处理完了，则同时移除该数据节点在recentInvalidateSets中的记录。<br>最终将blocksToInvalidate中添加的区块集合添加到数据节点的待删除列表invalidateBlocks中。如前面分析，invalidateBlocks为该数据节点上待删除区块，在下次心跳到来时，如果发现invalidateBlocks中有区块，则会向该数据节点发送区块删除命令，执行删除。  </p>
+<p>到这里，ReplicationMonitor的复制和删除操作都分析完了，删除操作相对复制操作简单，因为不需要选择源数据节点和目标数据节点。  </p>
+</span>
+      
+    </div>
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/HDFS/" rel="tag">#HDFS</a>
+          
+            <a href="/tags/Hadoop-1-2-1/" rel="tag">#Hadoop-1.2.1</a>
+          
+            <a href="/tags/Java/" rel="tag">#Java</a>
+          
+            <a href="/tags/NameNode/" rel="tag">#NameNode</a>
+          
+            <a href="/tags/NameNode源码阅读/" rel="tag">#NameNode源码阅读</a>
+          
+            <a href="/tags/源码阅读/" rel="tag">#源码阅读</a>
+          
+        </div>
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/NameNode和SecondaryNameNode/" rel="next" title="NameNode实现源码分析---和SecondaryNameNode的交互">
+                <i class="fa fa-chevron-left"></i> NameNode实现源码分析---和SecondaryNameNode的交互
+              </a>
+            
+          </div>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/NameNode数据节点生存期管理/" rel="prev" title="NameNode实现源码分析---数据节点生存期管理">
+                NameNode实现源码分析---数据节点生存期管理 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </article>
+
+
+
+    <div class="post-spread">
+      
+        <!-- JiaThis Button BEGIN -->
+<div class="jiathis_style">
+  <a class="jiathis_button_tsina"></a>
+  <a class="jiathis_button_tqq"></a>
+  <a class="jiathis_button_weixin"></a>
+  <a class="jiathis_button_cqq"></a>
+  <a class="jiathis_button_douban"></a>
+  <a class="jiathis_button_renren"></a>
+  <a class="jiathis_button_qzone"></a>
+  <a class="jiathis_button_kaixin001"></a>
+  <a class="jiathis_button_copy"></a>
+  <a href="http://www.jiathis.com/share" class="jiathis jiathis_txt jiathis_separator jtico jtico_jiathis" target="_blank"></a>
+  <a class="jiathis_counter_style"></a>
+</div>
+<script type="text/javascript" >
+  var jiathis_config={
+    hideMore:false
+  }
+</script>
+<script type="text/javascript" src="http://v3.jiathis.com/code/jia.js" charset="utf-8"></script>
+<!-- JiaThis Button END -->
+
+      
+    </div>
+  </div>
+
+
+        </div>
+
+        
+
+
+        
+  <div class="comments" id="comments">
+    
+      <div class="ds-thread" data-thread-key="NameNode区块复制和删除线程/"
+           data-title="NameNode实现源码分析---区块复制和删除线程" data-url="http://xiao-yun.github.io/NameNode区块复制和删除线程/">
+      </div>
+    
+  </div>
+
+
+      </div>
+
+      
+        
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap" >
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel ">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+          <img class="site-author-image" src="/images/hero.jpg" alt="xiaoyun" itemprop="image"/>
+          <p class="site-author-name" itemprop="name">xiaoyun</p>
+        </div>
+        <p class="site-description motion-element" itemprop="description">学习笔记，网上资源摘要等</p>
+        <nav class="site-state motion-element">
+          <div class="site-state-item site-state-posts">
+            <a href="/archives">
+              <span class="site-state-item-count">42</span>
+              <span class="site-state-item-name">日志</span>
+            </a>
+          </div>
+
+          <div class="site-state-item site-state-categories">
+            <a href="/categories">
+              <span class="site-state-item-count">40</span>
+              <span class="site-state-item-name">分类</span>
+              </a>
+          </div>
+
+          <div class="site-state-item site-state-tags">
+            <a href="/tags">
+              <span class="site-state-item-count">21</span>
+              <span class="site-state-item-name">标签</span>
+              </a>
+          </div>
+
+        </nav>
+
+        
+
+        <div class="links-of-author motion-element">
+          
+            
+              <span class="links-of-author-item">
+                <a href="https://github.com/xiao-yun" target="_blank">
+                  
+                    <i class="fa fa-globe"></i> github
+                  
+                </a>
+              </span>
+            
+          
+        </div>
+
+        
+        
+
+        <div class="links-of-author motion-element">
+          
+        </div>
+
+      </section>
+
+      
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc-indicator-top post-toc-indicator">
+            <i class="fa fa-angle-double-up"></i>
+          </div>
+          <div class="post-toc">
+            
+              
+            
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-_ReplicationMonitor线程"><span class="nav-number">1.</span> <span class="nav-text">1. ReplicationMonitor线程</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-_computeDatanodeWork"><span class="nav-number">2.</span> <span class="nav-text">2. computeDatanodeWork</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-_computeReplicationWork复制操作"><span class="nav-number">3.</span> <span class="nav-text">3. computeReplicationWork复制操作</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#3-1_chooseUnderReplicatedBlocks选择待复制区块"><span class="nav-number">3.1.</span> <span class="nav-text">3.1  chooseUnderReplicatedBlocks选择待复制区块</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-2_computeReplicationWorkForBlock对每个待复制区块进行处理"><span class="nav-number">3.2.</span> <span class="nav-text">3.2 computeReplicationWorkForBlock对每个待复制区块进行处理</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#3-2-1_选择源数据节点"><span class="nav-number">3.2.1.</span> <span class="nav-text">3.2.1 选择源数据节点</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-2-2_选择目标数据节点"><span class="nav-number">3.2.2.</span> <span class="nav-text">3.2.2 选择目标数据节点</span></a><ol class="nav-child"><li class="nav-item nav-level-5"><a class="nav-link" href="#3-2-2-1_目标数据节点选择原则"><span class="nav-number">3.2.2.1.</span> <span class="nav-text">3.2.2.1 目标数据节点选择原则</span></a></li></ol></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-2-2-2_选择的目标数据节点形成管道(网络拓扑)"><span class="nav-number">3.2.3.</span> <span class="nav-text">3.2.2.2 选择的目标数据节点形成管道(网络拓扑)</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-2-3_添加到源数据节点的待复制队列"><span class="nav-number">3.2.4.</span> <span class="nav-text">3.2.3 添加到源数据节点的待复制队列</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-_computeInvalidateWork删除操作"><span class="nav-number">4.</span> <span class="nav-text">4. computeInvalidateWork删除操作</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#4-1_invalidateWorkForOneNode"><span class="nav-number">4.1.</span> <span class="nav-text">4.1 invalidateWorkForOneNode</span></a></li></ol></li></ol></div>
+            
+          </div>
+          <div class="post-toc-indicator-bottom post-toc-indicator">
+            <i class="fa fa-angle-double-down"></i>
+          </div>
+        </section>
+      
+
+    </div>
+  </aside>
+
+
+      
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright" >
+  
+  &copy; 
+  <span itemprop="copyrightYear">2016</span>
+  <span class="with-love">
+    <i class="icon-next-heart fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">xiaoyun</span>
+</div>
+
+<div class="powered-by">
+  由 <a class="theme-link" href="http://hexo.io">Hexo</a> 强力驱动
+</div>
+
+<div class="theme-info">
+  主题 -
+  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
+    NexT.Mist
+  </a>
+</div>
+
+
+
+      </div>
+    </footer>
+
+    <div class="back-to-top"></div>
+  </div>
+
+  <script type="text/javascript" src="/vendors/jquery/index.js?v=2.1.3"></script>
+
+  
+  
+
+  
+    
+
+  
+    
+  
+
+  <script type="text/javascript">
+    var duoshuoQuery = {short_name:"xiaoyuncom"};
+    (function() {
+      var ds = document.createElement('script');
+      ds.type = 'text/javascript';ds.async = true;
+      ds.id = 'duoshuo-script';
+      ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+      ds.charset = 'UTF-8';
+      (document.getElementsByTagName('head')[0]
+      || document.getElementsByTagName('body')[0]).appendChild(ds);
+    })();
+  </script>
+    
+     
+
+
+    
+  
+
+  
+  <script type="text/javascript" src="/vendors/fancybox/source/jquery.fancybox.pack.js"></script>
+  <script type="text/javascript" src="/js/fancy-box.js?v=0.4.5.2"></script>
+
+
+  <script type="text/javascript" src="/js/helpers.js?v=0.4.5.2"></script>
+  <script type="text/javascript" src="/vendors/velocity/velocity.min.js"></script>
+<script type="text/javascript" src="/vendors/velocity/velocity.ui.min.js"></script>
+
+<script type="text/javascript" src="/js/motion.js?v=0.4.5.2" id="motion.global"></script>
+
+
+  <script type="text/javascript" src="/vendors/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  <script type="text/javascript" src="/vendors/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  
+<script type="text/javascript" src="/js/bootstrap.scrollspy.js?v=0.4.5.2" id="bootstrap.scrollspy.custom"></script>
+
+
+<script type="text/javascript" id="sidebar.toc.highlight">
+  $(document).ready(function () {
+    var tocSelector = '.post-toc';
+    var $tocSelector = $(tocSelector);
+    var activeCurrentSelector = '.active-current';
+
+    $tocSelector
+      .on('activate.bs.scrollspy', function () {
+        var $currentActiveElement = $(tocSelector + ' .active').last();
+
+        removeCurrentActiveClass();
+        $currentActiveElement.addClass('active-current');
+
+        $tocSelector[0].scrollTop = $currentActiveElement.position().top;
+      })
+      .on('clear.bs.scrollspy', function () {
+        removeCurrentActiveClass();
+      });
+
+    function removeCurrentActiveClass () {
+      $(tocSelector + ' ' + activeCurrentSelector)
+        .removeClass(activeCurrentSelector.substring(1));
+    }
+
+    function processTOC () {
+      getTOCMaxHeight();
+      toggleTOCOverflowIndicators();
+    }
+
+    function getTOCMaxHeight () {
+      var height = $('.sidebar').height() -
+                   $tocSelector.position().top -
+                   $('.post-toc-indicator-bottom').height();
+
+      $tocSelector.css('height', height);
+
+      return height;
+    }
+
+    function toggleTOCOverflowIndicators () {
+      tocOverflowIndicator(
+        '.post-toc-indicator-top',
+        $tocSelector.scrollTop() > 0 ? 'show' : 'hide'
+      );
+
+      tocOverflowIndicator(
+        '.post-toc-indicator-bottom',
+        $tocSelector.scrollTop() >= $tocSelector.find('ol').height() - $tocSelector.height() ? 'hide' : 'show'
+      )
+    }
+
+    $(document).on('sidebar.motion.complete', function () {
+      processTOC();
+    });
+
+    $('body').scrollspy({ target: tocSelector });
+    $(window).on('resize', function () {
+      if ( $('.sidebar').hasClass('sidebar-active') ) {
+        processTOC();
+      }
+    });
+
+    onScroll($tocSelector);
+
+    function onScroll (element) {
+      element.on('mousewheel DOMMouseScroll', function (event) {
+          var oe = event.originalEvent;
+          var delta = oe.wheelDelta || -oe.detail;
+
+          this.scrollTop += ( delta < 0 ? 1 : -1 ) * 30;
+          event.preventDefault();
+
+          toggleTOCOverflowIndicators();
+      });
+    }
+
+    function tocOverflowIndicator (indicator, action) {
+      var $indicator = $(indicator);
+      var opacity = action === 'show' ? 1 : 0;
+      $indicator.velocity ?
+        $indicator.velocity('stop').velocity({
+          opacity: opacity
+        }, { duration: 100 }) :
+        $indicator.stop().animate({
+          opacity: opacity
+        }, 100);
+    }
+
+  });
+</script>
+
+<script type="text/javascript" id="sidebar.nav">
+  $(document).ready(function () {
+    var html = $('html');
+    var TAB_ANIMATE_DURATION = 200;
+    var hasVelocity = $.isFunction(html.velocity);
+
+    $('.sidebar-nav li').on('click', function () {
+      var item = $(this);
+      var activeTabClassName = 'sidebar-nav-active';
+      var activePanelClassName = 'sidebar-panel-active';
+      if (item.hasClass(activeTabClassName)) {
+        return;
+      }
+
+      var currentTarget = $('.' + activePanelClassName);
+      var target = $('.' + item.data('target'));
+
+      hasVelocity ?
+        currentTarget.velocity('transition.slideUpOut', TAB_ANIMATE_DURATION, function () {
+          target
+            .velocity('stop')
+            .velocity('transition.slideDownIn', TAB_ANIMATE_DURATION)
+            .addClass(activePanelClassName);
+        }) :
+        currentTarget.animate({ opacity: 0 }, TAB_ANIMATE_DURATION, function () {
+          currentTarget.hide();
+          target
+            .stop()
+            .css({'opacity': 0, 'display': 'block'})
+            .animate({ opacity: 1 }, TAB_ANIMATE_DURATION, function () {
+              currentTarget.removeClass(activePanelClassName);
+              target.addClass(activePanelClassName);
+            });
+        });
+
+      item.siblings().removeClass(activeTabClassName);
+      item.addClass(activeTabClassName);
+    });
+
+    $('.post-toc a').on('click', function (e) {
+      e.preventDefault();
+      var targetSelector = escapeSelector(this.getAttribute('href'));
+      var offset = $(targetSelector).offset().top;
+      hasVelocity ?
+        html.velocity('stop').velocity('scroll', {
+          offset: offset  + 'px',
+          mobileHA: false
+        }) :
+        $('html, body').stop().animate({
+          scrollTop: offset
+        }, 500);
+    });
+
+    // Expand sidebar on post detail page by default, when post has a toc.
+    motionMiddleWares.sidebar = function () {
+      var $tocContent = $('.post-toc-content');
+      if (CONFIG.sidebar === 'post') {
+        if ($tocContent.length > 0 && $tocContent.html().trim().length > 0) {
+          displaySidebar();
+        }
+      }
+    };
+  });
+</script>
+
+
+
+  <script type="text/javascript" src="/js/bootstrap.js"></script>
+
+  
+  
+
+  
+  
+
+</body>
+</html>

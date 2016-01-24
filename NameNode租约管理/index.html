@@ -1,0 +1,866 @@
+<!doctype html>
+<html class="theme-next   use-motion ">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+  <link href="/vendors/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css"/>
+
+
+
+
+  <link href="//fonts.googleapis.com/css?family=Lato:300,400,700,400italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+
+
+
+<link href="/vendors/font-awesome/css/font-awesome.min.css?v=4.4.0" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=0.4.5.2" rel="stylesheet" type="text/css" />
+
+
+  <meta name="keywords" content="HDFS,Hadoop-1.2.1,Java,NameNode,NameNode源码阅读,源码阅读," />
+
+
+
+
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=0.4.5.2" />
+
+
+
+
+
+
+<meta name="description" content="Hadoop版本:Hadoop-1.2.1参考：《Hadoop技术内幕-深入解析Hadoop Common和HDFS架构设计与实现原理》  
+
+1. NameNode租约管理线程NameNode中租约管理由LeaseManager负责，LeaseManager和相关线程初始化如下1234public LeaseManager leaseManager = new LeaseManager(this">
+<meta property="og:type" content="article">
+<meta property="og:title" content="NameNode实现源码分析---租约管理">
+<meta property="og:url" content="http://xiao-yun.github.io/NameNode租约管理/index.html">
+<meta property="og:site_name" content="xiaoyun">
+<meta property="og:description" content="Hadoop版本:Hadoop-1.2.1参考：《Hadoop技术内幕-深入解析Hadoop Common和HDFS架构设计与实现原理》  
+
+1. NameNode租约管理线程NameNode中租约管理由LeaseManager负责，LeaseManager和相关线程初始化如下1234public LeaseManager leaseManager = new LeaseManager(this">
+<meta property="og:updated_time" content="2016-01-24T03:34:25.323Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="NameNode实现源码分析---租约管理">
+<meta name="twitter:description" content="Hadoop版本:Hadoop-1.2.1参考：《Hadoop技术内幕-深入解析Hadoop Common和HDFS架构设计与实现原理》  
+
+1. NameNode租约管理线程NameNode中租约管理由LeaseManager负责，LeaseManager和相关线程初始化如下1234public LeaseManager leaseManager = new LeaseManager(this">
+
+
+
+<script type="text/javascript" id="hexo.configuration">
+  var CONFIG = {
+    scheme: 'Mist',
+    sidebar: 'hide',
+    motion: true
+  };
+</script>
+
+  <title> NameNode实现源码分析---租约管理 | xiaoyun </title>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  <!--[if lte IE 8]>
+  <div style=' clear: both; height: 59px; padding:0 0 0 15px; position: relative;margin:0 auto;'>
+    <a href="http://windows.microsoft.com/en-US/internet-explorer/products/ie/home?ocid=ie6_countdown_bannercode">
+      <img src="http://7u2nvr.com1.z0.glb.clouddn.com/picouterie.jpg" border="0" height="42" width="820"
+           alt="You are using an outdated browser. For a faster, safer browsing experience, upgrade for free today or use other browser ,like chrome firefox safari."
+           style='margin-left:auto;margin-right:auto;display: block;'/>
+    </a>
+  </div>
+<![endif]-->
+  
+
+
+
+  <script type="text/javascript">
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "//hm.baidu.com/hm.js?caeb4129c91d1e6fb3d562d35fedef0d";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+  <div class="container one-column page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-meta ">
+  
+
+  <div class="custom-logo-site-title">
+    <a href="/"  class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <span class="site-title">xiaoyun</span>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+  <p class="site-subtitle"></p>
+</div>
+
+<div class="site-nav-toggle">
+  <button>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+  </button>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu ">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-home fa-fw"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives" rel="section">
+            
+              <i class="menu-item-icon fa fa-archive fa-fw"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories" rel="section">
+            
+              <i class="menu-item-icon fa fa-th fa-fw"></i> <br />
+            
+            分类
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+              <i class="menu-item-icon fa fa-tags fa-fw"></i> <br />
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about" rel="section">
+            
+              <i class="menu-item-icon fa fa-user fa-fw"></i> <br />
+            
+            关于
+          </a>
+        </li>
+      
+
+      
+      
+    </ul>
+  
+
+  
+</nav>
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div id="content" class="content">
+          
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                NameNode实现源码分析---租约管理
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            发表于
+            <time itemprop="dateCreated" datetime="2016-01-24T11:34:25+08:00" content="2016-01-24">
+              2016-01-24
+            </time>
+          </span>
+
+          
+            <span class="post-category" >
+              &nbsp; | &nbsp; 分类于
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Java/" itemprop="url" rel="index">
+                    <span itemprop="name">Java</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Java/Hadoop-1-2-1/" itemprop="url" rel="index">
+                    <span itemprop="name">Hadoop-1.2.1</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Java/Hadoop-1-2-1/HDFS/" itemprop="url" rel="index">
+                    <span itemprop="name">HDFS</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Java/Hadoop-1-2-1/HDFS/NameNode/" itemprop="url" rel="index">
+                    <span itemprop="name">NameNode</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Java/Hadoop-1-2-1/HDFS/NameNode/源码阅读/" itemprop="url" rel="index">
+                    <span itemprop="name">源码阅读</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Java/Hadoop-1-2-1/HDFS/NameNode/源码阅读/NameNode源码阅读/" itemprop="url" rel="index">
+                    <span itemprop="name">NameNode源码阅读</span>
+                  </a>
+                </span>
+
+                
+                
+
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                &nbsp; | &nbsp;
+                <a href="/NameNode租约管理/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="NameNode租约管理/" itemprop="commentsCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+
+        </div>
+      </header>
+    
+
+
+    <div class="post-body">
+
+      
+      
+
+      
+        <span itemprop="articleBody"><p>Hadoop版本:<a href="https://archive.apache.org/dist/hadoop/core/hadoop-1.2.1/" target="_blank" rel="external">Hadoop-1.2.1</a><br>参考：《Hadoop技术内幕-深入解析Hadoop Common和HDFS架构设计与实现原理》  </p>
+<hr>
+<h2 id="1-_NameNode租约管理线程">1. NameNode租约管理线程</h2><p>NameNode中租约管理由LeaseManager负责，LeaseManager和相关线程初始化如下<br><figure class="highlight actionscript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> LeaseManager leaseManager = <span class="keyword">new</span> LeaseManager(<span class="keyword">this</span>); </span><br><span class="line"></span><br><span class="line"><span class="keyword">this</span>.lmthread = <span class="keyword">new</span> Daemon(leaseManager.<span class="keyword">new</span> Monitor());</span><br><span class="line">lmthread.start();</span><br></pre></td></tr></table></figure></p>
+<h2 id="2-_租约管理器LeaseManager">2. 租约管理器LeaseManager</h2><p>租约管理器主要成员如下<br><figure class="highlight processing"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="keyword">final</span> FSNamesystem fsnamesystem;<span class="comment">//所属FSNamesystem</span></span><br><span class="line"><span class="keyword">private</span> <span class="keyword">long</span> softLimit = FSConstants.LEASE_SOFTLIMIT_PERIOD;<span class="comment">//租约超期软周期</span></span><br><span class="line"><span class="keyword">private</span> <span class="keyword">long</span> hardLimit = FSConstants.LEASE_HARDLIMIT_PERIOD;<span class="comment">//租约超期硬周期</span></span><br><span class="line"><span class="keyword">private</span> SortedMap&lt;<span class="keyword">String</span>, Lease&gt; leases = <span class="keyword">new</span> TreeMap&lt;<span class="keyword">String</span>, Lease&gt;();<span class="comment">//客户端-租约映射</span></span><br><span class="line"><span class="keyword">private</span> SortedSet&lt;Lease&gt; sortedLeases = <span class="keyword">new</span> TreeSet&lt;Lease&gt;();<span class="comment">//所有租约</span></span><br><span class="line"><span class="keyword">private</span> SortedMap&lt;<span class="keyword">String</span>, Lease&gt; sortedLeasesByPath = <span class="keyword">new</span> TreeMap&lt;<span class="keyword">String</span>, Lease&gt;();<span class="comment">//路径名-租约映射</span></span><br></pre></td></tr></table></figure></p>
+<p>一个客户端在NameNode中维护一个租约，客户端可能持有多个正在写的文件，因此客户端持有的租约可能对应着多个文件系统路径。<br><code>leases</code>维护了客户端到客户端租约的映射，而<code>sortedLeasesByPath</code>维护了每个正在写的文件到该文件对应所属客户端租约的映射。<br><code>sortedLeases</code>是租约管理器管理的所有租约集合，为TreeSet，元素为Lease，通过Lease的compareTo进行排序。<br><code>LEASE_SOFTLIMIT_PERIOD</code>为租约超期的软周期，客户端尝试打开已经被其他客户端打开的文件时，如果不指定强制恢复租约，则占用文件的客户端超过了软周期没有更新租约，尝试打开文件的客户端便会进行租约恢复。软周期为60*1000即1min。<br><code>LEASE_HARDLIMIT_PERIOD</code>为租约超期的硬周期，在租约管理线程LeaseManager.Monitor中超过该时间的租约没更新，NameNode便会发起租约恢复。硬周期为60*60*1000，即1h。</p>
+<h2 id="3-_租约Lease">3. 租约Lease</h2><p>租约是LeaseManager的内部类，实现了Comparable接口，主要成员如下<br><figure class="highlight processing"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="keyword">final</span> <span class="keyword">String</span> holder;</span><br><span class="line"><span class="keyword">private</span> <span class="keyword">long</span> lastUpdate;</span><br><span class="line"><span class="keyword">private</span> <span class="keyword">final</span> Collection&lt;<span class="keyword">String</span>&gt; paths = <span class="keyword">new</span> TreeSet&lt;<span class="keyword">String</span>&gt;();</span><br></pre></td></tr></table></figure></p>
+<p>如上，<code>holder</code>为持有该租约的客户端，<code>lastUpdate</code>为客户端上次租约更新时间，<code>paths</code>为改租约管理的打开文件路径，也就是客户端打开的文件。<br>一个租约管理多个打开文件，即一个客户端所有打开文件由一个租约管理，当客户端更新租约时，则重新获取了所有打开文件的持有权限。<br>如2.1租约管理器中的sortedLeases中，元素为Lease，通过Lease的compareTo方法排序<br><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">int</span> <span class="title">compareTo</span><span class="params">(Lease o)</span> </span>&#123;</span><br><span class="line">  Lease l1 = <span class="keyword">this</span>;</span><br><span class="line">  Lease l2 = o;</span><br><span class="line">  <span class="keyword">long</span> lu1 = l1.lastUpdate;</span><br><span class="line">  <span class="keyword">long</span> lu2 = l2.lastUpdate;</span><br><span class="line">  <span class="keyword">if</span> (lu1 &lt; lu2) &#123;</span><br><span class="line">    <span class="keyword">return</span> -<span class="number">1</span>;</span><br><span class="line">  &#125; <span class="keyword">else</span> <span class="keyword">if</span> (lu1 &gt; lu2) &#123;</span><br><span class="line">    <span class="keyword">return</span> <span class="number">1</span>;</span><br><span class="line">  &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">    <span class="keyword">return</span> l1.holder.compareTo(l2.holder);</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，根据最近更新时间lastUpdate排序，lastUpdate小的即最长时间没有更新的排在前面，更新时间一样的通过客户端排序。  </p>
+<h2 id="4-_LeaseManager-Monitor线程">4. LeaseManager.Monitor线程</h2><p>线程主程序如下<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">void</span> <span class="title">run</span><span class="params">()</span> </span>&#123;</span><br><span class="line">  <span class="keyword">for</span>(; fsnamesystem.isRunning(); ) &#123;</span><br><span class="line">    <span class="keyword">synchronized</span>(fsnamesystem) &#123;</span><br><span class="line">      checkLeases();</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">      Thread.sleep(<span class="number">2000</span>);</span><br><span class="line">    &#125; <span class="keyword">catch</span>(InterruptedException ie) &#123;</span><br><span class="line">      <span class="keyword">if</span> (LOG.isDebugEnabled()) &#123;</span><br><span class="line">        LOG.debug(name + <span class="string">" is interrupted"</span>, ie);</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，每过2s检查一次。通过checkLeases进行检查<br><figure class="highlight processing"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">synchronized</span> <span class="keyword">void</span> checkLeases() &#123;</span><br><span class="line">    <span class="keyword">for</span>(; sortedLeases.<span class="built_in">size</span>() &gt; <span class="number">0</span>; ) &#123;</span><br><span class="line">      <span class="keyword">final</span> Lease oldest = sortedLeases.first();</span><br><span class="line">      <span class="keyword">if</span> (!oldest.expiredHardLimit()) &#123;<span class="comment">//如果最长时间没有更新的租约都没有超期，返回</span></span><br><span class="line">        <span class="keyword">return</span>;</span><br><span class="line">      &#125;</span><br><span class="line"></span><br><span class="line">      <span class="keyword">final</span> List&lt;<span class="keyword">String</span>&gt; removing = <span class="keyword">new</span> ArrayList&lt;<span class="keyword">String</span>&gt;();</span><br><span class="line">      <span class="comment">// need to create a copy of the oldest lease paths, becuase </span></span><br><span class="line">      <span class="comment">// internalReleaseLease() removes paths corresponding to empty files,</span></span><br><span class="line">      <span class="comment">// i.e. it needs to modify the collection being iterated over</span></span><br><span class="line">      <span class="comment">// causing ConcurrentModificationException</span></span><br><span class="line">      <span class="keyword">String</span>[] leasePaths = <span class="keyword">new</span> <span class="keyword">String</span>[oldest.getPaths().<span class="built_in">size</span>()];<span class="comment">//租约管理的所有打开路径</span></span><br><span class="line">      oldest.getPaths().toArray(leasePaths);</span><br><span class="line">      <span class="keyword">for</span>(<span class="keyword">String</span> p : leasePaths) &#123;<span class="comment">//恢复最长时间没有更新的租约</span></span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">          fsnamesystem.internalReleaseLeaseOne(oldest, p);</span><br><span class="line">        &#125; <span class="keyword">catch</span> (IOException e) &#123;</span><br><span class="line">          LOG.error(<span class="string">"Cannot release the path "</span>+p+<span class="string">" in the lease "</span>+oldest, e);</span><br><span class="line">          removing.<span class="built_in">add</span>(p);</span><br><span class="line">        &#125;</span><br><span class="line">      &#125;</span><br><span class="line"></span><br><span class="line">      <span class="keyword">for</span>(<span class="keyword">String</span> p : removing) &#123;租约恢复失败，直接删除</span><br><span class="line">        removeLease(oldest, p);</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，因为sortedLeases中的Lease根据最近更新时间lastUpdate来排序的，lastUpdate小的排在前面。checkLeases取出sortedLeases中的第一个Lease即为最长时间没有更新的租约，如果没有超期，则说明剩下的所有的都没超期。<br>在循环中每次都取出第一个Lease，因为如果第一个租约超期了则会进行恢复，恢复后该租约lastUpdate时间更新或者不存在该租约了，因此在sortedLeases中位置改变了，重新读取第一个元素则为下一个租约，可见，要么是sortedLeases中的第一个元素没有超期，要么是所有超期元素都处理完了，才会退出循环。  </p>
+<p>判断租约是否超期通过expiredHardLimit完成<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">boolean</span> <span class="title">expiredHardLimit</span><span class="params">()</span> </span>&#123;</span><br><span class="line">      <span class="keyword">return</span> FSNamesystem.now() - lastUpdate &gt; hardLimit;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，从上次租约更新时间lastUpdate到现在已经过去了hardLimit，hardLimit为LeaseManager成员，为60*60*1000ms(1h)，即1个小时没有更新租约，则租约管理器判断该租约失效，需要恢复租约。  </p>
+<p>在checkLeases循环中，如果第一个Lease超期，则对改租约管理的所有打开路径进行租约恢复，每一个路径的恢复通过FSNamesystem的<code>internalReleaseLeaseOne</code>方法完成，恢复失败则直接通过removeLease从租约中删除该路径，removeLease如下<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">synchronized</span> <span class="function"><span class="keyword">void</span> <span class="title">removeLease</span><span class="params">(Lease lease, String src)</span> </span>&#123;</span><br><span class="line">    sortedLeasesByPath.remove(src);</span><br><span class="line">    <span class="keyword">if</span> (!lease.removePath(src)) &#123;</span><br><span class="line">      LOG.<span class="keyword">error</span>(src + <span class="string">" not found in lease.paths (="</span> + lease.paths + <span class="string">")"</span>);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (!lease.hasPath()) &#123;</span><br><span class="line">      leases.remove(lease.holder);</span><br><span class="line">      <span class="keyword">if</span> (!sortedLeases.remove(lease)) &#123;</span><br><span class="line">        LOG.<span class="keyword">error</span>(lease + <span class="string">" not found in sortedLeases"</span>);</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，从sortedLeasesByPath，lease中移除路径记录，如果路径所属租约的所有路径都释放了，则从leases，sortedLeases中移除该租约。  </p>
+<h3 id="4-1_internalReleaseLeaseOne">4.1 internalReleaseLeaseOne</h3><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">internalReleaseLeaseOne</span><span class="params">(Lease lease, String src)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">assert</span> Thread.<span class="title">holdsLock</span><span class="params">(<span class="keyword">this</span>)</span></span>;<span class="comment">//保证调用该方法时持有了FSNamesystem对象锁</span></span><br><span class="line"></span><br><span class="line">    INodeFile iFile = dir.getFileINode(src);</span><br><span class="line">    <span class="keyword">if</span> (iFile == <span class="keyword">null</span>) &#123;<span class="comment">//找不到对应INode文件异常</span></span><br><span class="line">      ...</span><br><span class="line">      <span class="keyword">throw</span> <span class="keyword">new</span> IOException(message);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> (!iFile.isUnderConstruction()) &#123;<span class="comment">//租约恢复的文件不是处于写状态，异常</span></span><br><span class="line">      ...</span><br><span class="line">      <span class="keyword">throw</span> <span class="keyword">new</span> IOException(message);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    INodeFileUnderConstruction pendingFile = (INodeFileUnderConstruction) iFile;</span><br><span class="line"></span><br><span class="line">    <span class="comment">//通过追加文件初始化租约恢复。如果该文件没有区块，则立刻收回该租约。否则新建一个租约然后触发租约恢复。</span></span><br><span class="line">    <span class="keyword">if</span> (pendingFile.getTargets() == <span class="keyword">null</span> || pendingFile.getTargets().length == <span class="number">0</span>) &#123;</span><br><span class="line">      <span class="keyword">if</span> (pendingFile.getBlocks().length == <span class="number">0</span>) &#123;<span class="comment">//文件没有数据块，直接关闭文件</span></span><br><span class="line">        finalizeINodeFileUnderConstruction(src, pendingFile);</span><br><span class="line">        <span class="keyword">return</span>;</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="comment">// 数据流管道成员为空，选择文件的最后一个区块对应的数据节点重新设置数据流管道成员</span></span><br><span class="line">      Block[] blocks = pendingFile.getBlocks();</span><br><span class="line">      Block last = blocks[blocks.length-<span class="number">1</span>];<span class="comment">//最后一个区块</span></span><br><span class="line">      DatanodeDescriptor[] targets = <span class="keyword">new</span> DatanodeDescriptor[blocksMap.numNodes(last)];</span><br><span class="line">      Iterator&lt;DatanodeDescriptor&gt; it = blocksMap.nodeIterator(last);</span><br><span class="line">      <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; it != <span class="keyword">null</span> &amp;&amp; it.hasNext(); i++) &#123;</span><br><span class="line">        targets[i] = it.next();</span><br><span class="line">      &#125;</span><br><span class="line">      pendingFile.setTargets(targets);<span class="comment">//重新设置数据流管道成员</span></span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">//从数据流管道成员中，选择第一个存活的数据节点作为恢复的主节点，将最后一个区块恢复信息添加到该数据节点的recoverBlocks中</span></span><br><span class="line">    pendingFile.assignPrimaryDatanode();</span><br><span class="line">    <span class="comment">//为该文件恢复一个新的临时租约，回收原来的租约</span></span><br><span class="line">    Lease reassignedLease = reassignLease(lease, src, HdfsConstants.NN_RECOVERY_LEASEHOLDER, pendingFile);</span><br><span class="line">    leaseManager.renewLease(reassignedLease);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>如上，恢复文件的租约，其实就是说要保证文件区块副本保持一致状态，然后关闭文件，从租约移除该文件的管理记录，文件在租约管理器中没有记录，则刻意被其他客户端持有(打开进行相应操作等)。如果租约没有剩余管理文件，则从租约管理器中移除租约对象，对应到前面<code>removeLease</code>方法，会对客户端打开的每个文件调用internalReleaseLeaseOne，则当最后一个打开文件执行完后，客户端持有的租约会从租约管理器中移除。</p>
+<p>如果文件没有区块(此时客户端刚创建文件，还没来得及写就出现了故障，技术内幕)，则通过<code>finalizeINodeFileUnderConstruction</code>直接关闭文件，会回收租约。<br>如果文件有区块，不过最后一个区块数据流管道成员不存在(客户端通过abandonBlock，放弃数据块后故障，技术内幕)，则使用最后一个区块对应的数据节点信息设置数据流管道成员。然后从数据流管道成员中选择一个存活的数据节点作为主节点进行区块修复，将最后一个区块的修复信息(区块，数据流管道成员)添加到选择的主数据节点的recoverBlocks中，然后为这个文件分配一个新的临时租约，对应持有者名字为<code>NN_Recovery</code>，从原来的租约移除路径记录，如果原来租约没有剩余管理路径，则移除原来租约对象。在主数据节点下次心跳到来时发送区块修复命令，修复完后文件副本区块状态一致，由数据节点<code>commitBlockSynchronization</code>报告区块恢复结果，NameNode将对应文件记录在NN_Recovery中移除。  </p>
+<p>相关方法具体分析见下</p>
+<h4 id="4-1-1_finalizeINodeFileUnderConstruction">4.1.1 finalizeINodeFileUnderConstruction</h4><p>finalizeINodeFileUnderConstruction用于关闭一个正在写的文件，同时回收租约<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="function"><span class="keyword">void</span> <span class="title">finalizeINodeFileUnderConstruction</span><span class="params">(String src, INodeFileUnderConstruction pendingFile)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">    leaseManager.removeLease(pendingFile.clientName, src);<span class="comment">//从客户端clientName租约中移除路径</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">//INodeFileUnderConstruction转化为INodeFile，然后将转换后的INodeFile替换原来的INodeFileUnderConstruction</span></span><br><span class="line">    INodeFile newFile = pendingFile.convertToInodeFile();</span><br><span class="line">    dir.replaceNode(src, pendingFile, newFile);</span><br><span class="line"></span><br><span class="line">    <span class="comment">//关闭文件并且持久化文件的区块</span></span><br><span class="line">    dir.closeFile(src, newFile);</span><br><span class="line">    <span class="comment">//检查所有的区块副本数是否达到期望值，如果没有则添加相应信息到neededReplications中</span></span><br><span class="line">    checkReplicationFactor(newFile);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上首先通过leaseManager的removeLease方法从客户端租约中移除路径记录，通过clientName获取到租约Lease对象，然后由前面分析过的removeLease方法移除。<br>然后将INodeFileUnderConstruction转换为INodeFile，根据INodeFileUnderConstruction记录的当前文件信息创建新的INodeFile对象</p>
+<ul>
+<li><p>convertToInodeFile</p>
+  <figure class="highlight sml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">INodeFile</span> convertToInodeFile<span class="literal">()</span> &#123;</span><br><span class="line">    <span class="type">INodeFile</span> obj = new <span class="type">INodeFile</span>(getPermissionStatus<span class="literal">()</span>, getBlocks<span class="literal">()</span>, getReplication<span class="literal">()</span>,</span><br><span class="line">                                  getModificationTime<span class="literal">()</span>, getModificationTime<span class="literal">()</span>, getPreferredBlockSize<span class="literal">()</span>);</span><br><span class="line">    return obj;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>replaceNode<br>  由FSDirectory的replaceNode方法用新建的INodeFile对象替换原来的INodeFileUnderConstruction对象</p>
+  <figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">replaceNode</span><span class="params">(String path, INodeFile oldnode, INodeFile newnode)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">    <span class="keyword">synchronized</span> (rootDir) &#123;</span><br><span class="line">      <span class="keyword">if</span> (!oldnode.removeNode()) &#123;<span class="comment">//从目录树中移除旧的INodeFile</span></span><br><span class="line">        ...<span class="comment">//移除失败，抛出异常</span></span><br><span class="line">      &#125; </span><br><span class="line">      </span><br><span class="line">      <span class="comment">/* Currently oldnode and newnode are assumed to contain the same</span><br><span class="line">       * blocks. Otherwise, blocks need to be removed from the blocksMap.</span><br><span class="line">       */</span></span><br><span class="line">            </span><br><span class="line">      rootDir.addNode(path, newnode); <span class="comment">//新的INodeFile添加到目录树中</span></span><br><span class="line"></span><br><span class="line">      <span class="keyword">int</span> index = <span class="number">0</span>;</span><br><span class="line">      <span class="comment">//更新blocksMap中区块信息BlockInfo对应的INodeFile对象为新的INodeFile，设置新的INodeFile和区块的对应关系</span></span><br><span class="line">      <span class="keyword">for</span> (Block b : newnode.getBlocks()) &#123;</span><br><span class="line">        BlockInfo info = namesystem.blocksMap.addINode(b, newnode);</span><br><span class="line">        newnode.setBlock(index, info); <span class="comment">// inode refers to the block in BlocksMap</span></span><br><span class="line">        index++;</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>  如上，首先从目树中移除旧的INodeFile(我们这里便是INodeFileUnderConstruction)，然后添加新的INodeFile到目录树中。然后通过blocksMap的addINode方法更新blocksMap中原来区块信息BlockMap的INodeFile为新的INodeFile，并设置新INodeFile的区块信息。该方法假定旧的INodeFile和新的INodeFile拥有相同的区块信息，因此不需要移除原来INodeFile的区块信息，而只是在原来区块信息的基础上更新INodeFile对象。  </p>
+</li>
+<li><p>closeFile<br>  替代完后通过FSDirectory的closeFile方法关闭文件</p>
+  <figure class="highlight gradle"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">void</span> closeFile(String path, INodeFile <span class="keyword">file</span>) <span class="keyword">throws</span> IOException &#123;</span><br><span class="line">    waitForReady();</span><br><span class="line">    <span class="keyword">synchronized</span> (rootDir) &#123;</span><br><span class="line">      fsImage.getEditLog().logCloseFile(path, <span class="keyword">file</span>);</span><br><span class="line">      ...</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>  如上，关闭操作已经完成了，这里只是在FSEditLog记录关闭日志</p>
+</li>
+<li>checkReplicationFactor<br>  最后的checkReplicationFactor方法会检查文件的所有区块有效副本数是否达到期望副本值，对于没有达到的区块添加到neededReplications中等待复制  <figure class="highlight gradle"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="keyword">void</span> checkReplicationFactor(INodeFile <span class="keyword">file</span>) &#123;</span><br><span class="line">    <span class="keyword">int</span> numExpectedReplicas = <span class="keyword">file</span>.getReplication();</span><br><span class="line">    Block[] pendingBlocks = <span class="keyword">file</span>.getBlocks();</span><br><span class="line">    <span class="keyword">int</span> nrBlocks = pendingBlocks.length;</span><br><span class="line">    <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; nrBlocks; i++) &#123;</span><br><span class="line">      NumberReplicas number = countNodes(pendingBlocks[i]);<span class="comment">//统计副本状态</span></span><br><span class="line">      <span class="keyword">if</span> (number.liveReplicas() &lt; numExpectedReplicas) &#123;<span class="comment">//有效副本数小于期望副本值</span></span><br><span class="line">        <span class="comment">//添加到neededReplications中等待复制</span></span><br><span class="line">        neededReplications.add(pendingBlocks[i], number.liveReplicas(), </span><br><span class="line">                               number.decommissionedReplicas, numExpectedReplicas);</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+</li>
+</ul>
+<h4 id="4-1-2_assignPrimaryDatanode">4.1.2 assignPrimaryDatanode</h4><p>如前面internalReleaseLeaseOne方法中，assignPrimaryDatanode方法用于从文件的数据流管道成员中找出一个存活的数据节点，然后执行区块恢复相关操作<br><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">assignPrimaryDatanode</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (targets.length == <span class="number">0</span>) &#123;</span><br><span class="line">        ...</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">int</span> previous = primaryNodeIndex;</span><br><span class="line">    <span class="comment">//从primaryNodeIndex开始查找一个存活的数据节点</span></span><br><span class="line">    <span class="keyword">for</span>(<span class="keyword">int</span> i = <span class="number">1</span>; i &lt;= targets.length; i++) &#123;</span><br><span class="line">      <span class="keyword">int</span> j = (previous + i)%targets.length;</span><br><span class="line">      <span class="keyword">if</span> (targets[j].isAlive) &#123;</span><br><span class="line">        <span class="comment">//第一个找到的存活的数据节点作为区块修复主节点 </span></span><br><span class="line">        DatanodeDescriptor primary = targets[primaryNodeIndex = j];</span><br><span class="line">        <span class="comment">//添加区块修复信息(修复的区块为最后一个区块，参与修复的数据节点为targets)添加到主节点的recoverBlocks中</span></span><br><span class="line">        primary.addBlockToBeRecovered(blocks[blocks.length - <span class="number">1</span>], targets);</span><br><span class="line">        ...</span><br><span class="line">        <span class="keyword">return</span>;</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，在targets中从primaryNodeIndex索引开始查找一个存活的数据节点，第一个存活的数据节点作为区块修复的主数据节点，然后将区块修复信息添加到主节点的recoverBlocks中。我们知道recoverBlocks为BlockQueue类型，包含操作的区块和对应的数据节点，因此这里修复的区块为最后一个节点，而参与修复的数据节点为targets。  </p>
+<h4 id="4-1-3_reassignLease">4.1.3 reassignLease</h4><p>internalReleaseLeaseOne中，reassignLease为进行区块修复的文件分配一个新的临时租约，然后从原来租约中移除路径记录，调用如下<br><figure class="highlight lisp"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Lease reassignedLease = reassignLease<span class="list">(<span class="keyword">lease</span>, src, HdfsConstants.NN_RECOVERY_LEASEHOLDER, pendingFile)</span><span class="comment">;</span></span><br></pre></td></tr></table></figure></p>
+<p><code>lease</code>为原来文件的租约，src为文件路径，<code>NN_RECOVERY_LEASEHOLDER</code>为常亮<code>NN_Recovery</code>是所有租约恢复的临时租约持有者，pendingFile为文件对象INodeFile。<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="function">Lease <span class="title">reassignLease</span><span class="params">(Lease lease, String src, String newHolder, INodeFileUnderConstruction pendingFile)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">if</span>(newHolder == <span class="keyword">null</span>)</span><br><span class="line">      <span class="keyword">return</span> lease;</span><br><span class="line">    pendingFile.setClientName(newHolder);<span class="comment">//设置新的客户端</span></span><br><span class="line">    <span class="function"><span class="keyword">return</span> leaseManager.<span class="title">reassignLease</span><span class="params">(lease, src, newHolder)</span></span>;<span class="comment">//分配新的租约，回收旧的租约</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，将文件打开的客户端设置为临时持有者<code>NN_Recovery</code>，然后通过reassignLease从旧的租约中移除该路径，并为该路径分配新的租约<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">synchronized</span> <span class="function">Lease <span class="title">reassignLease</span><span class="params">(Lease lease, String src, String newHolder)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">assert</span> newHolder != <span class="keyword">null</span> : <span class="string">"new lease holder is null"</span>;</span><br><span class="line">    <span class="keyword">if</span> (lease != <span class="keyword">null</span>) &#123;</span><br><span class="line">      removeLease(lease, src);<span class="comment">//从lease中移除src</span></span><br><span class="line">    &#125;</span><br><span class="line">    <span class="function"><span class="keyword">return</span> <span class="title">addLease</span><span class="params">(newHolder, src)</span></span>;<span class="comment">//添加新的租约</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，removeLease前面分析过了，将src从lease中相关结构中移除，如果lease没有剩余的管理路径，则从租约管理器中相关数据结构中移除lease。<br>addLease如下<br><figure class="highlight processing"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">synchronized</span> Lease addLease(<span class="keyword">String</span> holder, <span class="keyword">String</span> src) &#123;</span><br><span class="line">    Lease lease = getLease(holder);</span><br><span class="line">    <span class="keyword">if</span> (lease == <span class="keyword">null</span>) &#123;<span class="comment">//如果不存在，创建新的租约，添加到leases，sortedLeases中</span></span><br><span class="line">      lease = <span class="keyword">new</span> Lease(holder);</span><br><span class="line">      leases.put(holder, lease);</span><br><span class="line">      sortedLeases.<span class="built_in">add</span>(lease);</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">      renewLease(lease);<span class="comment">//更新租约lastUpdate</span></span><br><span class="line">    &#125;</span><br><span class="line">    sortedLeasesByPath.put(src, lease);<span class="comment">//添加到sortedLeasesByPath中</span></span><br><span class="line">    lease.paths.<span class="built_in">add</span>(src);<span class="comment">//新租约中添加src</span></span><br><span class="line">    <span class="keyword">return</span> lease;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，不存在就创建(此时lastUpdate当然为创建时间)，然后添加到租约管理器中相关结构中，存在的话通过renewLease更新lastUpdate以及在sortedLeases中位置<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">synchronized</span> <span class="function"><span class="keyword">void</span> <span class="title">renewLease</span><span class="params">(Lease lease)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (lease != <span class="keyword">null</span>) &#123;</span><br><span class="line">      sortedLeases.remove(lease);</span><br><span class="line">      lease.renew();</span><br><span class="line">      sortedLeases.add(lease);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>从sortedLeases中移除，更新lastUpdate，再添加到sortedLeases中，从而更新在sortedLeases中位置。  </p>
+<p>这样reassignLease后，原来租约中便没有路径的记录了，如果原来租约没有剩余管理路径则会从租约管理器中移除原来租约对象，该路径文件拥有了新的租约，租约对应的持有者为<code>NN_Recovery</code>，所有参与租约修复的路径都被该持有者管理，在修复完成通过commitBlockSynchronization通知NameNode时，从NN_Recovery租约中移除。  </p>
+<h2 id="5-_数据节点区块恢复完成报告">5. 数据节点区块恢复完成报告</h2><p>4.中分析了Monitor线程检测到客户端长时间没有更新租约，从而恢复该租约的过程。如前面分析，租约恢复时，对于每一个客户端持有的文件，会进行区块修复，以保证所有副本一致，区块修复前，会从原来的租约中移除该文件记录，然后分配一个临时租约，持有者为<code>NN_Recovery</code>。数据节点的区块修复过程见<a href="../DataNode实现源码分析">DataNode实现源码分析</a>。在区块修复完成后，数据节点会通过NameNode的RPC代理调用commitBlockSynchronization报告修复结果，因此看下commitBlockSynchronization在NameNode中的实现。<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">void</span> <span class="title">commitBlockSynchronization</span><span class="params">(Block block, <span class="keyword">long</span> newgenerationstamp, <span class="keyword">long</span> newlength,</span><br><span class="line">      <span class="keyword">boolean</span> closeFile, <span class="keyword">boolean</span> deleteblock, DatanodeID[] newtargets )</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">    namesystem.commitBlockSynchronization(block, newgenerationstamp, newlength, closeFile, deleteblock, newtargets);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，还是由FSNamesystem提供服务，方法如下<br><figure class="highlight processing"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> commitBlockSynchronization(Block lastblock, <span class="keyword">long</span> newgenerationstamp, <span class="keyword">long</span> newlength,</span><br><span class="line">      <span class="built_in">boolean</span> closeFile, <span class="built_in">boolean</span> deleteblock, DatanodeID[] newtargets) <span class="keyword">throws</span> IOException &#123;</span><br><span class="line">    ...<span class="comment">//日志记录</span></span><br><span class="line">    <span class="keyword">String</span> src = <span class="keyword">null</span>;</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">      <span class="keyword">synchronized</span> (<span class="keyword">this</span>) &#123;</span><br><span class="line">        <span class="keyword">if</span> (isInSafeMode()) &#123;<span class="comment">//安全模式，不处理，抛出异常</span></span><br><span class="line">          <span class="keyword">throw</span> <span class="keyword">new</span> SafeModeException(<span class="string">"Cannot commitBlockSynchronization "</span> + lastblock, safeMode);</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">final</span> BlockInfo oldblockinfo = blocksMap.getStoredBlock(lastblock);</span><br><span class="line">        <span class="keyword">if</span> (oldblockinfo == <span class="keyword">null</span>) &#123;<span class="comment">//对应区块信息不存在，抛出异常</span></span><br><span class="line">          <span class="keyword">throw</span> <span class="keyword">new</span> IOException(<span class="string">"Block (="</span> + lastblock + <span class="string">") not found"</span>);</span><br><span class="line">        &#125;</span><br><span class="line">        INodeFile iFile = oldblockinfo.getINode();</span><br><span class="line">        <span class="keyword">if</span> (!iFile.isUnderConstruction()) &#123;<span class="comment">//文件不处于构建状态，抛出异常</span></span><br><span class="line">            ...<span class="comment">//抛出异常</span></span><br><span class="line">        &#125;</span><br><span class="line">        INodeFileUnderConstruction pendingFile = (INodeFileUnderConstruction)iFile;</span><br><span class="line">    </span><br><span class="line">        <span class="comment">//generationStamp改变了，从blocksMap中移除旧的区块</span></span><br><span class="line">        blocksMap.removeBlock(oldblockinfo);</span><br><span class="line">    </span><br><span class="line">        <span class="keyword">if</span> (deleteblock) &#123;<span class="comment">//数据节点没有找到可恢复的区块，区块恢复失败，删除</span></span><br><span class="line">          pendingFile.removeBlock(lastblock);</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">          <span class="comment">//更新打开文件的最后一个区块，构造新的区块信息，添加到blocksMap中</span></span><br><span class="line">          lastblock.<span class="built_in">set</span>(lastblock.getBlockId(), newlength, newgenerationstamp);</span><br><span class="line">          <span class="keyword">final</span> BlockInfo newblockinfo = blocksMap.addINode(lastblock, pendingFile);</span><br><span class="line">        </span><br><span class="line">          DatanodeDescriptor[] descriptors = <span class="keyword">null</span>;</span><br><span class="line">          List&lt;DatanodeDescriptor&gt; descriptorsList = <span class="keyword">new</span> ArrayList&lt;DatanodeDescriptor&gt;(newtargets.length);</span><br><span class="line">          <span class="keyword">for</span>(<span class="built_in">int</span> i = <span class="number">0</span>; i &lt; newtargets.length; i++) &#123;</span><br><span class="line">            DatanodeDescriptor node = datanodeMap.<span class="built_in">get</span>(newtargets[i].getStorageID());</span><br><span class="line">            <span class="keyword">if</span> (node != <span class="keyword">null</span>) &#123;</span><br><span class="line">              <span class="keyword">if</span> (closeFile) &#123;</span><br><span class="line">                <span class="comment">//如果不关闭文件，则不应该将最后一个区块信息添加到数据节点的区块列表中，因为该区块还处于构建状态，不应该属于数据节点</span></span><br><span class="line">                <span class="comment">//对应的是在所属的INodeFileUnderConstruction的targets成员记录正在构建的数据节点</span></span><br><span class="line">                <span class="comment">//例如，在getAdditionalBlock中，获取的区块信息就不会添加到数据节点区块列表中</span></span><br><span class="line">                node.addBlock(newblockinfo);<span class="comment">//关闭文件，添加区块到数据节点区块列表</span></span><br><span class="line">              &#125;</span><br><span class="line">              descriptorsList.<span class="built_in">add</span>(node);</span><br><span class="line">            &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">                ...<span class="comment">//记录日志</span></span><br><span class="line">            &#125;</span><br><span class="line">          &#125;</span><br><span class="line">          <span class="keyword">if</span> (!descriptorsList.isEmpty()) &#123;</span><br><span class="line">            descriptors = descriptorsList.toArray(<span class="keyword">new</span> DatanodeDescriptor[<span class="number">0</span>]);</span><br><span class="line">          &#125;</span><br><span class="line">          <span class="comment">//创建的新的区块信息和对应数据节点更新到INodeFileUnderConstruction中</span></span><br><span class="line">          pendingFile.setLastBlock(newblockinfo, descriptors);</span><br><span class="line">        &#125;</span><br><span class="line">    </span><br><span class="line">        <span class="comment">//如果不关闭文件，且durableSync为true，则持久化打开文件的区块到编辑日志中</span></span><br><span class="line">        src = leaseManager.findPath(pendingFile);</span><br><span class="line">        <span class="keyword">if</span> (!closeFile) &#123;</span><br><span class="line">          <span class="keyword">if</span> (durableSync) &#123;</span><br><span class="line">            dir.persistBlocks(src, pendingFile);</span><br><span class="line">          &#125;</span><br><span class="line">          LOG.info(<span class="string">"commitBlockSynchronization("</span> + lastblock + <span class="string">") successful"</span>);</span><br><span class="line">          <span class="keyword">return</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="comment">//如果closeFile为true，关闭文件，从租约中移除路径记录</span></span><br><span class="line">        finalizeINodeFileUnderConstruction(src, pendingFile);</span><br><span class="line">      &#125;</span><br><span class="line">    &#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">      <span class="keyword">if</span> (closeFile || durableSync) &#123;</span><br><span class="line">        getEditLog().logSync();<span class="comment">//刷新FSEditLog到底层文件</span></span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    ...<span class="comment">//日志</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p><code>lastBlock</code>为提交的区块，<code>newgenerationstamp</code>为区块修复过程中申请的新的generationStamp，<code>newlength</code>为修复后的长度(小于等于原来长度)，<code>closeFile</code>数据节点提交时指定是否关闭文件，<code>deleteblock</code>数据节点提交时指定是否删除该区块(区块修复失败)，<code>newTargets</code>为成功进行区块修复的数据节点，作为修复后区块对应的新的数据节点。<br><strong>首先</strong>，进行安全性检查，安全模式下不处理区块修复提交，如果对应的区块信息不存在或者文件不处于构建状态也会抛出异常，正常情况下会的到对应的INodeFileUnderConstruction对象。</p>
+<p><strong>然后</strong>，通过blocksMap的removeBlock方法从blocksMap中移除旧的区块信息，因为区块修复时会申请新的generationStamp<br>blocksMap的removeBlock方法如下<br><figure class="highlight armasm"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="label">void</span> removeBlock(<span class="keyword">BlockInfo </span><span class="keyword">blockInfo) </span>&#123;</span><br><span class="line">    <span class="preprocessor">if</span> (<span class="keyword">blockInfo </span>== null)</span><br><span class="line">      return<span class="comment">;</span></span><br><span class="line">    <span class="keyword">blockInfo.inode </span>= null<span class="comment">;</span></span><br><span class="line">    for(int idx = <span class="keyword">blockInfo.numNodes()-1; </span>idx &gt;= <span class="number">0</span><span class="comment">; idx--) &#123;</span></span><br><span class="line">      DatanodeDescriptor <span class="preprocessor">dn</span> = <span class="keyword">blockInfo.getDatanode(idx);</span><br><span class="line"></span>      <span class="preprocessor">dn</span>.removeBlock(<span class="keyword">blockInfo); </span>// remove from the list <span class="keyword">and </span>wipe the location</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">blocks.remove(blockInfo); </span> // remove <span class="keyword">block </span>from the <span class="preprocessor">map</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，会依次从BlockInfo的triplets中获取对应的数据节点对象，然后解除和数据节点的双向关系，DatanodeDescriptor的removeBlock方法在前面1.2.2.1小节已经分析过了，会从数据节点的区块列表中移除区块，且从区块信息的triplets中移除数据节点信息。<br>然后从blocksMap中移除区块信息(blocks)。  </p>
+<p><strong>接着</strong>，如果区块修复失败，数据节点通知要删除区块时，会删除区块，否则更新新的区块元数据<br>从INodeFileUnderConstruction中删除一个区块由INodeFileUnderConstruction的removeBlock方法完成，就是改变blocks成员，比较简单。<br>如果不删除区块，则需要更新元数据。<br>首先通过blocksMap的addINode方法查找现有区块信息或添加新的区块信息，即如果当前blocks中存在区块信息则返回否则创建新的区块信息添加到blocks中并返回。BlocksMap查找元素见<a href="../NameNode维护的数据结构">NameNode实现源码分析—数据块和数据节点相关数据结构和线程</a>中的1.2.1小节，blocksMap中数据存储通过链式哈希表，查找时首先根据Block的hashCode算出在数组中索引，获取首元素后遍历链表，当ID和generationStamp相等时元素相等。因此由于这里区块的generationStamp改变了，在blocksMap中找不到区块信息，会新建BlockInfo然后添加到blocks中。<br>然后如果需要关闭文件的话，将区块信息添加到数据节点的区块列表中。这里注意的是，如果不关闭文件，则不应该将最后一个区块信息添加到数据节点的区块列表中，因为该区块还处于构建状态，不属于数据节点，对应的是在所属的INodeFileUnderConstruction的targets成员记录正在构建的数据节点。例如，在getAdditionalBlock申请新的区块后，获取的区块信息就不会添加到数据节点区块列表中。<br>最后将新的区块信息添加到INodeFileUnderConstruction中，并设置INodeFileUnderConstruction的targets为新的targets。  </p>
+<p><strong>最后</strong>，如果不关闭文件，且durableSync为true时，通过FSDirectory的persistBlocks持久化打开文件的所有区块到编辑日志中，返回。<br>persistBlocks如下，通过logOpenFile记录正在打开文件的区块<br><figure class="highlight gradle"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">void</span> persistBlocks(String path, INodeFileUnderConstruction <span class="keyword">file</span>) <span class="keyword">throws</span> IOException &#123;</span><br><span class="line">    waitForReady();</span><br><span class="line">    <span class="keyword">synchronized</span> (rootDir) &#123;</span><br><span class="line">      fsImage.getEditLog().logOpenFile(path, <span class="keyword">file</span>);<span class="comment">//记录日志</span></span><br><span class="line">      ...</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>否则通过finalizeINodeFileUnderConstruction关闭文件，finalizeINodeFileUnderConstruction方法在前面2.3.1.1分析过了，会从租约中移除文件记录(因此对应为从NN_Recovery租约中移除文件记录)，将INodeFileUnderConstruction转换为INodeFile，并在blocksMap中进行替换，然后在日志中记录文件的关闭操作，最终会检查所有的区块副本数是否达到期望值，对于不满足条件的添加到neededReplications中等待复制。<br>此外，关闭文件时要通过FSEditLog的logSync方法刷新日志记录到底层文件中。  </p>
+<p>因此，NameNode租约恢复时，从原来租约中移除文件，然后分配临时持有者为NN_Recovery的租约，在数据节点区块恢复commitBlockSynchronization通知NameNode时，对于NameNode发起的租约恢复closeFile为true，因此最终会从NN_Recovery临时租约中移除文件记录。</p>
+<hr>
+<h2 id="6-_客户端租约相关">6. 客户端租约相关</h2><p>前面分析了NameNode的租约维护和发起租约恢复的过程，并分析了数据节点区块恢复后通知NameNode，从而从NN_Recovery临时租约中移除记录的过程。接下来分析客户端租约相关过程。  </p>
+<h3 id="6-1_打开文件时租约检查以及租约恢复">6.1 打开文件时租约检查以及租约恢复</h3><p>客户端不管是创建文件还是为了追加数据而打开文件，都会调用FSNamesystem.startFileInternal(具体相关分析见其他文章)，在startFileInternal中会判断文件是否已经被打开(可能被其他客户端打开，也可能被当前客户端打开)，如下<br><figure class="highlight lisp"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">recoverLeaseInternal<span class="list">(<span class="keyword">myFile</span>, src, holder, clientMachine, false)</span><span class="comment">;</span></span><br></pre></td></tr></table></figure></p>
+<p>其中，<code>myFile</code>为要打开或追加文件的INodeFile对象，src为文件路径，holder为当前客户端，clientMachine为客户端主机，recoverLeaseInternal如下<br><figure class="highlight lasso"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="literal">void</span> recoverLeaseInternal(INode fileInode, <span class="built_in">String</span> src, <span class="built_in">String</span> holder, <span class="built_in">String</span> clientMachine, <span class="built_in">boolean</span> force)</span><br><span class="line">  throws IOException &#123;</span><br><span class="line">    <span class="keyword">if</span> (fileInode != <span class="built_in">null</span> <span class="subst">&amp;&amp;</span> fileInode<span class="built_in">.</span>isUnderConstruction()) &#123;</span><br><span class="line">      INodeFileUnderConstruction pendingFile = (INodeFileUnderConstruction) fileInode;</span><br><span class="line">      Lease lease = leaseManager<span class="built_in">.</span>getLease(holder);<span class="comment">//当前客户端持有的租约</span></span><br><span class="line">      <span class="keyword">if</span> (<span class="subst">!</span>force <span class="subst">&amp;&amp;</span> lease != <span class="built_in">null</span>) &#123;</span><br><span class="line">        Lease leaseFile = leaseManager<span class="built_in">.</span>getLeaseByPath(src);<span class="comment">//要打开文件在租约管理器中所属租约</span></span><br><span class="line">        <span class="comment">//文件所属租约为当前客户端租约，即当前客户端已经打开了该文件，抛出异常</span></span><br><span class="line">        <span class="keyword">if</span> (leaseFile != <span class="built_in">null</span> <span class="subst">&amp;&amp;</span> leaseFile<span class="built_in">.</span><span class="keyword">equals</span>(lease)) &#123;</span><br><span class="line">            <span class="attribute">...</span><span class="comment">//AlreadyBeingCreatedException异常</span></span><br><span class="line">        &#125;</span><br><span class="line">      &#125;</span><br><span class="line">      lease = leaseManager<span class="built_in">.</span>getLease(pendingFile<span class="built_in">.</span>clientName);<span class="comment">//文件所属租约</span></span><br><span class="line">      <span class="keyword">if</span> (lease == <span class="built_in">null</span>) &#123;<span class="comment">//文件已经被打开了，但是没有对应的租约对象，抛出AlreadyBeingCreatedException异常</span></span><br><span class="line">            <span class="attribute">...</span><span class="comment">//AlreadyBeingCreatedException异常</span></span><br><span class="line">      &#125;</span><br><span class="line">      </span><br><span class="line">      <span class="comment">//force为true，则强制恢复租约，将src所有副本恢复到一致状态，然后关闭，从现有租约lease中移除记录，以便重新打开文件</span></span><br><span class="line">      <span class="keyword">if</span> (force) &#123;</span><br><span class="line">        <span class="keyword">LOG</span><span class="built_in">.</span>info(<span class="string">"recoverLease: recover lease "</span> + lease + <span class="string">", src="</span> + src + <span class="string">" from client "</span> + pendingFile<span class="built_in">.</span>clientName);</span><br><span class="line">        internalReleaseLeaseOne(lease, src);</span><br><span class="line">      &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        <span class="comment">//force为false，如果原来的租约到了租约超期软限制，则恢复租约</span></span><br><span class="line">        <span class="keyword">if</span> (lease<span class="built_in">.</span>expiredSoftLimit()) &#123;</span><br><span class="line">          <span class="keyword">LOG</span><span class="built_in">.</span>info(<span class="string">"startFile: recover lease "</span> + lease + <span class="string">", src="</span> + src +</span><br><span class="line">              <span class="string">" from client "</span> + pendingFile<span class="built_in">.</span>clientName);</span><br><span class="line">          internalReleaseLease(lease, src);</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="comment">//force为false，不管有没有进行租约恢复，都抛出AlreadyBeingCreatedException，即其他客户端正在占用该文件</span></span><br><span class="line">        <span class="attribute">...</span><span class="comment">//抛出AlreadyBeingCreatedException异常</span></span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，如果文件处于构建状态，则文件应该对应一个租约，如果该租约不存在，抛出AlreadyBeingCreatedException异常。<br>租约存在时，如果文件所属租约就是当前客户端租约时，表明客户端已经打开了该文件，抛出AlreadyBeingCreatedException异常。  </p>
+<p>如果文件所属租约不是当前客户端租约时，表明被其他客户端占用。<br>如果指定了force，则不管其他客户端是否有没有在软周期内更新租约，都强制通过internalReleaseLeaseOne进行租约恢复，internalReleaseLeaseOne在前面分析过了，会从原来租约lease中移除文件src的记录，分配临时租约NN_Recovery，然后执行区块恢复将所有文件副本恢复到一致状态，然后关闭文件，最终从临时租约中移除src记录，从而客户端能够重新打开文件进行操作。<br>而没有指定force，则其他占有该文件的客户端超过软周期(1min)没有更新租约，则进行租约恢复，然后不管是否进行了租约恢复，抛出AlreadyBeingCreatedException异常。internalReleaseLease如下<br><figure class="highlight processing"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">void</span> internalReleaseLease(Lease lease, <span class="keyword">String</span> src) <span class="keyword">throws</span> IOException &#123;</span><br><span class="line">    <span class="comment">//对所有打开文件进行恢复，文件区块副本恢复到一致状态后关闭，从lease中移除文件记录，然后移除lease</span></span><br><span class="line">    <span class="keyword">if</span> (lease.hasPath()) &#123;</span><br><span class="line">      <span class="keyword">String</span>[] leasePaths = <span class="keyword">new</span> <span class="keyword">String</span>[lease.getPaths().<span class="built_in">size</span>()];</span><br><span class="line">      lease.getPaths().toArray(leasePaths);</span><br><span class="line">      <span class="keyword">for</span> (<span class="keyword">String</span> p: leasePaths) &#123;</span><br><span class="line">        internalReleaseLeaseOne(lease, p);</span><br><span class="line">      &#125;</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;<span class="comment">//租约没有打开的文件，恢复src，src的区块恢复到一致状态后关闭</span></span><br><span class="line">      internalReleaseLeaseOne(lease, src);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，对客户端的所有占有文件进行恢复操作，从租约中移除文件记录，将文件区块副本恢复到一致状态然后关闭。如果该租约已经没有管理的打开文件时，则internalReleaseLeaseOne对文件src进行区块恢复工作，恢复到一致状态后，进行关闭(无法从lease中移除src记录了)</p>
+<h3 id="6-2_打开文件时添加租约">6.2 打开文件时添加租约</h3><p>同6.1中分析，在startFileInternal中，如果通过recoverLeaseInternal检查后，当前客户端能够正常的打开文件，则在最后会添加租约信息<br><figure class="highlight css"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">leaseManager</span><span class="class">.addLease</span>(<span class="tag">newNode</span><span class="class">.clientName</span>, <span class="tag">src</span>);</span><br></pre></td></tr></table></figure></p>
+<p>addLease在前面4.1.3中已经分析过了，如果客户端没有租约对象，则创建租约对象，在租约中添加src，此时租约的lastUpdate为创建时间，然后更新租约管理器中的相关成员。<br>而如果客户端存在租约对象，则在相关租约对象中添加src，更新租约的lastUpdate为当前时间，相应的改变了在sortedLeases中的位置，同样的更新租约管理器中相关成员。  </p>
+<h3 id="6-3_checkLease">6.3 checkLease</h3><p>客户端执行添加区块(getAdditionalBlock)，为追加数据打开文件(appendFile)，放弃区块(abandonBlock)，关闭文件(complete-&gt;completeFileInternal)，持久化文件元数据(fsync)等这些与打开文件相关的请求时(以上方法都是ClientProtocol)，NameNode在以上方法实现中都需要对被操作的打开文件进行租约检查，由FSNamesystem.checkLease完成<br><figure class="highlight gradle"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="keyword">void</span> checkLease(String src, String holder, INode <span class="keyword">file</span>) <span class="keyword">throws</span> IOException &#123;</span><br><span class="line">    <span class="keyword">if</span> (<span class="keyword">file</span> == <span class="keyword">null</span> || <span class="keyword">file</span>.isDirectory()) &#123;<span class="comment">//文件不存在</span></span><br><span class="line">      Lease lease = leaseManager.getLease(holder);</span><br><span class="line">      <span class="keyword">throw</span> <span class="keyword">new</span> LeaseExpiredException(<span class="string">"No lease on "</span> + src +...);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> (!<span class="keyword">file</span>.isUnderConstruction()) &#123;<span class="comment">//文件不是处于构建状态</span></span><br><span class="line">      Lease lease = leaseManager.getLease(holder);</span><br><span class="line">      <span class="keyword">throw</span> <span class="keyword">new</span> LeaseExpiredException(<span class="string">"No lease on "</span> + src +...); </span><br><span class="line">    &#125;</span><br><span class="line">    INodeFileUnderConstruction pendingFile = (INodeFileUnderConstruction)<span class="keyword">file</span>;</span><br><span class="line">    <span class="comment">//租约持有者与当前操作客户端不符</span></span><br><span class="line">    <span class="keyword">if</span> (holder != <span class="keyword">null</span> &amp;&amp; !pendingFile.getClientName().equals(holder)) &#123;</span><br><span class="line">      <span class="keyword">throw</span> <span class="keyword">new</span> LeaseExpiredException(<span class="string">"Lease mismatch on "</span> + src + <span class="string">" owned by "</span></span><br><span class="line">          + pendingFile.getClientName() + <span class="string">" but is accessed by "</span> + holder);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，这些对打开文件的相关操作，都会检查文件是否存在且是否处于构建状态，处于构建状态时，文件租约持有者是否为当前请求客户端。  </p>
+<h3 id="6-4_renewLease">6.4 renewLease</h3><p>客户端持有租约时，会周期性的通过ClientProtocol的renewLease更新租约，renewLease实现如下<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">void</span> <span class="title">renewLease</span><span class="params">(String clientName)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">    namesystem.renewLease(clientName);        </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>还是由FSNamesystem提供服务，如下<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">synchronized</span> <span class="function"><span class="keyword">void</span> <span class="title">renewLease</span><span class="params">(String holder)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (isInSafeMode())</span><br><span class="line">      <span class="keyword">throw</span> <span class="keyword">new</span> SafeModeException(<span class="string">"Cannot renew lease for "</span> + holder, safeMode);</span><br><span class="line">    leaseManager.renewLease(holder);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>安全模式下不进行租约更新，由租约管理器的renewLease进行租约更新，renewLease在前面4.1.3中分析过了，首先从sortedLeases中移除租约，然后更新租约的lastUpdate为当前时间，再添加到sortedLeases中，从而改变了在sortedLeases中位置(sortedLeases根据lastUpdate排序)</p>
+<h3 id="6-5_客户端主动租约恢复">6.5 客户端主动租约恢复</h3><p>客户端可以通过ClientProtocol中的<code>recoverLease</code>方法主动进行租约恢复，在NameNode实现如下<br><figure class="highlight processing"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="built_in">boolean</span> recoverLease(<span class="keyword">String</span> src, <span class="keyword">String</span> clientName) <span class="keyword">throws</span> IOException &#123;</span><br><span class="line">    <span class="keyword">String</span> clientMachine = getClientMachine();</span><br><span class="line">    <span class="keyword">return</span> namesystem.recoverLease(src, clientName, clientMachine);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>恢复客户端clientName占有的文件src，由FSNamesystem提供服务<br><figure class="highlight processing"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">boolean</span> recoverLease(<span class="keyword">String</span> src, <span class="keyword">String</span> holder, <span class="keyword">String</span> clientMachine) <span class="keyword">throws</span> IOException &#123;</span><br><span class="line">    FSPermissionChecker pc = getPermissionChecker();</span><br><span class="line">    <span class="keyword">synchronized</span> (<span class="keyword">this</span>) &#123;</span><br><span class="line">      <span class="keyword">if</span> (isInSafeMode()) &#123;<span class="comment">//安全模式不进行租约恢复</span></span><br><span class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> SafeModeException(<span class="string">"Cannot recover the lease of "</span> + src, safeMode);</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="keyword">if</span> (!DFSUtil.isValidName(src)) &#123;<span class="comment">//检查是否为合法的文件名</span></span><br><span class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> IOException(<span class="string">"Invalid name: "</span> + src);</span><br><span class="line">      &#125;</span><br><span class="line"></span><br><span class="line">      INode inode = dir.getFileINode(src);</span><br><span class="line">      <span class="keyword">if</span> (inode == <span class="keyword">null</span>) &#123;<span class="comment">//对应文件不存在</span></span><br><span class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> FileNotFoundException(<span class="string">"File not found "</span> + src);</span><br><span class="line">      &#125;</span><br><span class="line"></span><br><span class="line">      <span class="keyword">if</span> (!inode.isUnderConstruction()) &#123;<span class="comment">//文件没有打开，直接返回true</span></span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">true</span>;</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="keyword">if</span> (isPermissionEnabled) &#123;<span class="comment">//检查是否有写的权限</span></span><br><span class="line">        checkPathAccess(pc, src, FsAction.WRITE);</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="comment">//恢复租约</span></span><br><span class="line">      recoverLeaseInternal(inode, src, holder, clientMachine, <span class="keyword">true</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">false</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，一系列检查后，如果文件没有打开，则客户端可以打开该文件，因此直接返回。否则通过recoverLeaseInternal进行租约恢复，传入的最后一个参数force为true，即如果文件被其他客户端打开，强制进行租约恢复。  </p>
+</span>
+      
+    </div>
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/HDFS/" rel="tag">#HDFS</a>
+          
+            <a href="/tags/Hadoop-1-2-1/" rel="tag">#Hadoop-1.2.1</a>
+          
+            <a href="/tags/Java/" rel="tag">#Java</a>
+          
+            <a href="/tags/NameNode/" rel="tag">#NameNode</a>
+          
+            <a href="/tags/NameNode源码阅读/" rel="tag">#NameNode源码阅读</a>
+          
+            <a href="/tags/源码阅读/" rel="tag">#源码阅读</a>
+          
+        </div>
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/配置相关HDFS/" rel="next" title="Hadoop配置相关---HDFS">
+                <i class="fa fa-chevron-left"></i> Hadoop配置相关---HDFS
+              </a>
+            
+          </div>
+
+          <div class="post-nav-prev post-nav-item">
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </article>
+
+
+
+    <div class="post-spread">
+      
+        <!-- JiaThis Button BEGIN -->
+<div class="jiathis_style">
+  <a class="jiathis_button_tsina"></a>
+  <a class="jiathis_button_tqq"></a>
+  <a class="jiathis_button_weixin"></a>
+  <a class="jiathis_button_cqq"></a>
+  <a class="jiathis_button_douban"></a>
+  <a class="jiathis_button_renren"></a>
+  <a class="jiathis_button_qzone"></a>
+  <a class="jiathis_button_kaixin001"></a>
+  <a class="jiathis_button_copy"></a>
+  <a href="http://www.jiathis.com/share" class="jiathis jiathis_txt jiathis_separator jtico jtico_jiathis" target="_blank"></a>
+  <a class="jiathis_counter_style"></a>
+</div>
+<script type="text/javascript" >
+  var jiathis_config={
+    hideMore:false
+  }
+</script>
+<script type="text/javascript" src="http://v3.jiathis.com/code/jia.js" charset="utf-8"></script>
+<!-- JiaThis Button END -->
+
+      
+    </div>
+  </div>
+
+
+        </div>
+
+        
+
+
+        
+  <div class="comments" id="comments">
+    
+      <div class="ds-thread" data-thread-key="NameNode租约管理/"
+           data-title="NameNode实现源码分析---租约管理" data-url="http://xiao-yun.github.io/NameNode租约管理/">
+      </div>
+    
+  </div>
+
+
+      </div>
+
+      
+        
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap" >
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel ">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+          <img class="site-author-image" src="/images/hero.jpg" alt="xiaoyun" itemprop="image"/>
+          <p class="site-author-name" itemprop="name">xiaoyun</p>
+        </div>
+        <p class="site-description motion-element" itemprop="description">学习笔记，网上资源摘要等</p>
+        <nav class="site-state motion-element">
+          <div class="site-state-item site-state-posts">
+            <a href="/archives">
+              <span class="site-state-item-count">42</span>
+              <span class="site-state-item-name">日志</span>
+            </a>
+          </div>
+
+          <div class="site-state-item site-state-categories">
+            <a href="/categories">
+              <span class="site-state-item-count">40</span>
+              <span class="site-state-item-name">分类</span>
+              </a>
+          </div>
+
+          <div class="site-state-item site-state-tags">
+            <a href="/tags">
+              <span class="site-state-item-count">21</span>
+              <span class="site-state-item-name">标签</span>
+              </a>
+          </div>
+
+        </nav>
+
+        
+
+        <div class="links-of-author motion-element">
+          
+            
+              <span class="links-of-author-item">
+                <a href="https://github.com/xiao-yun" target="_blank">
+                  
+                    <i class="fa fa-globe"></i> github
+                  
+                </a>
+              </span>
+            
+          
+        </div>
+
+        
+        
+
+        <div class="links-of-author motion-element">
+          
+        </div>
+
+      </section>
+
+      
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc-indicator-top post-toc-indicator">
+            <i class="fa fa-angle-double-up"></i>
+          </div>
+          <div class="post-toc">
+            
+              
+            
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-_NameNode租约管理线程"><span class="nav-number">1.</span> <span class="nav-text">1. NameNode租约管理线程</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-_租约管理器LeaseManager"><span class="nav-number">2.</span> <span class="nav-text">2. 租约管理器LeaseManager</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-_租约Lease"><span class="nav-number">3.</span> <span class="nav-text">3. 租约Lease</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-_LeaseManager-Monitor线程"><span class="nav-number">4.</span> <span class="nav-text">4. LeaseManager.Monitor线程</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#4-1_internalReleaseLeaseOne"><span class="nav-number">4.1.</span> <span class="nav-text">4.1 internalReleaseLeaseOne</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#4-1-1_finalizeINodeFileUnderConstruction"><span class="nav-number">4.1.1.</span> <span class="nav-text">4.1.1 finalizeINodeFileUnderConstruction</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#4-1-2_assignPrimaryDatanode"><span class="nav-number">4.1.2.</span> <span class="nav-text">4.1.2 assignPrimaryDatanode</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#4-1-3_reassignLease"><span class="nav-number">4.1.3.</span> <span class="nav-text">4.1.3 reassignLease</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#5-_数据节点区块恢复完成报告"><span class="nav-number">5.</span> <span class="nav-text">5. 数据节点区块恢复完成报告</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#6-_客户端租约相关"><span class="nav-number">6.</span> <span class="nav-text">6. 客户端租约相关</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#6-1_打开文件时租约检查以及租约恢复"><span class="nav-number">6.1.</span> <span class="nav-text">6.1 打开文件时租约检查以及租约恢复</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#6-2_打开文件时添加租约"><span class="nav-number">6.2.</span> <span class="nav-text">6.2 打开文件时添加租约</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#6-3_checkLease"><span class="nav-number">6.3.</span> <span class="nav-text">6.3 checkLease</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#6-4_renewLease"><span class="nav-number">6.4.</span> <span class="nav-text">6.4 renewLease</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#6-5_客户端主动租约恢复"><span class="nav-number">6.5.</span> <span class="nav-text">6.5 客户端主动租约恢复</span></a></li></ol></li></ol></div>
+            
+          </div>
+          <div class="post-toc-indicator-bottom post-toc-indicator">
+            <i class="fa fa-angle-double-down"></i>
+          </div>
+        </section>
+      
+
+    </div>
+  </aside>
+
+
+      
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright" >
+  
+  &copy; 
+  <span itemprop="copyrightYear">2016</span>
+  <span class="with-love">
+    <i class="icon-next-heart fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">xiaoyun</span>
+</div>
+
+<div class="powered-by">
+  由 <a class="theme-link" href="http://hexo.io">Hexo</a> 强力驱动
+</div>
+
+<div class="theme-info">
+  主题 -
+  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
+    NexT.Mist
+  </a>
+</div>
+
+
+
+      </div>
+    </footer>
+
+    <div class="back-to-top"></div>
+  </div>
+
+  <script type="text/javascript" src="/vendors/jquery/index.js?v=2.1.3"></script>
+
+  
+  
+
+  
+    
+
+  
+    
+  
+
+  <script type="text/javascript">
+    var duoshuoQuery = {short_name:"xiaoyuncom"};
+    (function() {
+      var ds = document.createElement('script');
+      ds.type = 'text/javascript';ds.async = true;
+      ds.id = 'duoshuo-script';
+      ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+      ds.charset = 'UTF-8';
+      (document.getElementsByTagName('head')[0]
+      || document.getElementsByTagName('body')[0]).appendChild(ds);
+    })();
+  </script>
+    
+     
+
+
+    
+  
+
+  
+  <script type="text/javascript" src="/vendors/fancybox/source/jquery.fancybox.pack.js"></script>
+  <script type="text/javascript" src="/js/fancy-box.js?v=0.4.5.2"></script>
+
+
+  <script type="text/javascript" src="/js/helpers.js?v=0.4.5.2"></script>
+  <script type="text/javascript" src="/vendors/velocity/velocity.min.js"></script>
+<script type="text/javascript" src="/vendors/velocity/velocity.ui.min.js"></script>
+
+<script type="text/javascript" src="/js/motion.js?v=0.4.5.2" id="motion.global"></script>
+
+
+  <script type="text/javascript" src="/vendors/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  <script type="text/javascript" src="/vendors/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  
+<script type="text/javascript" src="/js/bootstrap.scrollspy.js?v=0.4.5.2" id="bootstrap.scrollspy.custom"></script>
+
+
+<script type="text/javascript" id="sidebar.toc.highlight">
+  $(document).ready(function () {
+    var tocSelector = '.post-toc';
+    var $tocSelector = $(tocSelector);
+    var activeCurrentSelector = '.active-current';
+
+    $tocSelector
+      .on('activate.bs.scrollspy', function () {
+        var $currentActiveElement = $(tocSelector + ' .active').last();
+
+        removeCurrentActiveClass();
+        $currentActiveElement.addClass('active-current');
+
+        $tocSelector[0].scrollTop = $currentActiveElement.position().top;
+      })
+      .on('clear.bs.scrollspy', function () {
+        removeCurrentActiveClass();
+      });
+
+    function removeCurrentActiveClass () {
+      $(tocSelector + ' ' + activeCurrentSelector)
+        .removeClass(activeCurrentSelector.substring(1));
+    }
+
+    function processTOC () {
+      getTOCMaxHeight();
+      toggleTOCOverflowIndicators();
+    }
+
+    function getTOCMaxHeight () {
+      var height = $('.sidebar').height() -
+                   $tocSelector.position().top -
+                   $('.post-toc-indicator-bottom').height();
+
+      $tocSelector.css('height', height);
+
+      return height;
+    }
+
+    function toggleTOCOverflowIndicators () {
+      tocOverflowIndicator(
+        '.post-toc-indicator-top',
+        $tocSelector.scrollTop() > 0 ? 'show' : 'hide'
+      );
+
+      tocOverflowIndicator(
+        '.post-toc-indicator-bottom',
+        $tocSelector.scrollTop() >= $tocSelector.find('ol').height() - $tocSelector.height() ? 'hide' : 'show'
+      )
+    }
+
+    $(document).on('sidebar.motion.complete', function () {
+      processTOC();
+    });
+
+    $('body').scrollspy({ target: tocSelector });
+    $(window).on('resize', function () {
+      if ( $('.sidebar').hasClass('sidebar-active') ) {
+        processTOC();
+      }
+    });
+
+    onScroll($tocSelector);
+
+    function onScroll (element) {
+      element.on('mousewheel DOMMouseScroll', function (event) {
+          var oe = event.originalEvent;
+          var delta = oe.wheelDelta || -oe.detail;
+
+          this.scrollTop += ( delta < 0 ? 1 : -1 ) * 30;
+          event.preventDefault();
+
+          toggleTOCOverflowIndicators();
+      });
+    }
+
+    function tocOverflowIndicator (indicator, action) {
+      var $indicator = $(indicator);
+      var opacity = action === 'show' ? 1 : 0;
+      $indicator.velocity ?
+        $indicator.velocity('stop').velocity({
+          opacity: opacity
+        }, { duration: 100 }) :
+        $indicator.stop().animate({
+          opacity: opacity
+        }, 100);
+    }
+
+  });
+</script>
+
+<script type="text/javascript" id="sidebar.nav">
+  $(document).ready(function () {
+    var html = $('html');
+    var TAB_ANIMATE_DURATION = 200;
+    var hasVelocity = $.isFunction(html.velocity);
+
+    $('.sidebar-nav li').on('click', function () {
+      var item = $(this);
+      var activeTabClassName = 'sidebar-nav-active';
+      var activePanelClassName = 'sidebar-panel-active';
+      if (item.hasClass(activeTabClassName)) {
+        return;
+      }
+
+      var currentTarget = $('.' + activePanelClassName);
+      var target = $('.' + item.data('target'));
+
+      hasVelocity ?
+        currentTarget.velocity('transition.slideUpOut', TAB_ANIMATE_DURATION, function () {
+          target
+            .velocity('stop')
+            .velocity('transition.slideDownIn', TAB_ANIMATE_DURATION)
+            .addClass(activePanelClassName);
+        }) :
+        currentTarget.animate({ opacity: 0 }, TAB_ANIMATE_DURATION, function () {
+          currentTarget.hide();
+          target
+            .stop()
+            .css({'opacity': 0, 'display': 'block'})
+            .animate({ opacity: 1 }, TAB_ANIMATE_DURATION, function () {
+              currentTarget.removeClass(activePanelClassName);
+              target.addClass(activePanelClassName);
+            });
+        });
+
+      item.siblings().removeClass(activeTabClassName);
+      item.addClass(activeTabClassName);
+    });
+
+    $('.post-toc a').on('click', function (e) {
+      e.preventDefault();
+      var targetSelector = escapeSelector(this.getAttribute('href'));
+      var offset = $(targetSelector).offset().top;
+      hasVelocity ?
+        html.velocity('stop').velocity('scroll', {
+          offset: offset  + 'px',
+          mobileHA: false
+        }) :
+        $('html, body').stop().animate({
+          scrollTop: offset
+        }, 500);
+    });
+
+    // Expand sidebar on post detail page by default, when post has a toc.
+    motionMiddleWares.sidebar = function () {
+      var $tocContent = $('.post-toc-content');
+      if (CONFIG.sidebar === 'post') {
+        if ($tocContent.length > 0 && $tocContent.html().trim().length > 0) {
+          displaySidebar();
+        }
+      }
+    };
+  });
+</script>
+
+
+
+  <script type="text/javascript" src="/js/bootstrap.js"></script>
+
+  
+  
+
+  
+  
+
+</body>
+</html>

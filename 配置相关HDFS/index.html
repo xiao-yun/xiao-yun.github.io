@@ -95,7 +95,7 @@ FileSystem.get获取文件系统，默认为本地文件系统
 fs.%s.impl.disable.cache
 false
 其中%">
-<meta property="og:updated_time" content="2016-01-20T07:27:27.013Z">
+<meta property="og:updated_time" content="2016-01-24T03:27:53.799Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="Hadoop配置相关---HDFS">
 <meta name="twitter:description" content="Hadoop版本:Hadoop-1.2.1说明:缺省值为N/A是指在程序中没有指定，而不是在datanode-default.xml等缺省配置文件中没有设置。
@@ -288,8 +288,8 @@ false
         <div class="post-meta">
           <span class="post-time">
             发表于
-            <time itemprop="dateCreated" datetime="2016-01-20T15:27:27+08:00" content="2016-01-20">
-              2016-01-20
+            <time itemprop="dateCreated" datetime="2016-01-24T11:27:53+08:00" content="2016-01-24">
+              2016-01-24
             </time>
           </span>
 
@@ -653,6 +653,41 @@ false
 <td style="text-align:center">0.32</td>
 <td style="text-align:center">ReplicationMonitor线程每次处理删除操作，占总的数据节点百分比</td>
 </tr>
+<tr>
+<td style="text-align:center">heartbeat.recheck.interval</td>
+<td style="text-align:center">5*60*1000(5min)</td>
+<td style="text-align:center">HeartbeatMonitor线程心跳检查周期</td>
+</tr>
+<tr>
+<td style="text-align:center">dfs.block.access.key.update.interval</td>
+<td style="text-align:center">600*60*1000(10h)</td>
+<td style="text-align:center">HeartbeatMonitor线程更新口令周期，需要dfs.block.access.token.enable使能才会执行更新操作</td>
+</tr>
+<tr>
+<td style="text-align:center">dfs.block.access.token.enable</td>
+<td style="text-align:center">false</td>
+<td style="text-align:center">HeArtbeatMonitor是否执行口令更新</td>
+</tr>
+<tr>
+<td style="text-align:center">dfs.namenode.stale.datanode.interval</td>
+<td style="text-align:center">30*1000(30s)</td>
+<td style="text-align:center">数据节点成旧(stale)时间(没发送心跳)</td>
+</tr>
+<tr>
+<td style="text-align:center">dfs.namenode.stale.datanode.minimum.interval</td>
+<td style="text-align:center">3</td>
+<td style="text-align:center">数据节点最小成旧(stale)时间与心跳周期的比值，即陈旧时间不会小于心跳周期的3倍</td>
+</tr>
+<tr>
+<td style="text-align:center">dfs.hosts</td>
+<td style="text-align:center">N/A</td>
+<td style="text-align:center">可以连接到名字节点的数据节点列表</td>
+</tr>
+<tr>
+<td style="text-align:center">dfs.hosts.exclude</td>
+<td style="text-align:center">N/A</td>
+<td style="text-align:center">不能连接到名字节点的数据节点列表</td>
+</tr>
 </tbody>
 </table>
 <h2 id="SecondaryNameNode">SecondaryNameNode</h2><table>
@@ -732,16 +767,16 @@ false
         <div class="post-nav">
           <div class="post-nav-next post-nav-item">
             
-              <a href="/NameNode和SecondaryNameNode/" rel="next" title="NameNode实现源码分析---和SecondaryNameNode的交互">
-                <i class="fa fa-chevron-left"></i> NameNode实现源码分析---和SecondaryNameNode的交互
+              <a href="/NameNode心跳检测/" rel="next" title="NameNode实现源码分析---心跳检测">
+                <i class="fa fa-chevron-left"></i> NameNode实现源码分析---心跳检测
               </a>
             
           </div>
 
           <div class="post-nav-prev post-nav-item">
             
-              <a href="/NameNode维护的数据结构/" rel="prev" title="NameNode实现源码分析---数据块和数据节点相关数据结构和线程">
-                NameNode实现源码分析---数据块和数据节点相关数据结构和线程 <i class="fa fa-chevron-right"></i>
+              <a href="/NameNode租约管理/" rel="prev" title="NameNode实现源码分析---租约管理">
+                NameNode实现源码分析---租约管理 <i class="fa fa-chevron-right"></i>
               </a>
             
           </div>
@@ -837,7 +872,7 @@ false
         <nav class="site-state motion-element">
           <div class="site-state-item site-state-posts">
             <a href="/archives">
-              <span class="site-state-item-count">38</span>
+              <span class="site-state-item-count">42</span>
               <span class="site-state-item-name">日志</span>
             </a>
           </div>

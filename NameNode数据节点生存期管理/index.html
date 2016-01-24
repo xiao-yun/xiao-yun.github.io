@@ -1,0 +1,858 @@
+<!doctype html>
+<html class="theme-next   use-motion ">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+  <link href="/vendors/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css"/>
+
+
+
+
+  <link href="//fonts.googleapis.com/css?family=Lato:300,400,700,400italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+
+
+
+<link href="/vendors/font-awesome/css/font-awesome.min.css?v=4.4.0" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=0.4.5.2" rel="stylesheet" type="text/css" />
+
+
+  <meta name="keywords" content="HDFS,Hadoop-1.2.1,Java,NameNode,NameNode源码阅读,源码阅读," />
+
+
+
+
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=0.4.5.2" />
+
+
+
+
+
+
+<meta name="description" content="Hadoop版本:Hadoop-1.2.1参考：《Hadoop技术内幕-深入解析Hadoop Common和HDFS架构设计与实现原理》  
+
+1. include文件和exclude文件可以根据配置文件对HDFS中的数据节点进行管理，配置项dfs.hosts为指定能够连接到名字节点的数据节点列表文件(简称include文件)，而配置项dfs.hosts.exclude指定不能连接到名字节点的数据">
+<meta property="og:type" content="article">
+<meta property="og:title" content="NameNode实现源码分析---数据节点生存期管理">
+<meta property="og:url" content="http://xiao-yun.github.io/NameNode数据节点生存期管理/index.html">
+<meta property="og:site_name" content="xiaoyun">
+<meta property="og:description" content="Hadoop版本:Hadoop-1.2.1参考：《Hadoop技术内幕-深入解析Hadoop Common和HDFS架构设计与实现原理》  
+
+1. include文件和exclude文件可以根据配置文件对HDFS中的数据节点进行管理，配置项dfs.hosts为指定能够连接到名字节点的数据节点列表文件(简称include文件)，而配置项dfs.hosts.exclude指定不能连接到名字节点的数据">
+<meta property="og:updated_time" content="2016-01-24T03:27:53.735Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="NameNode实现源码分析---数据节点生存期管理">
+<meta name="twitter:description" content="Hadoop版本:Hadoop-1.2.1参考：《Hadoop技术内幕-深入解析Hadoop Common和HDFS架构设计与实现原理》  
+
+1. include文件和exclude文件可以根据配置文件对HDFS中的数据节点进行管理，配置项dfs.hosts为指定能够连接到名字节点的数据节点列表文件(简称include文件)，而配置项dfs.hosts.exclude指定不能连接到名字节点的数据">
+
+
+
+<script type="text/javascript" id="hexo.configuration">
+  var CONFIG = {
+    scheme: 'Mist',
+    sidebar: 'hide',
+    motion: true
+  };
+</script>
+
+  <title> NameNode实现源码分析---数据节点生存期管理 | xiaoyun </title>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  <!--[if lte IE 8]>
+  <div style=' clear: both; height: 59px; padding:0 0 0 15px; position: relative;margin:0 auto;'>
+    <a href="http://windows.microsoft.com/en-US/internet-explorer/products/ie/home?ocid=ie6_countdown_bannercode">
+      <img src="http://7u2nvr.com1.z0.glb.clouddn.com/picouterie.jpg" border="0" height="42" width="820"
+           alt="You are using an outdated browser. For a faster, safer browsing experience, upgrade for free today or use other browser ,like chrome firefox safari."
+           style='margin-left:auto;margin-right:auto;display: block;'/>
+    </a>
+  </div>
+<![endif]-->
+  
+
+
+
+  <script type="text/javascript">
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "//hm.baidu.com/hm.js?caeb4129c91d1e6fb3d562d35fedef0d";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+  <div class="container one-column page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-meta ">
+  
+
+  <div class="custom-logo-site-title">
+    <a href="/"  class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <span class="site-title">xiaoyun</span>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+  <p class="site-subtitle"></p>
+</div>
+
+<div class="site-nav-toggle">
+  <button>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+  </button>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu ">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-home fa-fw"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives" rel="section">
+            
+              <i class="menu-item-icon fa fa-archive fa-fw"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories" rel="section">
+            
+              <i class="menu-item-icon fa fa-th fa-fw"></i> <br />
+            
+            分类
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+              <i class="menu-item-icon fa fa-tags fa-fw"></i> <br />
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about" rel="section">
+            
+              <i class="menu-item-icon fa fa-user fa-fw"></i> <br />
+            
+            关于
+          </a>
+        </li>
+      
+
+      
+      
+    </ul>
+  
+
+  
+</nav>
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div id="content" class="content">
+          
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                NameNode实现源码分析---数据节点生存期管理
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            发表于
+            <time itemprop="dateCreated" datetime="2016-01-24T11:27:53+08:00" content="2016-01-24">
+              2016-01-24
+            </time>
+          </span>
+
+          
+            <span class="post-category" >
+              &nbsp; | &nbsp; 分类于
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Java/" itemprop="url" rel="index">
+                    <span itemprop="name">Java</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Java/Hadoop-1-2-1/" itemprop="url" rel="index">
+                    <span itemprop="name">Hadoop-1.2.1</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Java/Hadoop-1-2-1/HDFS/" itemprop="url" rel="index">
+                    <span itemprop="name">HDFS</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Java/Hadoop-1-2-1/HDFS/NameNode/" itemprop="url" rel="index">
+                    <span itemprop="name">NameNode</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Java/Hadoop-1-2-1/HDFS/NameNode/源码阅读/" itemprop="url" rel="index">
+                    <span itemprop="name">源码阅读</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Java/Hadoop-1-2-1/HDFS/NameNode/源码阅读/NameNode源码阅读/" itemprop="url" rel="index">
+                    <span itemprop="name">NameNode源码阅读</span>
+                  </a>
+                </span>
+
+                
+                
+
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                &nbsp; | &nbsp;
+                <a href="/NameNode数据节点生存期管理/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="NameNode数据节点生存期管理/" itemprop="commentsCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+
+        </div>
+      </header>
+    
+
+
+    <div class="post-body">
+
+      
+      
+
+      
+        <span itemprop="articleBody"><p>Hadoop版本:<a href="https://archive.apache.org/dist/hadoop/core/hadoop-1.2.1/" target="_blank" rel="external">Hadoop-1.2.1</a><br>参考：《Hadoop技术内幕-深入解析Hadoop Common和HDFS架构设计与实现原理》  </p>
+<hr>
+<h2 id="1-_include文件和exclude文件">1. include文件和exclude文件</h2><p>可以根据配置文件对HDFS中的数据节点进行管理，配置项<code>dfs.hosts</code>为指定能够连接到名字节点的数据节点列表文件(简称include文件)，而配置项<code>dfs.hosts.exclude</code>指定不能连接到名字节点的数据节点列表文件(简称exclude文件)。<br>添加数据节点时，往include中增加相应记录后，可以通过dfsadmin命令<code>hadoop dfsadmin -refreshNodes</code>刷新名字节点信息，然后相应的启动数据节点，则在HDFS中增加了数据节点。<br>撤销数据节点时，往exclude中增加相应记录后，通过dfsadmin工具刷新后，名字节点便会开始撤销数据节点，被撤销数据节点上的数据会复制到其他数据节点上，复制时数据节点处于”正在撤销”状态，复制完后处于”已撤销”状态。<br>dfsadmin的refreshNodes命令使用ClientProtocol的refreshNodes方法，NameNode的实现如下<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">void</span> <span class="title">refreshNodes</span><span class="params">()</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">    namesystem.refreshNodes(<span class="keyword">new</span> Configuration());</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>由FSNamesystem提供服务，如下</p>
+<h3 id="1-1_refreshNodes">1.1 refreshNodes</h3><figure class="highlight crmsh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line">public void refreshNodes(Configuration conf) throws IOException &#123;</span><br><span class="line">    checkSuperuserPrivilege();//要拥有超级用户权限</span><br><span class="line">    if (conf == null)</span><br><span class="line">      conf = new Configuration();</span><br><span class="line">    //更新include文件和exclude文件名</span><br><span class="line">    hostsReader.updateFileNames(conf.get(<span class="string">"dfs.hosts"</span>,<span class="string">""</span>), conf.get(<span class="string">"dfs.hosts.exclude"</span>, <span class="string">""</span>));</span><br><span class="line">    hostsReader.refresh();//重新读取include列表和exclude列表</span><br><span class="line">    synchronized (this) &#123;</span><br><span class="line">      for (Iterator<span class="tag">&lt;DatanodeDescriptor&gt;</span> it = datanodeMap.values().iterator(); it.hasNext();) &#123;</span><br><span class="line">        DatanodeDescriptor <span class="keyword">node</span><span class="identifier"> </span><span class="title">= it</span>.next();</span><br><span class="line">        if (!inHostsList(<span class="keyword">node</span><span class="identifier"></span><span class="title">, null</span>)) &#123;//现存的数据节点不在include中，设置为DECOMMISSIONED状态</span><br><span class="line">          <span class="keyword">node</span>.<span class="identifier"></span><span class="title">setDecommissioned</span>();  // case <span class="number">2</span>.</span><br><span class="line">        &#125; else &#123;</span><br><span class="line">          if (inExcludedHostsList(<span class="keyword">node</span><span class="identifier"></span><span class="title">, null</span>)) &#123;</span><br><span class="line">            //既在include中，又在exclude中，如果不处于正在撤销或已撤销状态，则更新状态为DECOMMISSION_INPROGRESS，然后开始撤销过程</span><br><span class="line">            if (!<span class="keyword">node</span>.<span class="identifier"></span><span class="title">isDecommissionInProgress</span>() &amp;&amp; !<span class="keyword">node</span>.<span class="identifier"></span><span class="title">isDecommissioned</span>()) &#123;</span><br><span class="line">              startDecommission(<span class="keyword">node</span><span class="identifier"></span><span class="title">);   //开始撤销过程</span><br><span class="line">            &#125;</span><br><span class="line">          &#125; else</span> &#123;//在include中，但不在exclude中，如果当前处于正在撤销或已撤销状态，停止撤销</span><br><span class="line">            if (<span class="keyword">node</span>.<span class="identifier"></span><span class="title">isDecommissionInProgress</span>() || <span class="keyword">node</span>.<span class="identifier"></span><span class="title">isDecommissioned</span>()) &#123;</span><br><span class="line">              stopDecommission(<span class="keyword">node</span><span class="identifier"></span><span class="title">);   // case</span> <span class="number">4</span>.</span><br><span class="line">            &#125; </span><br><span class="line">          &#125;</span><br><span class="line">        &#125;</span><br><span class="line">      &#125;</span><br><span class="line">    &#125; </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>如上，include文件和exclude文件的读取由FSNamesystem的成员<code>hostsReader</code>负责，为HostsFileReader类型。<br>首先重新读取配置，更新include文件名和exclude文件名，include文件名保存在HostsFileReader的成员<code>includesFile</code>中，exclude文件名保存在<code>excludesFile中</code>。  </p>
+<h3 id="1-1-1_读取include和exclude文件">1.1.1 读取include和exclude文件</h3><p>然后通过refresh重新读取include文件和exclude文件，主要过程如下<br><figure class="highlight processing"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">FileInputStream fis = <span class="keyword">new</span> FileInputStream(file);</span><br><span class="line"><span class="keyword">BufferedReader</span> reader = <span class="keyword">null</span>;</span><br><span class="line"><span class="keyword">try</span> &#123;</span><br><span class="line">  reader = <span class="keyword">new</span> <span class="keyword">BufferedReader</span>(<span class="keyword">new</span> InputStreamReader(fis));</span><br><span class="line">  <span class="keyword">String</span> <span class="built_in">line</span>;</span><br><span class="line">  <span class="keyword">while</span> ((<span class="built_in">line</span> = reader.readLine()) != <span class="keyword">null</span>) &#123;</span><br><span class="line">    <span class="keyword">String</span>[] nodes = <span class="built_in">line</span>.<span class="built_in">split</span>(<span class="string">"[ \t\n\f\r]+"</span>);</span><br><span class="line">    <span class="keyword">if</span> (nodes != <span class="keyword">null</span>) &#123;</span><br><span class="line">      <span class="keyword">for</span> (<span class="built_in">int</span> i = <span class="number">0</span>; i &lt; nodes.length; i++) &#123;</span><br><span class="line">        <span class="keyword">if</span> (!nodes[i].equals(<span class="string">""</span>)) &#123;</span><br><span class="line">          <span class="built_in">set</span>.<span class="built_in">add</span>(nodes[i]);  <span class="comment">// might need to add canonical name</span></span><br><span class="line">        &#125;</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;   </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>因此，文件中的数据节点中的一项(具体为什么见后面)可以通过空格，制表符，回车符，换行符，换页符进行分隔(可以多个组合)。读取的include中数据节点列表保存在成员<code>includes</code>中，exclude中数据节点列表保存在成员<code>excludes</code>中，两者都为HashSet。  </p>
+<p>读取完include和exclude文件后，对于当前管理的数据节点datanodeMap进行分析，有一下集中情况</p>
+<ul>
+<li>数据节点不在include列表中，更新状态为DECOMMISSIONED，已撤销状态</li>
+<li>数据节点在include列表中，同时在exclude列表中，如果当前不处于正在撤销或已撤销状态，则设置为DECOMMISSION_INPROGRESS即正在撤销状态，然后开始撤销过程</li>
+<li>数据节点在include列表中，但不在exclude列表中，如果当前处于正在撤销或已撤销状态，将AdminStates成员adminState置空来停止撤销过程。  </li>
+</ul>
+<p>判断数据节点是否在include列表中由inHostsList完成，是否在exclude列表中由inExcludedHostsList完成</p>
+<h4 id="1-1-2_inHostsList">1.1.2 inHostsList</h4><figure class="highlight crmsh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">private boolean inHostsList(DatanodeID <span class="keyword">node</span><span class="identifier"></span><span class="title">, String</span> ipAddr) &#123;</span><br><span class="line">    Set<span class="tag">&lt;String&gt;</span> hostsList = hostsReader.getHosts();</span><br><span class="line">    return (hostsList.isEmpty() || </span><br><span class="line">            (ipAddr != null &amp;&amp; hostsList.contains(ipAddr)) ||</span><br><span class="line">            hostsList.contains(<span class="keyword">node</span>.<span class="identifier"></span><span class="title">getHost</span>()) ||</span><br><span class="line">            hostsList.contains(<span class="keyword">node</span>.<span class="identifier"></span><span class="title">getName</span>()) || </span><br><span class="line">            ((<span class="keyword">node</span><span class="identifier"> </span><span class="title">instanceof</span> Datanode<span class="number">Inf</span>o) &amp;&amp; </span><br><span class="line">             hostsList.contains(((Datanode<span class="number">Inf</span>o)<span class="keyword">node</span><span class="identifier"></span><span class="title">).getHostName</span>())));</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>如上，hostsList即为HostsReader中的<code>includes</code>成员，即include列表。在include列表中有一下情况</p>
+<ul>
+<li>include列表为空，即如果没有配置include文件或者include文件为空，则默认所有的数据节点在include列表中</li>
+<li>如果指定了数据节点的IP，则include列表中包含该IP</li>
+<li>include列表中包含数据节点的主机名(name)</li>
+<li>include列表中包含数据节点的主机名和端口(hostname:portNumber，端口为流服务端口)</li>
+<li>给定的节点为DatanodeInfo，如果配置了IP(hostname)，则判断include列表是否包含IP，否则判断是否包含主机名  </li>
+</ul>
+<p>由上可知，如果不配置include文件或者include文件为空，则默认所有的数据节点在include文件中。同时可以反推，include中可以配置的项为</p>
+<ul>
+<li>IP地址，这时需要指定数据节点的IP地址，或者在数据节点中配置了hostname成员为IP</li>
+<li>主机名(DatanodeID成员name去掉端口)</li>
+<li>主机名和端口(hostname:portNumber，DatanodeID成员name)，端口为流服务端口</li>
+</ul>
+<h4 id="1-1-3_inExcludedHostsList">1.1.3 inExcludedHostsList</h4><figure class="highlight crmsh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">private boolean inExcludedHostsList(DatanodeID <span class="keyword">node</span><span class="identifier"></span><span class="title">, String</span> ipAddr) &#123;</span><br><span class="line">    Set<span class="tag">&lt;String&gt;</span> excludeList = hostsReader.getExcludedHosts();</span><br><span class="line">    return  ((ipAddr != null &amp;&amp; excludeList.contains(ipAddr)) ||</span><br><span class="line">            excludeList.contains(<span class="keyword">node</span>.<span class="identifier"></span><span class="title">getHost</span>()) ||</span><br><span class="line">            excludeList.contains(<span class="keyword">node</span>.<span class="identifier"></span><span class="title">getName</span>()) ||</span><br><span class="line">            ((<span class="keyword">node</span><span class="identifier"> </span><span class="title">instanceof</span> Datanode<span class="number">Inf</span>o) &amp;&amp; </span><br><span class="line">             excludeList.contains(((Datanode<span class="number">Inf</span>o)<span class="keyword">node</span><span class="identifier"></span><span class="title">).getHostName</span>())));</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>与include类似，不过如果没有配置exclude文件或者exclude文件为空，则默认所有的数据节点不在exclude列表中。其他的一样，可以配置数据节点项为IP地址，主机名，主机名加端口  </p>
+<h2 id="2-_撤销数据节点">2. 撤销数据节点</h2><p>如前面分析，如果数据节点不在include列表中，直接更新状态为已撤销，则通过countNodes更新区块副本状态时，已撤销节点上的所有区块为已撤销状态，不是有效副本，有效副本数减少，某些情况下会触发区块复制。<br>如果数据节点在include列表中，同时在exclude列表中，则需要撤销该数据节点。撤销通过<code>startDecommission</code>开始</p>
+<h3 id="2-1_startDecommission">2.1 startDecommission</h3><figure class="highlight crmsh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">private void startDecommission (DatanodeDescriptor <span class="keyword">node</span><span class="identifier"></span><span class="title">) throws</span> IOException &#123;</span><br><span class="line">    if (!<span class="keyword">node</span>.<span class="identifier"></span><span class="title">isDecommissionInProgress</span>() &amp;&amp; !<span class="keyword">node</span>.<span class="identifier"></span><span class="title">isDecommissioned</span>()) &#123;</span><br><span class="line">      LOG.<span class="number">inf</span>o(<span class="string">"Start Decommissioning node "</span> + <span class="keyword">node</span>.<span class="identifier"></span><span class="title">getName</span>());</span><br><span class="line">      <span class="keyword">node</span>.<span class="identifier"></span><span class="title">startDecommission</span>();//设置状态为DECOMMISSION_INPROGRESS</span><br><span class="line">      <span class="keyword">node</span>.<span class="identifier"></span><span class="title">decommissioningStatus</span>.setStartTime(now());//更新数据节点撤销开始时间</span><br><span class="line">      //检查所有区块，对于没有达到副本数要求的区块添加到neededReplications中</span><br><span class="line">      checkDecommissionStateInternal(<span class="keyword">node</span><span class="identifier"></span><span class="title">);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span></span><br></pre></td></tr></table></figure>
+<p>如上，设置数据节点状态为DECOMMISSION_INPROGRESS，然后更新撤销开始时间为当前时间，最后通过checkDecommissionStateInternal检查数据节点的所有区块，对于没有达到期望副本的区块添加到neededReplications中，等待复制。当所有的区块副本数达到期望值时，更新状态为已撤销。<br>checkDecommissionStateInternal如下<br><figure class="highlight crmsh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">boolean checkDecommissionStateInternal(DatanodeDescriptor <span class="keyword">node</span><span class="identifier"></span><span class="title">) &#123;</span><br><span class="line">    if</span> (<span class="keyword">node</span>.<span class="identifier"></span><span class="title">isDecommissionInProgress</span>()) &#123;</span><br><span class="line">      if (!isReplicationInProgress(<span class="keyword">node</span><span class="identifier"></span><span class="title">)) &#123;//所有区块副本数达到期望值时返回false</span></span><br><span class="line">        <span class="keyword">node</span>.<span class="identifier"></span><span class="title">setDecommissioned</span>();</span><br><span class="line">        LOG.<span class="number">inf</span>o(<span class="string">"Decommission complete for node "</span> + <span class="keyword">node</span>.<span class="identifier"></span><span class="title">getName</span>());</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    if (<span class="keyword">node</span>.<span class="identifier"></span><span class="title">isDecommissioned</span>()) &#123;</span><br><span class="line">      return <span class="literal">true</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    return <span class="literal">false</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，添加没有达到期望副本值的区块到neededReplications中在isReplicationInProgress中完成，当所有区块达到副本数时方法返回false，从而设置数据节点的状态为<code>DECOMMISSIONED</code>。<br>isReplicationInProgress如下</p>
+<h4 id="2-1-1_isReplicationInProgress">2.1.1 isReplicationInProgress</h4><figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line">private boolean isReplicationInProgress(DatanodeDescriptor srcNode) &#123;</span><br><span class="line">    ...</span><br><span class="line">    <span class="keyword">for</span>(<span class="keyword">final</span> <span class="built_in">Iterator</span>&lt;Block&gt; i = srcNode.getBlockIterator(); i.hasNext(); ) &#123;</span><br><span class="line">      <span class="keyword">final</span> Block block = i.next();</span><br><span class="line">      INode fileINode = blocksMap.getINode(block);</span><br><span class="line">      <span class="keyword">if</span> (fileINode != <span class="keyword">null</span>) &#123;</span><br><span class="line">        NumberReplicas <span class="built_in">num</span> = countNodes(block);<span class="comment">//更新区块副本状态</span></span><br><span class="line">        <span class="built_in">int</span> curReplicas = <span class="built_in">num</span>.liveReplicas();</span><br><span class="line">        <span class="built_in">int</span> curExpectedReplicas = getReplication(block);</span><br><span class="line">        <span class="keyword">if</span> (curExpectedReplicas &gt; curReplicas) &#123;<span class="comment">//副本数没有达到期望值</span></span><br><span class="line">          ...</span><br><span class="line">          underReplicatedBlocks++;<span class="comment">//增加正在复制区块统计量</span></span><br><span class="line">          <span class="keyword">if</span> ((curReplicas == <span class="number">0</span>) &amp;&amp; (<span class="built_in">num</span>.decommissionedReplicas() &gt; <span class="number">0</span>)) &#123;<span class="comment">//只在正在撤销的数据节点上有副本</span></span><br><span class="line">              decommissionOnlyReplicas++;<span class="comment">//增加只在正在撤销的数据节点上有副本的区块统计量</span></span><br><span class="line">          &#125;</span><br><span class="line">          <span class="keyword">if</span> (fileINode.isUnderConstruction()) &#123;<span class="comment">//为打开的文件中的副本</span></span><br><span class="line">              underReplicatedInOpenFiles++;</span><br><span class="line">          &#125;</span><br><span class="line">          <span class="comment">//没有正在执行的复制操作，且neededReplications中不存在该Block，添加到neededReplications</span></span><br><span class="line">          <span class="keyword">if</span> (!neededReplications.contains(block) &amp;&amp;</span><br><span class="line">            pendingReplications.getNumReplicas(block) == <span class="number">0</span>) &#123;</span><br><span class="line">            neededReplications.add(block, curReplicas, <span class="built_in">num</span>.decommissionedReplicas(), curExpectedReplicas);</span><br><span class="line">          &#125;</span><br><span class="line">        &#125;</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    srcNode.decommissioningStatus.<span class="literal">set</span>(underReplicatedBlocks, decommissionOnlyReplicas, underReplicatedInOpenFiles);</span><br><span class="line">    <span class="keyword">return</span> status;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>如上，countNodes中更新区块副本状态，当前数据节点现在处于DECOMMISSION_INPROGRESS状态，因此countNodes后，本数据节点上的区块副本全部变为<code>decommissionedReplicas</code>(NumberReplicas成员)副本而不是有效副本，有效副本数减少，从而添加到neededReplications中，复制到其他数据节点中。<br>最终更新数据节点的正在撤销状态成员decommissioningStatus，为DecommissioningStatus类，成员如下<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">int</span> underReplicatedBlocks;<span class="comment">//正在复制的区块数</span></span><br><span class="line"><span class="keyword">int</span> decommissionOnlyReplicas;<span class="comment">//只在正在撤销的数据节点上有副本的区块数</span></span><br><span class="line"><span class="keyword">int</span> underReplicatedInOpenFiles;<span class="comment">//属于打开文件的区块数</span></span><br><span class="line"><span class="keyword">long</span> startTime;<span class="comment">//撤销的开始时间</span></span><br></pre></td></tr></table></figure></p>
+<p>如上，startTime在数据节点状态更新为DECOMMISSION_INPROGRESS后初始化了，在最后更新其他三个成员。  </p>
+<p>因此，撤销数据节点时，只做一次遍历，将没有达到副本期望值的区块添加到neededReplications中等待复制，那么当所有区块复制完了，怎么设置数据节点状态为已撤销状态呢。遍历工作由DecommissionManager.Monitor线程完成</p>
+<h2 id="3-_DecommissionManager-Monitor线程撤销状态更新">3. DecommissionManager.Monitor线程撤销状态更新</h2><p>FSnamesystem成员dnthread DecommissionManager.Monitor线程会周期性检查处于<code>DECOMMISSION_INPROGRESS</code>状态的数据节点，数据节点处于DECOMMISSION_INPROGRESS状态后要确保所有区块副本数达到期望值才能最终关闭，也因此在DataNode的关闭过程可能需要长时间等待。<br>dnthread成员初始化如下<br><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">this</span>.dnthread = <span class="keyword">new</span> Daemon(<span class="keyword">new</span> DecommissionManager(<span class="keyword">this</span>).new Monitor(</span><br><span class="line">        conf.getInt(<span class="string">"dfs.namenode.decommission.interval"</span>, <span class="number">30</span>),</span><br><span class="line">        conf.getInt(<span class="string">"dfs.namenode.decommission.nodes.per.interval"</span>, <span class="number">5</span>)));</span><br><span class="line">dnthread.start();</span><br></pre></td></tr></table></figure></p>
+<p>DecommissionManager中维护了所属的FSNamesystem对象，看Monitor线程<br><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">Monitor(<span class="keyword">int</span> recheckIntervalInSecond, <span class="keyword">int</span> numNodesPerCheck) &#123;</span><br><span class="line">  <span class="keyword">this</span>.recheckInterval = recheckIntervalInSecond * <span class="number">1000L</span>;</span><br><span class="line">  <span class="keyword">this</span>.numNodesPerCheck = numNodesPerCheck;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，recheckInterval为检查周期，由配置项<code>dfs.namenode.decommission.interval</code>确定，默认30s检查一次。<br>numNodesPerCheck为每个周期检查DataNode的个数，由配置项<code>dfs.namenode.decommission.nodes.per.interval</code>确定，默认一次检查5个DataNode。<br>另外，还有一个成员firstkey，缺省为空，为从datanodeMap开始检查的数据节点StorageID。<br>线程如下<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">void</span> <span class="title">run</span><span class="params">()</span> </span>&#123;</span><br><span class="line">  <span class="keyword">for</span>(; fsnamesystem.isRunning(); ) &#123;</span><br><span class="line">    <span class="keyword">synchronized</span>(fsnamesystem) &#123;</span><br><span class="line">      check();</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">      Thread.sleep(recheckInterval);</span><br><span class="line">    &#125; <span class="keyword">catch</span> (InterruptedException ie) &#123;</span><br><span class="line">      LOG.info(<span class="string">"Interrupted "</span> + <span class="keyword">this</span>.getClass().getSimpleName(), ie);</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>由check方法执行检查<br><figure class="highlight axapta"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="keyword">void</span> check() &#123;</span><br><span class="line">  <span class="keyword">int</span> <span class="keyword">count</span> = <span class="number">0</span>;</span><br><span class="line">  <span class="comment">//遍历datanodeMap中每一个DatanodeDescriptor对象</span></span><br><span class="line">  <span class="keyword">for</span>(Map.Entry&lt;String, DatanodeDescriptor&gt; entry</span><br><span class="line">      : <span class="keyword">new</span> CyclicIteration&lt;String, DatanodeDescriptor&gt;(fsnamesystem.datanodeMap, firstkey)) &#123;</span><br><span class="line">    <span class="keyword">final</span> DatanodeDescriptor d = entry.getValue();</span><br><span class="line">    firstkey = entry.getKey();</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (d.isDecommissionInProgress()) &#123;<span class="comment">//如果处于DECOMMISSION_INPROGRESS，检查是否所有的区块副本数满足要求</span></span><br><span class="line">      <span class="keyword">try</span> &#123;</span><br><span class="line">        <span class="comment">//检查是否所有区块副本数满足要求，如果是则更新DataNode状态为DECOMMISSIONED</span></span><br><span class="line">        fsnamesystem.checkDecommissionStateInternal(d);</span><br><span class="line">      &#125; <span class="keyword">catch</span>(Exception e) &#123;</span><br><span class="line">        LOG.warn(<span class="string">"entry="</span> + entry, e);</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="keyword">if</span> (++<span class="keyword">count</span> == numNodesPerCheck) &#123;</span><br><span class="line">        <span class="keyword">return</span>;</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，遍历datanodeMap中从firstKey开始的所有DatanodeDescriptor，对于处于DECOMMISSION_INPROGRESS状态的DataNode，如果所有区块副本数达到了期望值，则更新状态为DECOMMISSIONED，否则没有达到副本期望值的区块，如果不在neededReplications中则添加，等待复制，已经在neededReplications中的当然不需要继续添加了。<br>checkDecommissionStateInternal前面已经分析过了。  </p>
+<p>因此DecommissionManager.Monitor线程会周期性检查正在撤销的数据节点上所有的区块副本数是否达到期望值，完成后设置数据节点状态为已撤销状态。</p>
+<h2 id="4-_取消撤销">4. 取消撤销</h2><p>如前include文件和exclude文件的分析，refreshNodes时发现数据节点在include列表中且不在exclude列表中，不过此时正处于撤销状态或者处于已撤销状态，则取消撤销，取消撤销由<code>stopDecommission</code>完成<br><figure class="highlight crmsh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">public void stopDecommission (DatanodeDescriptor <span class="keyword">node</span><span class="identifier"></span><span class="title">) throws</span> IOException &#123;</span><br><span class="line">    LOG.<span class="number">inf</span>o(<span class="string">"Stop Decommissioning node "</span> + <span class="keyword">node</span>.<span class="identifier"></span><span class="title">getName</span>());</span><br><span class="line">    <span class="keyword">node</span>.<span class="identifier"></span><span class="title">stopDecommission</span>();</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">public void stopDecommission() &#123;</span><br><span class="line">    adminState = null;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，更新数据节点的adminState为null，这样在countNodes方法被调用时，该数据节点上原来区块为已撤销副本变为了有效副本，副本数增加。<br>对于添加在neededReplications中还没执行复制的副本，在执行操作时，选择复制的源数据节点和目标数据节点前都会通过countNodes更新副本状态(ReplicationMonitor线程)，就会发现有效副本数增加了，从而可能不会继续进行复制。<br>而对于在取消撤销前就已经执行了操作，选择好源数据节点目标数据节点，添加到源数据节点的待复制区块列表中的，则只能执行这个不该执行的复制操作(如果取消撤销后副本数本来达到了期望值)，然后会在区块报告时发现副本数超出了期望值，做出相应的删除操作。  </p>
+<h2 id="5-_添加数据节点">5. 添加数据节点</h2><p>前面refreshNodes中，只处理了datanodeMap中的数据节点，即现有管理的数据节点。那么通过在include或exclude中添加数据节点，然后启动新的数据节点，数据节点向NameNode注册时会怎么处理，拒绝还是允许连接呢。<br>数据节点启动时会通过DatanodeProtocol代理的register方法向NameNode注册，注册时会通过verifyNodeRegistration方法判断该数据节点是否能够连接到NameNode上(FSNamesystem的registerDatanode方法中)，如下<br><figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">String</span> dnAddress = Server.getRemoteAddress();<span class="comment">//数据节点IP，当前处于数据节点的RPC调用，能获得数据节点IP</span></span><br><span class="line"><span class="keyword">if</span> (dnAddress == <span class="keyword">null</span>) &#123;</span><br><span class="line">  <span class="comment">//如果不能获取数据节点IP，则通过数据节点传过来的注册信息DatanodeRegistration获取DatanodeID中的主机名(不包括端口)</span></span><br><span class="line">  <span class="comment">//数据节点每次和NameNode的RPC通信都会发送标识该数据节点的DatanodeRegistration。</span></span><br><span class="line">  dnAddress = nodeReg.getHost();</span><br><span class="line">&#125;      </span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> (!verifyNodeRegistration(nodeReg, dnAddress)) &#123;<span class="comment">//该数据节点是否能够连接到NameNode中</span></span><br><span class="line">  <span class="keyword">throw</span> <span class="keyword">new</span> DisallowedDatanodeException(nodeReg);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，FSNamesystem的verifyNodeRegistration在register实现中被调用(即register其实还是由FSNamesystem提供服务)，因此当前处于RPC调用中，一般可以获得对端数据节点的IP地址，如果不能获得IP地址，则使用数据节点的注册信息获取数据节点主机名(DatanodeID中成员name去掉端口号)，每次数据节点和名字节点的RPC通信都会发送数据节点的注册信息DatanodeRegistration以标识该数据节点，因此总能获得数据节点的主机名。  </p>
+<p>然后通过verifyNodeRegistration验证该数据节点是否能够注册，不能注册抛出异常，注册失败<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="keyword">synchronized</span> <span class="function"><span class="keyword">boolean</span> <span class="title">verifyNodeRegistration</span><span class="params">(DatanodeRegistration nodeReg, String ipAddr)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (!inHostsList(nodeReg, ipAddr)) &#123;<span class="comment">//不在include列表中，不允许注册</span></span><br><span class="line">      <span class="keyword">return</span> <span class="keyword">false</span>;    </span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> (inExcludedHostsList(nodeReg, ipAddr)) &#123;<span class="comment">//既在include列表中，又在exclude列表中，</span></span><br><span class="line">      DatanodeDescriptor node = getDatanode(nodeReg);</span><br><span class="line">      <span class="keyword">if</span> (node == <span class="keyword">null</span>) &#123;<span class="comment">//数据节点信息不存在，抛出异常</span></span><br><span class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> IOException(<span class="string">"verifyNodeRegistration: unknown datanode "</span> + nodeReg.getName());</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="keyword">if</span> (!checkDecommissionStateInternal(node)) &#123;<span class="comment">//如果数据节点正常工作，撤销数据节点</span></span><br><span class="line">        startDecommission(node);</span><br><span class="line">      &#125;</span><br><span class="line">    &#125; </span><br><span class="line">    <span class="comment">//在include中，不在exclude中，返回true允许注册</span></span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">true</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，验证时，如果不在include列表中，则直接不能注册，返回false。这种情况包括不在include中且不在exclude中，不在include中在exclude中，注意的是，如果include没配置或为空则默认在include中，而exclude没配置或为空，则默认不在exclude中。<br>如果在include列表中，且不在exclude列表中，则能注册，返回true。<br>如果在include列表中，且在exclude列表中，则会在datanodeMap中查找该数据节点。如果当前数据节点不存在，抛出异常，注册失败。否则当前数据节点存在了且处于正常状态，则撤销数据节点，如果处于正在撤销状态则更新一次状态，而如果已经处于了已撤销状态，则不用处理。因此对于既在include列表中，又在exclude列表中的情况，如果对应数据节点不存在则抛出异常，不能注册，否则要将当前数据节点进行撤销，然后返回true可以注册。  </p>
+<p>最后，对include和exclude做下总结。  </p>
+<ul>
+<li>include和exclude文件的格式。include和exclude中每个数据节点可以通过空格，换行符，回车符，制表符，换页符进行分隔，当然最好一行一个数据节点。数据节点可以配置IP地址，数据节点的主机名，数据节点的主机名加端口，这里的主机名和端口都是DatanodeID中的name成员，同时在include或exclude文件中这三种方式可以混杂  </li>
+<li>include和exclude默认规则。如果没有配置include文件或者include为空，则默认所有数据节点在include中，而如果没有配置exclude文件或exclude列表为空，则默认所有数据节点不在exclude中。  </li>
+<li>数据节点向NameNode注册时，不在include中的数据节点不允许注册；在include中且在exclude中的数据节点如果存在会撤销然后允许重新注册，不存在则抛出异常，不允许注册；在include中且不在exclude中的数据节点允许注册。  </li>
+<li>datanodeMap中数据节点，通过refreshNodes刷新时，不在include中数据节点不应该存在于集群中，直接置为已撤销状态；在include中且在exclude中的也不应该存在于集群中，如果当前处于正常状态，则撤销；在include中且不在exclude中的数据节点，为允许存在的数据节点，如果当前处于正在撤销或已经撤销状态，将adminState置空从而停止撤销。</li>
+</ul>
+</span>
+      
+    </div>
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/HDFS/" rel="tag">#HDFS</a>
+          
+            <a href="/tags/Hadoop-1-2-1/" rel="tag">#Hadoop-1.2.1</a>
+          
+            <a href="/tags/Java/" rel="tag">#Java</a>
+          
+            <a href="/tags/NameNode/" rel="tag">#NameNode</a>
+          
+            <a href="/tags/NameNode源码阅读/" rel="tag">#NameNode源码阅读</a>
+          
+            <a href="/tags/源码阅读/" rel="tag">#源码阅读</a>
+          
+        </div>
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/NameNode区块复制和删除线程/" rel="next" title="NameNode实现源码分析---区块复制和删除线程">
+                <i class="fa fa-chevron-left"></i> NameNode实现源码分析---区块复制和删除线程
+              </a>
+            
+          </div>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/NameNode维护的数据结构/" rel="prev" title="NameNode实现源码分析---区块和数据节点相关数据结构">
+                NameNode实现源码分析---区块和数据节点相关数据结构 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </article>
+
+
+
+    <div class="post-spread">
+      
+        <!-- JiaThis Button BEGIN -->
+<div class="jiathis_style">
+  <a class="jiathis_button_tsina"></a>
+  <a class="jiathis_button_tqq"></a>
+  <a class="jiathis_button_weixin"></a>
+  <a class="jiathis_button_cqq"></a>
+  <a class="jiathis_button_douban"></a>
+  <a class="jiathis_button_renren"></a>
+  <a class="jiathis_button_qzone"></a>
+  <a class="jiathis_button_kaixin001"></a>
+  <a class="jiathis_button_copy"></a>
+  <a href="http://www.jiathis.com/share" class="jiathis jiathis_txt jiathis_separator jtico jtico_jiathis" target="_blank"></a>
+  <a class="jiathis_counter_style"></a>
+</div>
+<script type="text/javascript" >
+  var jiathis_config={
+    hideMore:false
+  }
+</script>
+<script type="text/javascript" src="http://v3.jiathis.com/code/jia.js" charset="utf-8"></script>
+<!-- JiaThis Button END -->
+
+      
+    </div>
+  </div>
+
+
+        </div>
+
+        
+
+
+        
+  <div class="comments" id="comments">
+    
+      <div class="ds-thread" data-thread-key="NameNode数据节点生存期管理/"
+           data-title="NameNode实现源码分析---数据节点生存期管理" data-url="http://xiao-yun.github.io/NameNode数据节点生存期管理/">
+      </div>
+    
+  </div>
+
+
+      </div>
+
+      
+        
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap" >
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel ">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+          <img class="site-author-image" src="/images/hero.jpg" alt="xiaoyun" itemprop="image"/>
+          <p class="site-author-name" itemprop="name">xiaoyun</p>
+        </div>
+        <p class="site-description motion-element" itemprop="description">学习笔记，网上资源摘要等</p>
+        <nav class="site-state motion-element">
+          <div class="site-state-item site-state-posts">
+            <a href="/archives">
+              <span class="site-state-item-count">42</span>
+              <span class="site-state-item-name">日志</span>
+            </a>
+          </div>
+
+          <div class="site-state-item site-state-categories">
+            <a href="/categories">
+              <span class="site-state-item-count">40</span>
+              <span class="site-state-item-name">分类</span>
+              </a>
+          </div>
+
+          <div class="site-state-item site-state-tags">
+            <a href="/tags">
+              <span class="site-state-item-count">21</span>
+              <span class="site-state-item-name">标签</span>
+              </a>
+          </div>
+
+        </nav>
+
+        
+
+        <div class="links-of-author motion-element">
+          
+            
+              <span class="links-of-author-item">
+                <a href="https://github.com/xiao-yun" target="_blank">
+                  
+                    <i class="fa fa-globe"></i> github
+                  
+                </a>
+              </span>
+            
+          
+        </div>
+
+        
+        
+
+        <div class="links-of-author motion-element">
+          
+        </div>
+
+      </section>
+
+      
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc-indicator-top post-toc-indicator">
+            <i class="fa fa-angle-double-up"></i>
+          </div>
+          <div class="post-toc">
+            
+              
+            
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-_include文件和exclude文件"><span class="nav-number">1.</span> <span class="nav-text">1. include文件和exclude文件</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-1_refreshNodes"><span class="nav-number">1.1.</span> <span class="nav-text">1.1 refreshNodes</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-1-1_读取include和exclude文件"><span class="nav-number">1.2.</span> <span class="nav-text">1.1.1 读取include和exclude文件</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#1-1-2_inHostsList"><span class="nav-number">1.2.1.</span> <span class="nav-text">1.1.2 inHostsList</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#1-1-3_inExcludedHostsList"><span class="nav-number">1.2.2.</span> <span class="nav-text">1.1.3 inExcludedHostsList</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-_撤销数据节点"><span class="nav-number">2.</span> <span class="nav-text">2. 撤销数据节点</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1_startDecommission"><span class="nav-number">2.1.</span> <span class="nav-text">2.1 startDecommission</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#2-1-1_isReplicationInProgress"><span class="nav-number">2.1.1.</span> <span class="nav-text">2.1.1 isReplicationInProgress</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-_DecommissionManager-Monitor线程撤销状态更新"><span class="nav-number">3.</span> <span class="nav-text">3. DecommissionManager.Monitor线程撤销状态更新</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-_取消撤销"><span class="nav-number">4.</span> <span class="nav-text">4. 取消撤销</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#5-_添加数据节点"><span class="nav-number">5.</span> <span class="nav-text">5. 添加数据节点</span></a></li></ol></div>
+            
+          </div>
+          <div class="post-toc-indicator-bottom post-toc-indicator">
+            <i class="fa fa-angle-double-down"></i>
+          </div>
+        </section>
+      
+
+    </div>
+  </aside>
+
+
+      
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright" >
+  
+  &copy; 
+  <span itemprop="copyrightYear">2016</span>
+  <span class="with-love">
+    <i class="icon-next-heart fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">xiaoyun</span>
+</div>
+
+<div class="powered-by">
+  由 <a class="theme-link" href="http://hexo.io">Hexo</a> 强力驱动
+</div>
+
+<div class="theme-info">
+  主题 -
+  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
+    NexT.Mist
+  </a>
+</div>
+
+
+
+      </div>
+    </footer>
+
+    <div class="back-to-top"></div>
+  </div>
+
+  <script type="text/javascript" src="/vendors/jquery/index.js?v=2.1.3"></script>
+
+  
+  
+
+  
+    
+
+  
+    
+  
+
+  <script type="text/javascript">
+    var duoshuoQuery = {short_name:"xiaoyuncom"};
+    (function() {
+      var ds = document.createElement('script');
+      ds.type = 'text/javascript';ds.async = true;
+      ds.id = 'duoshuo-script';
+      ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+      ds.charset = 'UTF-8';
+      (document.getElementsByTagName('head')[0]
+      || document.getElementsByTagName('body')[0]).appendChild(ds);
+    })();
+  </script>
+    
+     
+
+
+    
+  
+
+  
+  <script type="text/javascript" src="/vendors/fancybox/source/jquery.fancybox.pack.js"></script>
+  <script type="text/javascript" src="/js/fancy-box.js?v=0.4.5.2"></script>
+
+
+  <script type="text/javascript" src="/js/helpers.js?v=0.4.5.2"></script>
+  <script type="text/javascript" src="/vendors/velocity/velocity.min.js"></script>
+<script type="text/javascript" src="/vendors/velocity/velocity.ui.min.js"></script>
+
+<script type="text/javascript" src="/js/motion.js?v=0.4.5.2" id="motion.global"></script>
+
+
+  <script type="text/javascript" src="/vendors/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  <script type="text/javascript" src="/vendors/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  
+<script type="text/javascript" src="/js/bootstrap.scrollspy.js?v=0.4.5.2" id="bootstrap.scrollspy.custom"></script>
+
+
+<script type="text/javascript" id="sidebar.toc.highlight">
+  $(document).ready(function () {
+    var tocSelector = '.post-toc';
+    var $tocSelector = $(tocSelector);
+    var activeCurrentSelector = '.active-current';
+
+    $tocSelector
+      .on('activate.bs.scrollspy', function () {
+        var $currentActiveElement = $(tocSelector + ' .active').last();
+
+        removeCurrentActiveClass();
+        $currentActiveElement.addClass('active-current');
+
+        $tocSelector[0].scrollTop = $currentActiveElement.position().top;
+      })
+      .on('clear.bs.scrollspy', function () {
+        removeCurrentActiveClass();
+      });
+
+    function removeCurrentActiveClass () {
+      $(tocSelector + ' ' + activeCurrentSelector)
+        .removeClass(activeCurrentSelector.substring(1));
+    }
+
+    function processTOC () {
+      getTOCMaxHeight();
+      toggleTOCOverflowIndicators();
+    }
+
+    function getTOCMaxHeight () {
+      var height = $('.sidebar').height() -
+                   $tocSelector.position().top -
+                   $('.post-toc-indicator-bottom').height();
+
+      $tocSelector.css('height', height);
+
+      return height;
+    }
+
+    function toggleTOCOverflowIndicators () {
+      tocOverflowIndicator(
+        '.post-toc-indicator-top',
+        $tocSelector.scrollTop() > 0 ? 'show' : 'hide'
+      );
+
+      tocOverflowIndicator(
+        '.post-toc-indicator-bottom',
+        $tocSelector.scrollTop() >= $tocSelector.find('ol').height() - $tocSelector.height() ? 'hide' : 'show'
+      )
+    }
+
+    $(document).on('sidebar.motion.complete', function () {
+      processTOC();
+    });
+
+    $('body').scrollspy({ target: tocSelector });
+    $(window).on('resize', function () {
+      if ( $('.sidebar').hasClass('sidebar-active') ) {
+        processTOC();
+      }
+    });
+
+    onScroll($tocSelector);
+
+    function onScroll (element) {
+      element.on('mousewheel DOMMouseScroll', function (event) {
+          var oe = event.originalEvent;
+          var delta = oe.wheelDelta || -oe.detail;
+
+          this.scrollTop += ( delta < 0 ? 1 : -1 ) * 30;
+          event.preventDefault();
+
+          toggleTOCOverflowIndicators();
+      });
+    }
+
+    function tocOverflowIndicator (indicator, action) {
+      var $indicator = $(indicator);
+      var opacity = action === 'show' ? 1 : 0;
+      $indicator.velocity ?
+        $indicator.velocity('stop').velocity({
+          opacity: opacity
+        }, { duration: 100 }) :
+        $indicator.stop().animate({
+          opacity: opacity
+        }, 100);
+    }
+
+  });
+</script>
+
+<script type="text/javascript" id="sidebar.nav">
+  $(document).ready(function () {
+    var html = $('html');
+    var TAB_ANIMATE_DURATION = 200;
+    var hasVelocity = $.isFunction(html.velocity);
+
+    $('.sidebar-nav li').on('click', function () {
+      var item = $(this);
+      var activeTabClassName = 'sidebar-nav-active';
+      var activePanelClassName = 'sidebar-panel-active';
+      if (item.hasClass(activeTabClassName)) {
+        return;
+      }
+
+      var currentTarget = $('.' + activePanelClassName);
+      var target = $('.' + item.data('target'));
+
+      hasVelocity ?
+        currentTarget.velocity('transition.slideUpOut', TAB_ANIMATE_DURATION, function () {
+          target
+            .velocity('stop')
+            .velocity('transition.slideDownIn', TAB_ANIMATE_DURATION)
+            .addClass(activePanelClassName);
+        }) :
+        currentTarget.animate({ opacity: 0 }, TAB_ANIMATE_DURATION, function () {
+          currentTarget.hide();
+          target
+            .stop()
+            .css({'opacity': 0, 'display': 'block'})
+            .animate({ opacity: 1 }, TAB_ANIMATE_DURATION, function () {
+              currentTarget.removeClass(activePanelClassName);
+              target.addClass(activePanelClassName);
+            });
+        });
+
+      item.siblings().removeClass(activeTabClassName);
+      item.addClass(activeTabClassName);
+    });
+
+    $('.post-toc a').on('click', function (e) {
+      e.preventDefault();
+      var targetSelector = escapeSelector(this.getAttribute('href'));
+      var offset = $(targetSelector).offset().top;
+      hasVelocity ?
+        html.velocity('stop').velocity('scroll', {
+          offset: offset  + 'px',
+          mobileHA: false
+        }) :
+        $('html, body').stop().animate({
+          scrollTop: offset
+        }, 500);
+    });
+
+    // Expand sidebar on post detail page by default, when post has a toc.
+    motionMiddleWares.sidebar = function () {
+      var $tocContent = $('.post-toc-content');
+      if (CONFIG.sidebar === 'post') {
+        if ($tocContent.length > 0 && $tocContent.html().trim().length > 0) {
+          displaySidebar();
+        }
+      }
+    };
+  });
+</script>
+
+
+
+  <script type="text/javascript" src="/js/bootstrap.js"></script>
+
+  
+  
+
+  
+  
+
+</body>
+</html>

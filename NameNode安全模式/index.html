@@ -1,0 +1,875 @@
+<!doctype html>
+<html class="theme-next   use-motion ">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+  <link href="/vendors/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css"/>
+
+
+
+
+  <link href="//fonts.googleapis.com/css?family=Lato:300,400,700,400italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+
+
+
+<link href="/vendors/font-awesome/css/font-awesome.min.css?v=4.4.0" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=0.4.5.2" rel="stylesheet" type="text/css" />
+
+
+  <meta name="keywords" content="HDFS,Hadoop-1.2.1,Java,NameNode,NameNode源码阅读,源码阅读," />
+
+
+
+
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=0.4.5.2" />
+
+
+
+
+
+
+<meta name="description" content="Hadoop版本:Hadoop-1.2.1参考：《Hadoop技术内幕-深入解析Hadoop Common和HDFS架构设计与实现原理》  
+
+安全模式不处理区块复制，删除等对文件系统进行修改的相关操作，提供一个只读视图。ReplicationMonitor线程不会进行实际操作，每次操作直接返回0，表示执行复制和删除操作数为0。PendingReplicationMonitor倒是不影响，不过此时">
+<meta property="og:type" content="article">
+<meta property="og:title" content="NameNode实现源码分析---安全模式">
+<meta property="og:url" content="http://xiao-yun.github.io/NameNode安全模式/index.html">
+<meta property="og:site_name" content="xiaoyun">
+<meta property="og:description" content="Hadoop版本:Hadoop-1.2.1参考：《Hadoop技术内幕-深入解析Hadoop Common和HDFS架构设计与实现原理》  
+
+安全模式不处理区块复制，删除等对文件系统进行修改的相关操作，提供一个只读视图。ReplicationMonitor线程不会进行实际操作，每次操作直接返回0，表示执行复制和删除操作数为0。PendingReplicationMonitor倒是不影响，不过此时">
+<meta property="og:image" content="http://xiao-yun.github.io/../images/SafeModeInfo成员属性.png">
+<meta property="og:updated_time" content="2016-01-25T14:38:58.440Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="NameNode实现源码分析---安全模式">
+<meta name="twitter:description" content="Hadoop版本:Hadoop-1.2.1参考：《Hadoop技术内幕-深入解析Hadoop Common和HDFS架构设计与实现原理》  
+
+安全模式不处理区块复制，删除等对文件系统进行修改的相关操作，提供一个只读视图。ReplicationMonitor线程不会进行实际操作，每次操作直接返回0，表示执行复制和删除操作数为0。PendingReplicationMonitor倒是不影响，不过此时">
+
+
+
+<script type="text/javascript" id="hexo.configuration">
+  var CONFIG = {
+    scheme: 'Mist',
+    sidebar: 'hide',
+    motion: true
+  };
+</script>
+
+  <title> NameNode实现源码分析---安全模式 | xiaoyun </title>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  <!--[if lte IE 8]>
+  <div style=' clear: both; height: 59px; padding:0 0 0 15px; position: relative;margin:0 auto;'>
+    <a href="http://windows.microsoft.com/en-US/internet-explorer/products/ie/home?ocid=ie6_countdown_bannercode">
+      <img src="http://7u2nvr.com1.z0.glb.clouddn.com/picouterie.jpg" border="0" height="42" width="820"
+           alt="You are using an outdated browser. For a faster, safer browsing experience, upgrade for free today or use other browser ,like chrome firefox safari."
+           style='margin-left:auto;margin-right:auto;display: block;'/>
+    </a>
+  </div>
+<![endif]-->
+  
+
+
+
+  <script type="text/javascript">
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "//hm.baidu.com/hm.js?caeb4129c91d1e6fb3d562d35fedef0d";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+  <div class="container one-column page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-meta ">
+  
+
+  <div class="custom-logo-site-title">
+    <a href="/"  class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <span class="site-title">xiaoyun</span>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+  <p class="site-subtitle"></p>
+</div>
+
+<div class="site-nav-toggle">
+  <button>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+  </button>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu ">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-home fa-fw"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives" rel="section">
+            
+              <i class="menu-item-icon fa fa-archive fa-fw"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories" rel="section">
+            
+              <i class="menu-item-icon fa fa-th fa-fw"></i> <br />
+            
+            分类
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+              <i class="menu-item-icon fa fa-tags fa-fw"></i> <br />
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about" rel="section">
+            
+              <i class="menu-item-icon fa fa-user fa-fw"></i> <br />
+            
+            关于
+          </a>
+        </li>
+      
+
+      
+      
+    </ul>
+  
+
+  
+</nav>
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div id="content" class="content">
+          
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                NameNode实现源码分析---安全模式
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            发表于
+            <time itemprop="dateCreated" datetime="2016-01-25T22:38:58+08:00" content="2016-01-25">
+              2016-01-25
+            </time>
+          </span>
+
+          
+            <span class="post-category" >
+              &nbsp; | &nbsp; 分类于
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Java/" itemprop="url" rel="index">
+                    <span itemprop="name">Java</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Java/Hadoop-1-2-1/" itemprop="url" rel="index">
+                    <span itemprop="name">Hadoop-1.2.1</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Java/Hadoop-1-2-1/HDFS/" itemprop="url" rel="index">
+                    <span itemprop="name">HDFS</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Java/Hadoop-1-2-1/HDFS/NameNode/" itemprop="url" rel="index">
+                    <span itemprop="name">NameNode</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Java/Hadoop-1-2-1/HDFS/NameNode/源码阅读/" itemprop="url" rel="index">
+                    <span itemprop="name">源码阅读</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Java/Hadoop-1-2-1/HDFS/NameNode/源码阅读/NameNode源码阅读/" itemprop="url" rel="index">
+                    <span itemprop="name">NameNode源码阅读</span>
+                  </a>
+                </span>
+
+                
+                
+
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                &nbsp; | &nbsp;
+                <a href="/NameNode安全模式/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="NameNode安全模式/" itemprop="commentsCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+
+        </div>
+      </header>
+    
+
+
+    <div class="post-body">
+
+      
+      
+
+      
+        <span itemprop="articleBody"><p>Hadoop版本:<a href="https://archive.apache.org/dist/hadoop/core/hadoop-1.2.1/" target="_blank" rel="external">Hadoop-1.2.1</a><br>参考：《Hadoop技术内幕-深入解析Hadoop Common和HDFS架构设计与实现原理》  </p>
+<hr>
+<p>安全模式不处理区块复制，删除等对文件系统进行修改的相关操作，提供一个只读视图。<br>ReplicationMonitor线程不会进行实际操作，每次操作直接返回0，表示执行复制和删除操作数为0。<br>PendingReplicationMonitor倒是不影响，不过此时pendingReplications中也没有正在复制的区块，所以相关检查其实也是空操作。<br>HeartBeatMonitor线程也不检查，检查工作直接返回。<br>DecommissionManager线程会正常工作，毕竟只是检查撤销数据节点，安全模式下不会执行复制操作(从neededReplications中添加到相应数据节点待复制列表中)，因此之前处于正在撤销的数据节点会一直处于正在撤销状态，和没检查一样，可能会将正在撤销数据节点中需要添加到neededReplications中的区块添加到neededReplications中，不过并没有执行实际的复制操作。<br>LeaseManager.Monitor线程倒是正常工作，如果发现有超过硬限制的租约没有更新，会发起租约修复，即客户端所有相关区块选择主数据节点和其他参与区块修复的数据节点，添加区块修复信息到主数据节点的recoverBlocks中，然后下次心跳到来时发送区块修复命令。  </p>
+<p>名字节点启动时，加载命名空间镜像和编辑日志，然后合并镜像和日志称为新的命名空间镜像保存到文件中作为一个新的检查点。这时NameNode直到总的区块数目了(blocksMap大小)，需要进入安全模式等待数据节点加入集群报告区块或者报告正在写的文件，区块副本数达到安全副本值(默认1)时，区块安全，后续没有达到期望副本值(3)的副本通过复制产生。这样当集群中安全区块占总区块达到一定比例，加入的数据节点数目也满足一定的值时，离开安全模式，开始正常工作。<br>如果不进入安全模式等待数据节点加入集群进行区块报告，大量的数据块会出现副本数不足的情况，会产生不必要的复制操作(区块副本数其实足够，只不过数据节点还么来得及报告)。  </p>
+<p>安全模式相关类为SafeModeInfo，当名字节点进入安全模式时创建SafeModeInfo对象。名字节点启动时会计算安全区块数目，同时计算安全区块占总区块(blocksMap大小)的比例，当该比例达到阈值(默认95%)时开始SafeModeMonitor线程，检测extension时间是否到达，到达时离开安全模式并将SafeModeInfo对象置空。extension是一个可配置的扩展时间，当安全区块达到阈值经过extension后，才可以离开安全模式。  </p>
+<p>另外，对于通过命令手动进入安全模式的情况下，不会自动退出安全模式，只能通过命令手动退出。</p>
+<hr>
+<h2 id="1-_SafeModeInfo">1. SafeModeInfo</h2><p>成员如下<br><img src="../images/SafeModeInfo成员属性.png" alt="SafeModeInfo成员属性">  </p>
+<ul>
+<li><code>threshold</code>，可以离开安全模式时，安全区块占总区块比例阈值</li>
+<li><code>datanodeThreshold</code>，数据节点数目阈值</li>
+<li><code>extension</code>，安全区块满足阈值后，离开安全模式的扩展时间</li>
+<li><code>safeReplication</code>，安全区块副本</li>
+<li><code>reached</code>，标识，-1时安全模式关闭，0当前正在安全模式中，大于0为达到阈值的时间</li>
+<li><code>blockTotal</code>，集群区块总数</li>
+<li><code>blockSafe</code>，集群安全区块数目</li>
+<li><code>lastStatusReport</code>，上次状态报告时间</li>
+</ul>
+<p>构造方法，因为安全模式可以在NameNode启动时自动进入，那么会在达到条件时自动退出，也可以通过命令手动进入，则只能通过命令手动退出，因此有两种不同的构造方式<br>自动进入方式的构造函数<br><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">SafeModeInfo(Configuration conf) &#123;</span><br><span class="line">      <span class="keyword">this</span>.threshold = conf.getFloat(<span class="string">"dfs.safemode.threshold.pct"</span>, <span class="number">0.95f</span>);<span class="comment">//默认安全区块占比95%</span></span><br><span class="line">      <span class="comment">//数据节点阈值为配置项dfs.namenode.safemode.min.datanodes，默认0，即不限制</span></span><br><span class="line">      <span class="keyword">this</span>.datanodeThreshold = conf.getInt(</span><br><span class="line">          DFSConfigKeys.DFS_NAMENODE_SAFEMODE_MIN_DATANODES_KEY,</span><br><span class="line">          DFSConfigKeys.DFS_NAMENODE_SAFEMODE_MIN_DATANODES_DEFAULT);</span><br><span class="line">      <span class="keyword">this</span>.extension = conf.getInt(<span class="string">"dfs.safemode.extension"</span>, <span class="number">0</span>);<span class="comment">//默认扩展时间0，即达到阈值时直接退出不等待</span></span><br><span class="line">      <span class="keyword">this</span>.safeReplication = conf.getInt(<span class="string">"dfs.replication.min"</span>, <span class="number">1</span>);<span class="comment">//安全区块副本数为1</span></span><br><span class="line">      <span class="keyword">this</span>.blockTotal = <span class="number">0</span>; </span><br><span class="line">      <span class="keyword">this</span>.blockSafe = <span class="number">0</span>;</span><br><span class="line">      ...<span class="comment">//日志</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，安全区块占比默认95%，数据节点阈值默认0即不通过数据节点数量限制安全模式离开，扩展时间为0即达到阈值后直接退出不等待，安全副本数为1。<br>手动进入方式的构造函数<br><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> <span class="title">SafeModeInfo</span><span class="params">()</span> </span>&#123;</span><br><span class="line">      <span class="keyword">this</span>.threshold = <span class="number">1.5f</span>;  <span class="comment">//150%，不可能达到，因此只能手动退出</span></span><br><span class="line">      <span class="keyword">this</span>.datanodeThreshold = Integer.MAX_VALUE;<span class="comment">//数据节点阈值也是不可能达到</span></span><br><span class="line">      <span class="keyword">this</span>.extension = Integer.MAX_VALUE;<span class="comment">//扩展时间不可能达到</span></span><br><span class="line">      <span class="keyword">this</span>.safeReplication = Short.MAX_VALUE + <span class="number">1</span>; <span class="comment">//32768，大于最大副本值，不可能达到</span></span><br><span class="line">      <span class="keyword">this</span>.blockTotal = -<span class="number">1</span>;<span class="comment">//总区块数目初始化为-1</span></span><br><span class="line">      <span class="keyword">this</span>.blockSafe = -<span class="number">1</span>;<span class="comment">//安全区块-1</span></span><br><span class="line">      <span class="keyword">this</span>.reached = -<span class="number">1</span>;</span><br><span class="line">      enter();<span class="comment">//进入安全模式</span></span><br><span class="line">      reportStatus(<span class="string">"STATE* Safe mode is ON"</span>, <span class="literal">true</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，安全区块占比阈值设置为150%，不可能达到，因此只能手动退出安全模式，同样的数据节点阈值，扩展时间，安全副本数的大小都不可能达到。最终通过enter进入安全模式。<br>一般来讲，手动进入安全模式是为了执行必须在安全模式下的相关操作，如保存当前命名空间镜像saveNamespace命令，因此临时性进入安全模式，防止在保存命名空间镜像的过程中命名空间镜像更改。  </p>
+<h2 id="2-_手动安全模式相关">2. 手动安全模式相关</h2><p>安全模式相关命名由dfsadmin提供，有如下几种</p>
+<ul>
+<li><p>查看安全模式状态</p>
+  <figure class="highlight actionscript"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">hadoop dfsadmin -safemode <span class="keyword">get</span></span><br></pre></td></tr></table></figure>
+</li>
+<li><p>等待名字节点离开安全模式</p>
+  <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">hadoop dfsadmin -safemode <span class="built_in">wait</span></span><br></pre></td></tr></table></figure>
+</li>
+<li><p>手动进入安全模式</p>
+  <figure class="highlight nginx"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="title">hadoop</span> dfsadmin -safemode enter</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>手动离开安全模式</p>
+  <figure class="highlight nginx"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="title">hadoop</span> dfsadmin -safemode leave</span><br></pre></td></tr></table></figure>
+</li>
+</ul>
+<h3 id="2-1_setSafeMode">2.1 setSafeMode</h3><p>这些其实由ClientProtocol.setSafeMode()负责，在NameNode中实现如下<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">boolean</span> <span class="title">setSafeMode</span><span class="params">(SafeModeAction action)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">return</span> namesystem.<span class="title">setSafeMode</span><span class="params">(action)</span></span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，参数为SafeModeAction，枚举<br><figure class="highlight crystal"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">public <span class="class"><span class="keyword">enum</span> <span class="title">SafeModeAction</span>&#123; <span class="title">SAFEMODE_LEAVE</span>, <span class="title">SAFEMODE_ENTER</span>, <span class="title">SAFEMODE_GET</span>;</span> &#125;</span><br></pre></td></tr></table></figure></p>
+<p>由FSNamesystem提供服务，实现如下<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">boolean</span> <span class="title">setSafeMode</span><span class="params">(SafeModeAction action)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (action != SafeModeAction.SAFEMODE_GET) &#123;</span><br><span class="line">      checkSuperuserPrivilege();</span><br><span class="line">      <span class="keyword">switch</span>(action) &#123;</span><br><span class="line">      <span class="keyword">case</span> SAFEMODE_LEAVE: // leave safe mode</span><br><span class="line">        leaveSafeMode(<span class="keyword">false</span>);</span><br><span class="line">        <span class="keyword">break</span>;</span><br><span class="line">      <span class="keyword">case</span> SAFEMODE_ENTER: // enter safe mode</span><br><span class="line">        enterSafeMode();</span><br><span class="line">        <span class="keyword">break</span>;</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="function"><span class="keyword">return</span> <span class="title">isInSafeMode</span><span class="params">()</span></span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，对于enter和leave需要超级用户权限，离开由leaveSafeMode方法负责，如下</p>
+<h3 id="2-1-1_手动离开leaveSafeMode">2.1.1 手动离开leaveSafeMode</h3><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">synchronized</span> <span class="function"><span class="keyword">void</span> <span class="title">leaveSafeMode</span><span class="params">(<span class="keyword">boolean</span> checkForUpgrades)</span> <span class="keyword">throws</span> SafeModeException </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (!isInSafeMode()) &#123;</span><br><span class="line">      NameNode.stateChangeLog.info(<span class="string">"STATE* Safe mode is already OFF."</span>); </span><br><span class="line">      <span class="keyword">return</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span>(getDistributedUpgradeState())</span><br><span class="line">      <span class="keyword">throw</span> <span class="keyword">new</span> SafeModeException(<span class="string">"Distributed upgrade is in progress"</span>, safeMode);</span><br><span class="line">    safeMode.leave(checkForUpgrades);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>如上，如果已经不在安全模式中了，直接返回。否则如果处于分布式更新状态，则因为不能离开安全模式，抛出异常，否则通过leave方法离开安全模式，leave方法分析见后面。  </p>
+<p>进入由enterSafeMode负责</p>
+<h3 id="2-1-2_手动进入enterSafeMode">2.1.2 手动进入enterSafeMode</h3><figure class="highlight sml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">synchronized void enterSafeMode<span class="literal">()</span> throws <span class="type">IOException</span> &#123;</span><br><span class="line">    <span class="keyword">if</span> (!isInSafeMode<span class="literal">()</span>) &#123;</span><br><span class="line">      safeMode = new <span class="type">SafeModeInfo</span><span class="literal">()</span>;</span><br><span class="line">      return;</span><br><span class="line">    &#125;</span><br><span class="line">    safeMode.setManual<span class="literal">()</span>;</span><br><span class="line">    getEditLog<span class="literal">()</span>.logSync<span class="literal">()</span>;</span><br><span class="line">    <span class="type">NameNode</span>.stateChangeLog.info(<span class="string">"STATE* Safe mode is ON. "</span> + safeMode.getTurnOffTip<span class="literal">()</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>如上，如果不在安全模式中，则通过创建SafeModeInfo的无参对象进入手动方式的安全模式，具体见上构造函数。<br>而如果已经在安全模式之中了，则通过setManual设置为手动方式，容纳后刷新日志到底层文件。<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">setManual</span><span class="params">()</span> </span>&#123;</span><br><span class="line">      extension = Integer.MAX_VALUE;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，extension等待设为最大值，需要手动退出。  </p>
+<p>获取安全模式状态由isInSafeMode负责</p>
+<h3 id="2-1-3_获取安全模式状态">2.1.3 获取安全模式状态</h3><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">boolean</span> <span class="title">isInSafeMode</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (safeMode == <span class="keyword">null</span>)</span><br><span class="line">      <span class="keyword">return</span> <span class="keyword">false</span>;</span><br><span class="line">    <span class="function"><span class="keyword">return</span> safeMode.<span class="title">isOn</span><span class="params">()</span></span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>如上，safeMode对象为null，安全模式肯定已经关闭了，否则通过isON判断<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">synchronized</span> <span class="function"><span class="keyword">boolean</span> <span class="title">isOn</span><span class="params">()</span> </span>&#123;</span><br><span class="line">      ...</span><br><span class="line">      <span class="keyword">return</span> <span class="keyword">this</span>.reached &gt;= <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>reached大于等于0时，处于安全模式</p>
+<h2 id="3-_名字节点启动时自动进入安全模式">3. 名字节点启动时自动进入安全模式</h2><p>在<a href="../NameNode启动和停止">名字节点启动过程</a>中，创建SafeModeInfo对象，之前没分析，这里分析，代码如下<br><figure class="highlight actionscript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">this</span>.safeMode = <span class="keyword">new</span> SafeModeInfo(conf);<span class="comment">//创建SafeModeInfo对象</span></span><br><span class="line">setBlockTotal();</span><br></pre></td></tr></table></figure></p>
+<p>如上，构造见前面，通过setBlockTotal读取当前区块总数信息<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">setBlockTotal</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (safeMode == <span class="keyword">null</span>)</span><br><span class="line">      <span class="keyword">return</span>;</span><br><span class="line">    safeMode.setBlockTotal((<span class="keyword">int</span>)getSafeBlockCount());</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，getSafeBlockCount返回总区块数，使用blocksMap中区块减去无效的区块(正在构建的文件最后一个区块大小为0)，设置SafeModeInfo中的总区块数并进行一次检查<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">synchronized</span> <span class="function"><span class="keyword">void</span> <span class="title">setBlockTotal</span><span class="params">(<span class="keyword">int</span> total)</span> </span>&#123;</span><br><span class="line">      <span class="keyword">this</span>.blockTotal = total; </span><br><span class="line">      checkMode();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<h3 id="3-1_checkMode">3.1 checkMode</h3><p>如上，通过checkMode进行一次检查<br><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">checkMode</span><span class="params">()</span> </span>&#123;</span><br><span class="line">      <span class="keyword">if</span> (needEnter()) &#123;<span class="comment">//逻辑1，没有满足阈值条件，需要进入安全模式，则进入安全模式</span></span><br><span class="line">        enter();</span><br><span class="line">        reportStatus(<span class="string">"STATE* Safe mode ON"</span>, <span class="literal">false</span>);</span><br><span class="line">        <span class="keyword">return</span>;</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="comment">//下面的逻辑为阈值满足了的情况</span></span><br><span class="line">      </span><br><span class="line">      <span class="comment">//逻辑2，安全模式当前是关闭状态，或者没有阈值，或者不需要等待，则离开安全模式</span></span><br><span class="line">      <span class="comment">//此判断保证后面的逻辑为处于安全模式中且extension大于0，阈值大于0</span></span><br><span class="line">      <span class="keyword">if</span> (!isOn() ||                           <span class="comment">// safe mode is off</span></span><br><span class="line">          extension &lt;= <span class="number">0</span> || threshold &lt;= <span class="number">0</span>) &#123;  <span class="comment">// don't need to wait</span></span><br><span class="line">        <span class="keyword">this</span>.leave(<span class="literal">true</span>); <span class="comment">// leave safe mode</span></span><br><span class="line">        <span class="keyword">return</span>;</span><br><span class="line">      &#125;</span><br><span class="line">      </span><br><span class="line">      <span class="comment">//逻辑3，安全模式中且reached大于0表示之前已经达到了阈值，现在处于extension中</span></span><br><span class="line">      <span class="keyword">if</span> (reached &gt; <span class="number">0</span>) &#123;  <span class="comment">// threshold has already been reached before</span></span><br><span class="line">        reportStatus(<span class="string">"STATE* Safe mode ON"</span>, <span class="literal">false</span>);</span><br><span class="line">        <span class="keyword">return</span>;</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="comment">//逻辑4，到这里为安全模式中，reached等于0，阈值条件满足，extension大于0，因此开启SafeModeMonitor线程</span></span><br><span class="line">      reached = now();</span><br><span class="line">      smmthread = <span class="keyword">new</span> Daemon(<span class="keyword">new</span> SafeModeMonitor());</span><br><span class="line">      smmthread.start();</span><br><span class="line">      reportStatus(<span class="string">"STATE* Safe mode extension entered"</span>, <span class="literal">true</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，作了4个标识，首先通过needEnter检查是否需要进入安全模式<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">boolean</span> <span class="title">needEnter</span><span class="params">()</span> </span>&#123;</span><br><span class="line">      <span class="keyword">return</span> getSafeBlockRatio() &lt; threshold || numLiveDataNodes() &lt; datanodeThreshold;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，当安全区块占比没有满足阈值(默认95%)，或者数据节点数(datanodeMap中存活数据节点数目)小于阈值(默认0,因此默认没有数据节点限制)时，需要进入安全模式，安全模式进入通过enter方法</p>
+<h3 id="3-2_enter进入安全模式">3.2 enter进入安全模式</h3><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">enter</span><span class="params">()</span> </span>&#123;</span><br><span class="line">      <span class="keyword">this</span>.reached = <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>如上，设置成员reached为0，表示进入安全模式(-1时安全模式关闭，大于0为阈值满足时的时间)。  </p>
+<p>因此NameNode刚启动的时候一般会进入安全模式。  </p>
+<p>checkMode剩下的逻辑后面再来分析，我们先看看进入安全模式后，什么时候达到阈值然后退出。进入安全模式，reached为0，安全模式后不进行文件系统相关修改操作。  </p>
+<p>由needEnter逻辑可以看出，当安全区块比例和数据节点数目都满足阈值时才可能离开安全模式(checkMode第一个条件不满足，继续后面逻辑)。<br>因此当数据节点注册(registerDatanode)或者移除(removeDatanode)时，如果SafeModeInfo对象存在，会调用checkMode进行检查(因为注册增加了数据节点数目，移除减少了数据节点数目)。<br>当接收到一个区块报告，如数据节点注册后报告正在写的区块(processBlocksBeingWrittenReport)以及后续的区块报告(processReport-&gt;addStoredBlock)，区块接收(blockReceived-&gt;addStoredBlock)，会由incrementSafeBlockCount根据报告区块的副本数，达到安全副本时增加安全区块数目，当移除一个区块(removeStoredBlock),副本数改变，会由decrementSafeBlockCount根据副本数，小于安全副本时减少安全区块数目。  </p>
+<p>因此，NameNode启动进入安全模式后，等待数据节点的区块上报，相应的增加了安全区块数并调用checkMode进行检查，当安全区块比例达到阈值时，checkMode检查会发现第一个逻辑条件needEnter不满足了，从而进入checkMode下面的逻辑处理中。  </p>
+<p>在checkMode的第二个逻辑中，如果extension小于等于0，因为这时阈值已经满足了，不需要等待直接通过leave方法离开安全模式</p>
+<h3 id="3-3_leave离开安全模式">3.3 leave离开安全模式</h3><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">synchronized</span> <span class="function"><span class="keyword">void</span> <span class="title">leave</span><span class="params">(<span class="keyword">boolean</span> checkForUpgrades)</span> </span>&#123;</span><br><span class="line">      ...<span class="comment">//如果需要进行分布式更新，则创建SafeModeInfo进入手动安全模式</span></span><br><span class="line">      <span class="keyword">long</span> startTimeMisReplicatedScan = now();</span><br><span class="line">      </span><br><span class="line">      <span class="comment">//检查每个区块，对应文件不存在的添加到recentInvalidateSets，副本数没达到期望值的添加到neededReplications</span></span><br><span class="line">      <span class="comment">//超过期望副本的添加到excessReplicateMap</span></span><br><span class="line">      processMisReplicatedBlocks();</span><br><span class="line">      </span><br><span class="line">      ...<span class="comment">//日志相关</span></span><br><span class="line">      </span><br><span class="line">      <span class="keyword">if</span> (reached &gt;= <span class="number">0</span>) &#123;</span><br><span class="line">        NameNode.stateChangeLog.info(<span class="string">"STATE* Safe mode is OFF"</span>); </span><br><span class="line">      &#125;</span><br><span class="line">      reached = -<span class="number">1</span>;</span><br><span class="line">      safeMode = <span class="keyword">null</span>;</span><br><span class="line">      ...<span class="comment">//日志相关</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>如上，传入参数检查是否需要进行分布式更新，检查时如果发现需要进行分布式更新则创建SafeModeInfo对象手动进入安全模式，因为分布式更新需要出于安全模式中。<br>通过processMisReplicatedBlocks检查所有的区块，如果区块对应的文件不存在，则应该删除添加到recentInvalidateSets中，如果副本数没有达到期望值则添加到neededReplications中，如果副本数超除了期望值则选择某些副本添加到excessReplicateMap中，同时添加到recentInvalidateSets中删除。processMisReplicatedBlocks如下</p>
+<h4 id="3-3-1_processMisReplicatedBlocks">3.3.1 processMisReplicatedBlocks</h4><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="keyword">synchronized</span> <span class="function"><span class="keyword">void</span> <span class="title">processMisReplicatedBlocks</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="keyword">long</span> nrInvalid = <span class="number">0</span>, nrOverReplicated = <span class="number">0</span>, nrUnderReplicated = <span class="number">0</span>;</span><br><span class="line">    neededReplications.clear();</span><br><span class="line">    <span class="keyword">for</span>(BlocksMap.BlockInfo block : blocksMap.getBlocks()) &#123;</span><br><span class="line">      INodeFile fileINode = block.getINode();</span><br><span class="line">      <span class="keyword">if</span>(fileINode == <span class="keyword">null</span>) &#123;<span class="comment">//区块不属于任何文件，应该删除，添加到recentInvalidateSets</span></span><br><span class="line">        nrInvalid++;</span><br><span class="line">        addToInvalidates(block);</span><br><span class="line">        <span class="keyword">continue</span>;</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="keyword">short</span> expectedReplication = fileINode.getReplication();</span><br><span class="line">      NumberReplicas num = countNodes(block);<span class="comment">//更新区块副本状态</span></span><br><span class="line">      <span class="keyword">int</span> numCurrentReplica = num.liveReplicas();</span><br><span class="line">      <span class="comment">//根据副本数，将区块可能添加到neededReplications中</span></span><br><span class="line">      <span class="keyword">if</span> (neededReplications.add(block, numCurrentReplica,</span><br><span class="line">                     num.decommissionedReplicas(), expectedReplication)) &#123;</span><br><span class="line">        nrUnderReplicated++;</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="comment">//副本数超过期望值，选择某些副本添加到excessReplicateMap中</span></span><br><span class="line">      <span class="keyword">if</span> (numCurrentReplica &gt; expectedReplication) &#123;</span><br><span class="line">        nrOverReplicated++;</span><br><span class="line">        processOverReplicatedBlock(block, expectedReplication, <span class="keyword">null</span>, <span class="keyword">null</span>);</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    ...<span class="comment">//日志记录</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>如上，neededReplications的add方法和processOverReplicatedBlock在其他NameNode的文章中分析过。neededReplications的add方法根据副本数和期望副本数，小于期望值的区块会添加到neededReplications的相应优先队列中。processOverReplicatedBlock会根据区块放置策略进行选择，优先从有多个副本的机架中选择，选择剩余空间少的数据节点，次优的从拥有相同副本数的机架中选择，还是选择剩余空间少的数据节点。选择超出期望副本数的数据节点添加到excessReplicateMap中，同时会添加到recentInvalidateSets中进行删除。  </p>
+<p>processMisReplicatedBlocks对所有区块检查并处理后，将reached置为-1，表示安全模式关闭，safeMode对象置null，从而离开安全模式。  </p>
+<p>回到checkMode中，如果extension和threshold大于0，需要等待时，刚刚满足阈值时，reached还没更新仍然为进入安全模式的标识0，因此会执行第4个逻辑，更新reached为当前时间，此时extension大于0，需要等待，因此创建SafeModeMonitor线程，进行等待。</p>
+<h3 id="3-4_SafeModeMonitor线程">3.4 SafeModeMonitor线程</h3><p>就一个成员<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="keyword">long</span> recheckInterval = <span class="number">1000</span>;</span><br></pre></td></tr></table></figure></p>
+<p>如上，检查周期1s。主程序如下<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">void</span> <span class="title">run</span><span class="params">()</span> </span>&#123;</span><br><span class="line">      <span class="keyword">while</span> (fsRunning &amp;&amp; (safeMode != <span class="keyword">null</span> &amp;&amp; !safeMode.canLeave())) &#123;</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">          Thread.sleep(recheckInterval);</span><br><span class="line">        &#125; <span class="keyword">catch</span> (InterruptedException ie) &#123;</span><br><span class="line">        &#125;</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="keyword">try</span> &#123;</span><br><span class="line">        leaveSafeMode(<span class="keyword">true</span>);</span><br><span class="line">      &#125; <span class="keyword">catch</span>(SafeModeException es) &#123; <span class="comment">// should never happen</span></span><br><span class="line">        String msg = <span class="string">"SafeModeMonitor may not run during distributed upgrade."</span>;</span><br><span class="line">        <span class="keyword">assert</span> <span class="keyword">false</span> : msg;</span><br><span class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> RuntimeException(msg, es);</span><br><span class="line">      &#125;</span><br><span class="line">      smmthread = <span class="keyword">null</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>同样依赖于FSNamesystem运行标识fsRunning，FSNamesystem关闭时fsRunning置false从而退出。safeMode不为空且通过canLeave判断不能离开安全模式时，休眠等待1s。canLeave如下<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">synchronized</span> <span class="function"><span class="keyword">boolean</span> <span class="title">canLeave</span><span class="params">()</span> </span>&#123;</span><br><span class="line">  <span class="keyword">if</span> (reached == <span class="number">0</span>)<span class="comment">//还没达到阈值，当然不能离开安全模式</span></span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">false</span>;</span><br><span class="line">  <span class="keyword">if</span> (now() - reached &lt; extension) &#123;<span class="comment">//达到了阈值，但是还没到extension时间</span></span><br><span class="line">    reportStatus(<span class="string">"STATE* Safe mode ON"</span>, <span class="keyword">false</span>);</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">false</span>;</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">return</span> !needEnter();<span class="comment">//不需要进入了</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，reached为0表示没有达到阈值，当然不能离开安全模式返回false，否则虽然达到了阈值，但是没到extension时间，也是不能离开安全模式。如果达到了阈值且过去了extension时间，则通过needEnter重新判断是否需要进入安全模式，不需要进入则离开。  </p>
+<p>回到线程，如果可以离开，则通过leaveSafeMode离开安全模式，退出线程，leaveSafeMode前面分析过了。</p>
+<p>这里在SafeModeMonitor线程中再来看checkMode中的第3个逻辑，很明显为处于SafeModeMonitor线程中的状态，满足阈值后还没到达extension时间，这时调用checkMode(如前分析可能接收区块，移除区块，数据节点注册，数据节点移除等)会进入第3个逻辑，此时没有达到extension时间，直接返回。  </p>
+</span>
+      
+    </div>
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/HDFS/" rel="tag">#HDFS</a>
+          
+            <a href="/tags/Hadoop-1-2-1/" rel="tag">#Hadoop-1.2.1</a>
+          
+            <a href="/tags/Java/" rel="tag">#Java</a>
+          
+            <a href="/tags/NameNode/" rel="tag">#NameNode</a>
+          
+            <a href="/tags/NameNode源码阅读/" rel="tag">#NameNode源码阅读</a>
+          
+            <a href="/tags/源码阅读/" rel="tag">#源码阅读</a>
+          
+        </div>
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/DataNode启动/" rel="next" title="DataNode实现源码分析---DataNode启动">
+                <i class="fa fa-chevron-left"></i> DataNode实现源码分析---DataNode启动
+              </a>
+            
+          </div>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/NameNode启动和停止/" rel="prev" title="NameNode实现源码分析---启动和停止">
+                NameNode实现源码分析---启动和停止 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </article>
+
+
+
+    <div class="post-spread">
+      
+        <!-- JiaThis Button BEGIN -->
+<div class="jiathis_style">
+  <a class="jiathis_button_tsina"></a>
+  <a class="jiathis_button_tqq"></a>
+  <a class="jiathis_button_weixin"></a>
+  <a class="jiathis_button_cqq"></a>
+  <a class="jiathis_button_douban"></a>
+  <a class="jiathis_button_renren"></a>
+  <a class="jiathis_button_qzone"></a>
+  <a class="jiathis_button_kaixin001"></a>
+  <a class="jiathis_button_copy"></a>
+  <a href="http://www.jiathis.com/share" class="jiathis jiathis_txt jiathis_separator jtico jtico_jiathis" target="_blank"></a>
+  <a class="jiathis_counter_style"></a>
+</div>
+<script type="text/javascript" >
+  var jiathis_config={
+    hideMore:false
+  }
+</script>
+<script type="text/javascript" src="http://v3.jiathis.com/code/jia.js" charset="utf-8"></script>
+<!-- JiaThis Button END -->
+
+      
+    </div>
+  </div>
+
+
+        </div>
+
+        
+
+
+        
+  <div class="comments" id="comments">
+    
+      <div class="ds-thread" data-thread-key="NameNode安全模式/"
+           data-title="NameNode实现源码分析---安全模式" data-url="http://xiao-yun.github.io/NameNode安全模式/">
+      </div>
+    
+  </div>
+
+
+      </div>
+
+      
+        
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap" >
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel ">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+          <img class="site-author-image" src="/images/hero.jpg" alt="xiaoyun" itemprop="image"/>
+          <p class="site-author-name" itemprop="name">xiaoyun</p>
+        </div>
+        <p class="site-description motion-element" itemprop="description">学习笔记，网上资源摘要等</p>
+        <nav class="site-state motion-element">
+          <div class="site-state-item site-state-posts">
+            <a href="/archives">
+              <span class="site-state-item-count">44</span>
+              <span class="site-state-item-name">日志</span>
+            </a>
+          </div>
+
+          <div class="site-state-item site-state-categories">
+            <a href="/categories">
+              <span class="site-state-item-count">40</span>
+              <span class="site-state-item-name">分类</span>
+              </a>
+          </div>
+
+          <div class="site-state-item site-state-tags">
+            <a href="/tags">
+              <span class="site-state-item-count">21</span>
+              <span class="site-state-item-name">标签</span>
+              </a>
+          </div>
+
+        </nav>
+
+        
+
+        <div class="links-of-author motion-element">
+          
+            
+              <span class="links-of-author-item">
+                <a href="https://github.com/xiao-yun" target="_blank">
+                  
+                    <i class="fa fa-globe"></i> github
+                  
+                </a>
+              </span>
+            
+          
+        </div>
+
+        
+        
+
+        <div class="links-of-author motion-element">
+          
+        </div>
+
+      </section>
+
+      
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc-indicator-top post-toc-indicator">
+            <i class="fa fa-angle-double-up"></i>
+          </div>
+          <div class="post-toc">
+            
+              
+            
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-_SafeModeInfo"><span class="nav-number">1.</span> <span class="nav-text">1. SafeModeInfo</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-_手动安全模式相关"><span class="nav-number">2.</span> <span class="nav-text">2. 手动安全模式相关</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1_setSafeMode"><span class="nav-number">2.1.</span> <span class="nav-text">2.1 setSafeMode</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1-1_手动离开leaveSafeMode"><span class="nav-number">2.2.</span> <span class="nav-text">2.1.1 手动离开leaveSafeMode</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1-2_手动进入enterSafeMode"><span class="nav-number">2.3.</span> <span class="nav-text">2.1.2 手动进入enterSafeMode</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1-3_获取安全模式状态"><span class="nav-number">2.4.</span> <span class="nav-text">2.1.3 获取安全模式状态</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-_名字节点启动时自动进入安全模式"><span class="nav-number">3.</span> <span class="nav-text">3. 名字节点启动时自动进入安全模式</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#3-1_checkMode"><span class="nav-number">3.1.</span> <span class="nav-text">3.1 checkMode</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-2_enter进入安全模式"><span class="nav-number">3.2.</span> <span class="nav-text">3.2 enter进入安全模式</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-3_leave离开安全模式"><span class="nav-number">3.3.</span> <span class="nav-text">3.3 leave离开安全模式</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#3-3-1_processMisReplicatedBlocks"><span class="nav-number">3.3.1.</span> <span class="nav-text">3.3.1 processMisReplicatedBlocks</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-4_SafeModeMonitor线程"><span class="nav-number">3.4.</span> <span class="nav-text">3.4 SafeModeMonitor线程</span></a></li></ol></li></ol></div>
+            
+          </div>
+          <div class="post-toc-indicator-bottom post-toc-indicator">
+            <i class="fa fa-angle-double-down"></i>
+          </div>
+        </section>
+      
+
+    </div>
+  </aside>
+
+
+      
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright" >
+  
+  &copy; 
+  <span itemprop="copyrightYear">2016</span>
+  <span class="with-love">
+    <i class="icon-next-heart fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">xiaoyun</span>
+</div>
+
+<div class="powered-by">
+  由 <a class="theme-link" href="http://hexo.io">Hexo</a> 强力驱动
+</div>
+
+<div class="theme-info">
+  主题 -
+  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
+    NexT.Mist
+  </a>
+</div>
+
+
+
+      </div>
+    </footer>
+
+    <div class="back-to-top"></div>
+  </div>
+
+  <script type="text/javascript" src="/vendors/jquery/index.js?v=2.1.3"></script>
+
+  
+  
+
+  
+    
+
+  
+    
+  
+
+  <script type="text/javascript">
+    var duoshuoQuery = {short_name:"xiaoyuncom"};
+    (function() {
+      var ds = document.createElement('script');
+      ds.type = 'text/javascript';ds.async = true;
+      ds.id = 'duoshuo-script';
+      ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+      ds.charset = 'UTF-8';
+      (document.getElementsByTagName('head')[0]
+      || document.getElementsByTagName('body')[0]).appendChild(ds);
+    })();
+  </script>
+    
+     
+
+
+    
+  
+
+  
+  <script type="text/javascript" src="/vendors/fancybox/source/jquery.fancybox.pack.js"></script>
+  <script type="text/javascript" src="/js/fancy-box.js?v=0.4.5.2"></script>
+
+
+  <script type="text/javascript" src="/js/helpers.js?v=0.4.5.2"></script>
+  <script type="text/javascript" src="/vendors/velocity/velocity.min.js"></script>
+<script type="text/javascript" src="/vendors/velocity/velocity.ui.min.js"></script>
+
+<script type="text/javascript" src="/js/motion.js?v=0.4.5.2" id="motion.global"></script>
+
+
+  <script type="text/javascript" src="/vendors/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  <script type="text/javascript" src="/vendors/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  
+<script type="text/javascript" src="/js/bootstrap.scrollspy.js?v=0.4.5.2" id="bootstrap.scrollspy.custom"></script>
+
+
+<script type="text/javascript" id="sidebar.toc.highlight">
+  $(document).ready(function () {
+    var tocSelector = '.post-toc';
+    var $tocSelector = $(tocSelector);
+    var activeCurrentSelector = '.active-current';
+
+    $tocSelector
+      .on('activate.bs.scrollspy', function () {
+        var $currentActiveElement = $(tocSelector + ' .active').last();
+
+        removeCurrentActiveClass();
+        $currentActiveElement.addClass('active-current');
+
+        $tocSelector[0].scrollTop = $currentActiveElement.position().top;
+      })
+      .on('clear.bs.scrollspy', function () {
+        removeCurrentActiveClass();
+      });
+
+    function removeCurrentActiveClass () {
+      $(tocSelector + ' ' + activeCurrentSelector)
+        .removeClass(activeCurrentSelector.substring(1));
+    }
+
+    function processTOC () {
+      getTOCMaxHeight();
+      toggleTOCOverflowIndicators();
+    }
+
+    function getTOCMaxHeight () {
+      var height = $('.sidebar').height() -
+                   $tocSelector.position().top -
+                   $('.post-toc-indicator-bottom').height();
+
+      $tocSelector.css('height', height);
+
+      return height;
+    }
+
+    function toggleTOCOverflowIndicators () {
+      tocOverflowIndicator(
+        '.post-toc-indicator-top',
+        $tocSelector.scrollTop() > 0 ? 'show' : 'hide'
+      );
+
+      tocOverflowIndicator(
+        '.post-toc-indicator-bottom',
+        $tocSelector.scrollTop() >= $tocSelector.find('ol').height() - $tocSelector.height() ? 'hide' : 'show'
+      )
+    }
+
+    $(document).on('sidebar.motion.complete', function () {
+      processTOC();
+    });
+
+    $('body').scrollspy({ target: tocSelector });
+    $(window).on('resize', function () {
+      if ( $('.sidebar').hasClass('sidebar-active') ) {
+        processTOC();
+      }
+    });
+
+    onScroll($tocSelector);
+
+    function onScroll (element) {
+      element.on('mousewheel DOMMouseScroll', function (event) {
+          var oe = event.originalEvent;
+          var delta = oe.wheelDelta || -oe.detail;
+
+          this.scrollTop += ( delta < 0 ? 1 : -1 ) * 30;
+          event.preventDefault();
+
+          toggleTOCOverflowIndicators();
+      });
+    }
+
+    function tocOverflowIndicator (indicator, action) {
+      var $indicator = $(indicator);
+      var opacity = action === 'show' ? 1 : 0;
+      $indicator.velocity ?
+        $indicator.velocity('stop').velocity({
+          opacity: opacity
+        }, { duration: 100 }) :
+        $indicator.stop().animate({
+          opacity: opacity
+        }, 100);
+    }
+
+  });
+</script>
+
+<script type="text/javascript" id="sidebar.nav">
+  $(document).ready(function () {
+    var html = $('html');
+    var TAB_ANIMATE_DURATION = 200;
+    var hasVelocity = $.isFunction(html.velocity);
+
+    $('.sidebar-nav li').on('click', function () {
+      var item = $(this);
+      var activeTabClassName = 'sidebar-nav-active';
+      var activePanelClassName = 'sidebar-panel-active';
+      if (item.hasClass(activeTabClassName)) {
+        return;
+      }
+
+      var currentTarget = $('.' + activePanelClassName);
+      var target = $('.' + item.data('target'));
+
+      hasVelocity ?
+        currentTarget.velocity('transition.slideUpOut', TAB_ANIMATE_DURATION, function () {
+          target
+            .velocity('stop')
+            .velocity('transition.slideDownIn', TAB_ANIMATE_DURATION)
+            .addClass(activePanelClassName);
+        }) :
+        currentTarget.animate({ opacity: 0 }, TAB_ANIMATE_DURATION, function () {
+          currentTarget.hide();
+          target
+            .stop()
+            .css({'opacity': 0, 'display': 'block'})
+            .animate({ opacity: 1 }, TAB_ANIMATE_DURATION, function () {
+              currentTarget.removeClass(activePanelClassName);
+              target.addClass(activePanelClassName);
+            });
+        });
+
+      item.siblings().removeClass(activeTabClassName);
+      item.addClass(activeTabClassName);
+    });
+
+    $('.post-toc a').on('click', function (e) {
+      e.preventDefault();
+      var targetSelector = escapeSelector(this.getAttribute('href'));
+      var offset = $(targetSelector).offset().top;
+      hasVelocity ?
+        html.velocity('stop').velocity('scroll', {
+          offset: offset  + 'px',
+          mobileHA: false
+        }) :
+        $('html, body').stop().animate({
+          scrollTop: offset
+        }, 500);
+    });
+
+    // Expand sidebar on post detail page by default, when post has a toc.
+    motionMiddleWares.sidebar = function () {
+      var $tocContent = $('.post-toc-content');
+      if (CONFIG.sidebar === 'post') {
+        if ($tocContent.length > 0 && $tocContent.html().trim().length > 0) {
+          displaySidebar();
+        }
+      }
+    };
+  });
+</script>
+
+
+
+  <script type="text/javascript" src="/js/bootstrap.js"></script>
+
+  
+  
+
+  
+  
+
+</body>
+</html>

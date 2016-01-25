@@ -95,7 +95,7 @@ FileSystem.get获取文件系统，默认为本地文件系统
 fs.%s.impl.disable.cache
 false
 其中%">
-<meta property="og:updated_time" content="2016-01-24T03:27:53.799Z">
+<meta property="og:updated_time" content="2016-01-25T14:38:58.528Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="Hadoop配置相关---HDFS">
 <meta name="twitter:description" content="Hadoop版本:Hadoop-1.2.1说明:缺省值为N/A是指在程序中没有指定，而不是在datanode-default.xml等缺省配置文件中没有设置。
@@ -288,8 +288,8 @@ false
         <div class="post-meta">
           <span class="post-time">
             发表于
-            <time itemprop="dateCreated" datetime="2016-01-24T11:27:53+08:00" content="2016-01-24">
-              2016-01-24
+            <time itemprop="dateCreated" datetime="2016-01-25T22:38:58+08:00" content="2016-01-25">
+              2016-01-25
             </time>
           </span>
 
@@ -688,6 +688,134 @@ false
 <td style="text-align:center">N/A</td>
 <td style="text-align:center">不能连接到名字节点的数据节点列表</td>
 </tr>
+<tr>
+<td style="text-align:center">dfs.namenode.plugins</td>
+<td style="text-align:center">ServicePlugin</td>
+<td style="text-align:center">NameNode插件</td>
+</tr>
+<tr>
+<td style="text-align:center">dfs.namenode.rpc-address</td>
+<td style="text-align:center"><code>fs.default.name</code>为地址，缺省端口8020</td>
+<td style="text-align:center">RPC服务地址</td>
+</tr>
+<tr>
+<td style="text-align:center">dfs.namenode.handler.count</td>
+<td style="text-align:center">10</td>
+<td style="text-align:center">RPC服务处理器个数</td>
+</tr>
+<tr>
+<td style="text-align:center">dfs.namenode.servicerpc-address</td>
+<td style="text-align:center">N/A</td>
+<td style="text-align:center">额外的RPC服务，为DataNode和SecondaryNameNode提供RPC服务，Client的RPC服务使用dfs.namenode.rpc-address指定的RPC服务，如果没有配置由dfs.namenode.rpc-address提供所有RPC服务</td>
+</tr>
+<tr>
+<td style="text-align:center">dfs.namenode.service.handler.count</td>
+<td style="text-align:center">10</td>
+<td style="text-align:center">额外RPC服务的处理器线程个数</td>
+</tr>
+<tr>
+<td style="text-align:center">fs.trash.interval</td>
+<td style="text-align:center">60(单位min)</td>
+<td style="text-align:center">垃圾清理器线程Emptier工作周期，也是清理周期</td>
+</tr>
+<tr>
+<td style="text-align:center">dfs.permissions.supergroup</td>
+<td style="text-align:center">supergroup</td>
+<td style="text-align:center">超级用户权限所在组</td>
+</tr>
+<tr>
+<td style="text-align:center">dfs.permissions</td>
+<td style="text-align:center">true</td>
+<td style="text-align:center">是否使能权限访问</td>
+</tr>
+<tr>
+<td style="text-align:center">net.topology.impl</td>
+<td style="text-align:center">NetworkTopology</td>
+<td style="text-align:center">网络拓扑实现类</td>
+</tr>
+<tr>
+<td style="text-align:center">dfs.block.replicator.classname</td>
+<td style="text-align:center">BlockPlacementPolicyDefault</td>
+<td style="text-align:center">区块放置策略实现类，根据网络拓扑决定区块在集群中位置</td>
+</tr>
+<tr>
+<td style="text-align:center">dfs.replication</td>
+<td style="text-align:center">3</td>
+<td style="text-align:center">缺省副本期望值</td>
+</tr>
+<tr>
+<td style="text-align:center">dfs.replication.max</td>
+<td style="text-align:center">512</td>
+<td style="text-align:center">最大副本数</td>
+</tr>
+<tr>
+<td style="text-align:center">dfs.replication.min</td>
+<td style="text-align:center">1</td>
+<td style="text-align:center">最小副本数，也是安全区块所属的副本数</td>
+</tr>
+<tr>
+<td style="text-align:center">dfs.max-repl-streams</td>
+<td style="text-align:center">2</td>
+<td style="text-align:center">数据节点上可以同时执行复制操作的数目</td>
+</tr>
+<tr>
+<td style="text-align:center">dfs.block.size</td>
+<td style="text-align:center">64*1024*1024(64MB)</td>
+<td style="text-align:center">缺省区块大小</td>
+</tr>
+<tr>
+<td style="text-align:center">dfs.max.objects</td>
+<td style="text-align:center">0</td>
+<td style="text-align:center">最大INodeFile数目大小，0表示无限制</td>
+</tr>
+<tr>
+<td style="text-align:center">dfs.block.invalidate.limit</td>
+<td style="text-align:center">N/A</td>
+<td style="text-align:center">ReplicationMonitor线程每次处理中，每个数据节点可以删除区块的限制，缺省为20*(heartbeatInterval/1000)即60</td>
+</tr>
+<tr>
+<td style="text-align:center">dfs.durable.sync</td>
+<td style="text-align:center">true</td>
+<td style="text-align:center">true时会对一些操作进行日志记录</td>
+</tr>
+<tr>
+<td style="text-align:center">dfs.replication.pending.timeout.sec</td>
+<td style="text-align:center">-1(单位s)</td>
+<td style="text-align:center">pendingReplications相关线程判断复制操作失败的周期，-1表示使用默认值5*60*1000即5min</td>
+</tr>
+<tr>
+<td style="text-align:center">topology.node.switch.mapping.impl</td>
+<td style="text-align:center">ScriptBasedMapping</td>
+<td style="text-align:center">网络拓扑相关类，将主机转换为网络位置</td>
+</tr>
+<tr>
+<td style="text-align:center">topology.script.file.name</td>
+<td style="text-align:center">N/A</td>
+<td style="text-align:center">ScriptBasedMapping使用Shell脚本将主机解析成网络位置，该配置定义脚本文件</td>
+</tr>
+<tr>
+<td style="text-align:center">topology.script.number.args</td>
+<td style="text-align:center">100</td>
+<td style="text-align:center">ScriptBasedMapping使用的Shell脚本每次调用最大能解析的主机名数目</td>
+</tr>
+<tr>
+<td style="text-align:center">dfs.safemode.threshold.pct</td>
+<td style="text-align:center">0.95</td>
+<td style="text-align:center">安全区块占总区块的比例，达到此比例时才可以离开安全模式</td>
+</tr>
+<tr>
+<td style="text-align:center">dfs.namenode.safemode.min.datanodes</td>
+<td style="text-align:center">0</td>
+<td style="text-align:center">离开安全模式最小的数据节点数目，0即表示没有数据节点限制</td>
+</tr>
+<tr>
+<td style="text-align:center">dfs.safemode.extension</td>
+<td style="text-align:center">0</td>
+<td style="text-align:center">安全区块比例达到阈值时，等待该配置指定时间后离开安全模式</td>
+</tr>
+<tr>
+<td style="text-align:center"></td>
+</tr>
 </tbody>
 </table>
 <h2 id="SecondaryNameNode">SecondaryNameNode</h2><table>
@@ -767,17 +895,13 @@ false
         <div class="post-nav">
           <div class="post-nav-next post-nav-item">
             
-              <a href="/NameNode心跳检测/" rel="next" title="NameNode实现源码分析---心跳检测">
-                <i class="fa fa-chevron-left"></i> NameNode实现源码分析---心跳检测
+              <a href="/NameNode区块复制和删除线程/" rel="next" title="NameNode实现源码分析---区块复制和删除线程">
+                <i class="fa fa-chevron-left"></i> NameNode实现源码分析---区块复制和删除线程
               </a>
             
           </div>
 
           <div class="post-nav-prev post-nav-item">
-            
-              <a href="/NameNode租约管理/" rel="prev" title="NameNode实现源码分析---租约管理">
-                NameNode实现源码分析---租约管理 <i class="fa fa-chevron-right"></i>
-              </a>
             
           </div>
         </div>
@@ -872,7 +996,7 @@ false
         <nav class="site-state motion-element">
           <div class="site-state-item site-state-posts">
             <a href="/archives">
-              <span class="site-state-item-count">42</span>
+              <span class="site-state-item-count">44</span>
               <span class="site-state-item-name">日志</span>
             </a>
           </div>

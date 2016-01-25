@@ -1,0 +1,1005 @@
+<!doctype html>
+<html class="theme-next   use-motion ">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+  <link href="/vendors/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css"/>
+
+
+
+
+  <link href="//fonts.googleapis.com/css?family=Lato:300,400,700,400italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+
+
+
+<link href="/vendors/font-awesome/css/font-awesome.min.css?v=4.4.0" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=0.4.5.2" rel="stylesheet" type="text/css" />
+
+
+  <meta name="keywords" content="HDFS,Hadoop-1.2.1,Java,NameNode,NameNode源码阅读,源码阅读," />
+
+
+
+
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=0.4.5.2" />
+
+
+
+
+
+
+<meta name="description" content="Hadoop版本:Hadoop-1.2.1参考：《Hadoop技术内幕-深入解析Hadoop Common和HDFS架构设计与实现原理》  
+
+NameNode.main为NameNode启动的入口，如下1234567891011public static void main(String argv[]) throws Exception &amp;#123;    try &amp;#123;      Str">
+<meta property="og:type" content="article">
+<meta property="og:title" content="NameNode实现源码分析---启动和停止">
+<meta property="og:url" content="http://xiao-yun.github.io/NameNode启动和停止/index.html">
+<meta property="og:site_name" content="xiaoyun">
+<meta property="og:description" content="Hadoop版本:Hadoop-1.2.1参考：《Hadoop技术内幕-深入解析Hadoop Common和HDFS架构设计与实现原理》  
+
+NameNode.main为NameNode启动的入口，如下1234567891011public static void main(String argv[]) throws Exception &amp;#123;    try &amp;#123;      Str">
+<meta property="og:updated_time" content="2016-01-25T14:38:58.460Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="NameNode实现源码分析---启动和停止">
+<meta name="twitter:description" content="Hadoop版本:Hadoop-1.2.1参考：《Hadoop技术内幕-深入解析Hadoop Common和HDFS架构设计与实现原理》  
+
+NameNode.main为NameNode启动的入口，如下1234567891011public static void main(String argv[]) throws Exception &amp;#123;    try &amp;#123;      Str">
+
+
+
+<script type="text/javascript" id="hexo.configuration">
+  var CONFIG = {
+    scheme: 'Mist',
+    sidebar: 'hide',
+    motion: true
+  };
+</script>
+
+  <title> NameNode实现源码分析---启动和停止 | xiaoyun </title>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  <!--[if lte IE 8]>
+  <div style=' clear: both; height: 59px; padding:0 0 0 15px; position: relative;margin:0 auto;'>
+    <a href="http://windows.microsoft.com/en-US/internet-explorer/products/ie/home?ocid=ie6_countdown_bannercode">
+      <img src="http://7u2nvr.com1.z0.glb.clouddn.com/picouterie.jpg" border="0" height="42" width="820"
+           alt="You are using an outdated browser. For a faster, safer browsing experience, upgrade for free today or use other browser ,like chrome firefox safari."
+           style='margin-left:auto;margin-right:auto;display: block;'/>
+    </a>
+  </div>
+<![endif]-->
+  
+
+
+
+  <script type="text/javascript">
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "//hm.baidu.com/hm.js?caeb4129c91d1e6fb3d562d35fedef0d";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+  <div class="container one-column page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-meta ">
+  
+
+  <div class="custom-logo-site-title">
+    <a href="/"  class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <span class="site-title">xiaoyun</span>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+  <p class="site-subtitle"></p>
+</div>
+
+<div class="site-nav-toggle">
+  <button>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+  </button>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu ">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-home fa-fw"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives" rel="section">
+            
+              <i class="menu-item-icon fa fa-archive fa-fw"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories" rel="section">
+            
+              <i class="menu-item-icon fa fa-th fa-fw"></i> <br />
+            
+            分类
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+              <i class="menu-item-icon fa fa-tags fa-fw"></i> <br />
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about" rel="section">
+            
+              <i class="menu-item-icon fa fa-user fa-fw"></i> <br />
+            
+            关于
+          </a>
+        </li>
+      
+
+      
+      
+    </ul>
+  
+
+  
+</nav>
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div id="content" class="content">
+          
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                NameNode实现源码分析---启动和停止
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            发表于
+            <time itemprop="dateCreated" datetime="2016-01-25T22:38:58+08:00" content="2016-01-25">
+              2016-01-25
+            </time>
+          </span>
+
+          
+            <span class="post-category" >
+              &nbsp; | &nbsp; 分类于
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Java/" itemprop="url" rel="index">
+                    <span itemprop="name">Java</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Java/Hadoop-1-2-1/" itemprop="url" rel="index">
+                    <span itemprop="name">Hadoop-1.2.1</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Java/Hadoop-1-2-1/HDFS/" itemprop="url" rel="index">
+                    <span itemprop="name">HDFS</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Java/Hadoop-1-2-1/HDFS/NameNode/" itemprop="url" rel="index">
+                    <span itemprop="name">NameNode</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Java/Hadoop-1-2-1/HDFS/NameNode/源码阅读/" itemprop="url" rel="index">
+                    <span itemprop="name">源码阅读</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Java/Hadoop-1-2-1/HDFS/NameNode/源码阅读/NameNode源码阅读/" itemprop="url" rel="index">
+                    <span itemprop="name">NameNode源码阅读</span>
+                  </a>
+                </span>
+
+                
+                
+
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                &nbsp; | &nbsp;
+                <a href="/NameNode启动和停止/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="NameNode启动和停止/" itemprop="commentsCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+
+        </div>
+      </header>
+    
+
+
+    <div class="post-body">
+
+      
+      
+
+      
+        <span itemprop="articleBody"><p>Hadoop版本:<a href="https://archive.apache.org/dist/hadoop/core/hadoop-1.2.1/" target="_blank" rel="external">Hadoop-1.2.1</a><br>参考：《Hadoop技术内幕-深入解析Hadoop Common和HDFS架构设计与实现原理》  </p>
+<hr>
+<p>NameNode.main为NameNode启动的入口，如下<br><figure class="highlight processing"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> main(<span class="keyword">String</span> argv[]) <span class="keyword">throws</span> Exception &#123;</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">      StringUtils.startupShutdownMessage(NameNode.class, argv, LOG);</span><br><span class="line">      NameNode namenode = createNameNode(argv, <span class="keyword">null</span>);</span><br><span class="line">      <span class="keyword">if</span> (namenode != <span class="keyword">null</span>)</span><br><span class="line">        namenode.<span class="built_in">join</span>();</span><br><span class="line">    &#125; <span class="keyword">catch</span> (Throwable e) &#123;</span><br><span class="line">      LOG.error(StringUtils.stringifyException(e));</span><br><span class="line">      System.<span class="built_in">exit</span>(-<span class="number">1</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，与DataNode启动类似，首先通过startupShutdownMessage记录启动日志<code>STARTUP_MSG:...</code>，并注册关闭时的关闭日志<code>SHUTDOWN_MSG:...</code>，然后通过createNameNode方法创建NameNode对象，通过NameNode的join方法等待RPC服务结束，join方法如下<br><figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">join</span>(<span class="params"></span>) </span>&#123;</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">      <span class="keyword">this</span>.server.<span class="keyword">join</span>();</span><br><span class="line">    &#125; <span class="keyword">catch</span> (InterruptedException ie) &#123;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>createNameNode方法如下<br><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> NameNode <span class="title">createNameNode</span><span class="params">(String argv[], Configuration conf)</span> throws IOException </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (conf == null)</span><br><span class="line">      conf = <span class="keyword">new</span> Configuration();</span><br><span class="line">    StartupOption startOpt = parseArguments(argv);<span class="comment">//解析启动参数</span></span><br><span class="line">    <span class="keyword">if</span> (startOpt == null) &#123;</span><br><span class="line">      printUsage();</span><br><span class="line">      System.<span class="built_in">exit</span>(-<span class="number">2</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    setStartupOption(conf, startOpt);<span class="comment">//启动参数写到配置中</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">switch</span> (startOpt) &#123;</span><br><span class="line">      <span class="keyword">case</span> FORMAT:<span class="comment">//格式化</span></span><br><span class="line">        boolean aborted = format(conf, startOpt.getConfirmationNeeded(), startOpt.getInteractive());</span><br><span class="line">        System.<span class="built_in">exit</span>(aborted ? <span class="number">1</span> : <span class="number">0</span>);</span><br><span class="line">      <span class="keyword">case</span> FINALIZE:<span class="comment">//提交升级</span></span><br><span class="line">        aborted = finalize(conf, <span class="literal">true</span>);</span><br><span class="line">        System.<span class="built_in">exit</span>(aborted ? <span class="number">1</span> : <span class="number">0</span>);</span><br><span class="line">      <span class="keyword">case</span> RECOVER:<span class="comment">//修复</span></span><br><span class="line">        NameNode.doRecovery(startOpt, conf);</span><br><span class="line">        <span class="keyword">return</span> null;</span><br><span class="line">      <span class="keyword">default</span>:</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">//其他启动方式，创建NameNode对象</span></span><br><span class="line">    DefaultMetricsSystem.initialize(<span class="string">"NameNode"</span>);</span><br><span class="line">    NameNode namenode = <span class="keyword">new</span> NameNode(conf);</span><br><span class="line">    <span class="keyword">return</span> namenode;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<h2 id="1-_启动参数">1. 启动参数</h2><p>createNameNode中，首先通过<code>parseArguments</code>解析启动参数，启动时可附带的参数在StartupOption枚举中，如下<br><figure class="highlight groovy"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">static</span> <span class="keyword">public</span> <span class="class"><span class="keyword">enum</span> <span class="title">StartupOption</span>&#123;</span></span><br><span class="line">    FORMAT  (<span class="string">"-format"</span>),<span class="comment">//格式化</span></span><br><span class="line">    REGULAR (<span class="string">"-regular"</span>),<span class="comment">//正常启动</span></span><br><span class="line">    UPGRADE (<span class="string">"-upgrade"</span>),<span class="comment">//更新启动</span></span><br><span class="line">    RECOVER (<span class="string">"-recover"</span>),<span class="comment">//恢复启动</span></span><br><span class="line">    FORCE (<span class="string">"-force"</span>),<span class="comment">//格式化或恢复方式启动时可以指定</span></span><br><span class="line">    ROLLBACK(<span class="string">"-rollback"</span>),<span class="comment">//回滚启动</span></span><br><span class="line">    FINALIZE(<span class="string">"-finalize"</span>),<span class="comment">//提交升级启动</span></span><br><span class="line">    IMPORT  (<span class="string">"-importCheckpoint"</span>),<span class="comment">//导入检查点</span></span><br><span class="line">    NONINTERACTIVE  (<span class="string">"-nonInteractive"</span>);<span class="comment">//格式化时可以指定，非交互方式</span></span><br><span class="line">    </span><br><span class="line">    <span class="comment">//只在恢复方式启动时使用</span></span><br><span class="line">    <span class="keyword">private</span> <span class="typename">int</span> force = MetaRecoveryContext.FORCE_NONE;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">//用于格式化方式启动</span></span><br><span class="line">    <span class="keyword">private</span> <span class="typename">boolean</span> isConfirmationNeeded = <span class="literal">true</span>;</span><br><span class="line">    <span class="keyword">private</span> <span class="typename">boolean</span> isInteractive = <span class="literal">true</span>;</span><br><span class="line">    ...</span><br></pre></td></tr></table></figure></p>
+<p>如上，可以通过format(格式化)方式启动，regular(正常)方式启动，upgrade(启动更新)方式启动，recover(恢复到正常状态)方式启动，rollback(升级回滚)方式启动，finalize(提交升级)方式启动，importCheckpoint(导入检查点)方式启动。  </p>
+<p>parseArguments具体代码不贴出来了，默认情况下(不带附加参数)为regular正常方式启动，NameNode在启动前需要格式化，格式化时附带参数”-regular”，同时可以指定”-force”表示直接格式化所有存储目录而不提醒，影响的是StartupOption中的成员<code>isConfirmationNeeded</code>，默认为true即会提示。而指定”-nonInteractive”时，会在ifConfirmationNeeded为true时打印提示信息，影响的是成员<code>isInteractive</code>，默认为true即交互模式，会打印提示信息。  </p>
+<p>其他升级提交回滚等相关操作和DataNode类似，对应的current和previous相关目录操作，这里不分析，importCheckpoint也不分析了。主要分析格式化和正常方式启动。  </p>
+<p>createNameNode中解析完参数后，对于格式化方式，提交升级方式，修复方式在相应的操作后直接返回不会创建NameNode对象，而其他方式创建NameNode对象然后返回。</p>
+<h2 id="2-_格式化启动">2. 格式化启动</h2><p>格式化启动时，由FSNamesystem的format方法负责进行格式化<br><figure class="highlight gradle"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">boolean</span> format(Configuration conf,</span><br><span class="line">      <span class="keyword">boolean</span> isConfirmationNeeded, <span class="keyword">boolean</span> isInteractive) <span class="keyword">throws</span> IOException &#123;</span><br><span class="line">    Collection&lt;<span class="keyword">File</span>&gt; dirsToFormat = FSNamesystem.getNamespaceDirs(conf);<span class="comment">//fsimage目录</span></span><br><span class="line">    Collection&lt;<span class="keyword">File</span>&gt; editDirsToFormat = FSNamesystem.getNamespaceEditsDirs(conf);<span class="comment">//编辑日志目录</span></span><br><span class="line">    <span class="keyword">for</span>(Iterator&lt;<span class="keyword">File</span>&gt; it = dirsToFormat.iterator(); it.hasNext();) &#123;</span><br><span class="line">      <span class="keyword">File</span> curDir = it.<span class="keyword">next</span>();</span><br><span class="line">      <span class="keyword">if</span> (!curDir.exists())</span><br><span class="line">        <span class="keyword">continue</span>;</span><br><span class="line">      <span class="keyword">if</span> (isConfirmationNeeded) &#123;<span class="comment">//需要用户验证，没有指定"-force"参数</span></span><br><span class="line">        <span class="keyword">if</span> (!isInteractive) &#123;<span class="comment">//不是处于交互模式，指定了"-nonInteractive"</span></span><br><span class="line">          System.err.<span class="keyword">println</span>(<span class="string">"Format aborted: "</span> + curDir + <span class="string">" exists."</span>);</span><br><span class="line">          <span class="keyword">return</span> <span class="keyword">true</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="comment">//需要用户验证，且没有指定"-nonInteractive"，输出提示信息</span></span><br><span class="line">        System.err.<span class="keyword">print</span>(<span class="string">"Re-format filesystem in "</span> + curDir +<span class="string">" ? (Y or N) "</span>);</span><br><span class="line">        <span class="keyword">if</span> (!(System.in.<span class="keyword">read</span>() == <span class="string">'Y'</span>)) &#123;<span class="comment">//如果用户输入的不是Y，则格式化终止，返回</span></span><br><span class="line">          System.err.<span class="keyword">println</span>(<span class="string">"Format aborted in "</span>+ curDir);</span><br><span class="line">          <span class="keyword">return</span> <span class="keyword">true</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">while</span>(System.in.<span class="keyword">read</span>() != <span class="string">'\n'</span>); <span class="comment">// discard the enter-key</span></span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    FSNamesystem nsys = <span class="keyword">new</span> FSNamesystem(<span class="keyword">new</span> FSImage(dirsToFormat, editDirsToFormat), conf);</span><br><span class="line">    nsys.dir.fsImage.format();</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">false</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，首先通过FSNamesystem.getNamespaceDirs从配置中读取fsimage的存储目录，比较简单这里不贴代码，为配置项<code>dfs.name.dir</code>，可配置多个目录，如果没有配置，缺省为<code>/tmp/hadoop/dfs/name</code>。同样的通过FSNamesystem.getNamespaceEditsDirs读取编辑日志的存储目录，为配置项<code>dfs.name.edits.dir</code>，缺省<code>/tmp/hadoop/dfs/name</code>。  </p>
+<p>然后，如果格式化时，没有指定附加参数”-force”但指定了”-nonInteractive”，则由于需要用户确认格式化但又不是处于交互模式，因此不能执行格式化，返回。而如果没有指定”-force”且没有指定”-nonInteractive”时(即没有附加参数)，则默认需要用户确认格式化且处于交互模式，这时对每一个存储目录输出格式化的提示信息，如果用户禁止了任何一个存储目录的格式化(输入的不是Y)，则整个格式化操作会终止返回。而如果指定了”-force”时，则不需要用户确认，所有的存储目录会进行格式化操作。  </p>
+<p>格式化时，创建FSNamesystem对象，其实主要是FSNamesystem中的FSImage对象，包括需要格式化的fsimage目录和编辑日志目录，然后通过FSImage.format进行格式化。  </p>
+<h3 id="2-1_FSImage-format">2.1 FSImage.format</h3><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">void</span> <span class="title">format</span><span class="params">()</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">    <span class="keyword">this</span>.layoutVersion = FSConstants.LAYOUT_VERSION;</span><br><span class="line">    <span class="keyword">this</span>.namespaceID = newNamespaceID();<span class="comment">//分配新的存储ID</span></span><br><span class="line">    <span class="keyword">this</span>.cTime = <span class="number">0</span>L;</span><br><span class="line">    <span class="keyword">this</span>.checkpointTime = FSNamesystem.now();</span><br><span class="line">    <span class="comment">//对每一个存储目录格式化</span></span><br><span class="line">    <span class="keyword">for</span> (Iterator&lt;StorageDirectory&gt; it = dirIterator(); it.hasNext();) &#123;</span><br><span class="line">      StorageDirectory sd = it.next();</span><br><span class="line">      format(sd);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>如上，会初始化NameNode的存储信息，包括layoutVersion，namespaceID和cTime。其中namespaceID由newNamespaceID分配，如下<br><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">int</span> <span class="title">newNamespaceID</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    Random r = <span class="keyword">new</span> Random();</span><br><span class="line">    r.setSeed(FSNamesystem.now());</span><br><span class="line">    <span class="keyword">int</span> newID = <span class="number">0</span>;</span><br><span class="line">    <span class="keyword">while</span>(newID == <span class="number">0</span>)</span><br><span class="line">      newID = r.nextInt(<span class="number">0x7FFFFFFF</span>);  <span class="comment">// use 31 bits only</span></span><br><span class="line">    <span class="keyword">return</span> newID;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>以当前时间作为随机数的种子生成一个随机数，只使用31位。namespaceID在NameNode启动时格式化，并在整个NameNode生命周期内维持不变，数据节点注册时获得该namespaceID作为注册ID，然后在每次和NameNode通信时都进行验证  </p>
+<p>初始化存储信息后，对每一个存储目录进行格式化，dirIterator为存储目录迭代器，迭代FSImage的成员<code>storageDirs</code>，继承自父类Storage。storageDirs由前面FSNamesystem中的format方法中，构造FSImage时传入的fsimage目录和编辑日志目录进行初始化，如下</p>
+<h3 id="2-1-1_setStorageDirectories">2.1.1 setStorageDirectories</h3><figure class="highlight gradle"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">void</span> setStorageDirectories(Collection&lt;<span class="keyword">File</span>&gt; fsNameDirs, Collection&lt;<span class="keyword">File</span>&gt; fsEditsDirs) <span class="keyword">throws</span> IOException &#123;</span><br><span class="line">    storageDirs = <span class="keyword">new</span> ArrayList&lt;StorageDirectory&gt;();</span><br><span class="line">    removedStorageDirs = <span class="keyword">new</span> ArrayList&lt;StorageDirectory&gt;();</span><br><span class="line">    <span class="keyword">for</span> (<span class="keyword">File</span> dirName : fsNameDirs) &#123;</span><br><span class="line">      <span class="keyword">boolean</span> isAlsoEdits = <span class="keyword">false</span>;</span><br><span class="line">      <span class="keyword">for</span> (<span class="keyword">File</span> editsDirName : fsEditsDirs) &#123;</span><br><span class="line">        <span class="keyword">if</span> (editsDirName.<span class="keyword">compareTo</span>(dirName) == <span class="number">0</span>) &#123;<span class="comment">//既是fsimage存储目录，又是编辑日志存储目录</span></span><br><span class="line">          isAlsoEdits = <span class="keyword">true</span>;</span><br><span class="line">          fsEditsDirs.remove(editsDirName);<span class="comment">//从编辑日志中移除该目录</span></span><br><span class="line">          <span class="keyword">break</span>;</span><br><span class="line">        &#125;</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="comment">//既是fsimage存储目录，又是编辑日志存储目录，目录类型为IMAGE_AND_EDITS，否则为IMAGE</span></span><br><span class="line">      NameNodeDirType dirType = (isAlsoEdits) ?</span><br><span class="line">                          NameNodeDirType.IMAGE_AND_EDITS :</span><br><span class="line">                          NameNodeDirType.IMAGE;</span><br><span class="line">      addStorageDir(<span class="keyword">new</span> StorageDirectory(dirName, dirType));</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">//编辑日志目录中剩余的目录为EDITS目录类型</span></span><br><span class="line">    <span class="keyword">for</span> (<span class="keyword">File</span> dirName : fsEditsDirs) &#123;</span><br><span class="line">      addStorageDir(<span class="keyword">new</span> StorageDirectory(dirName, NameNodeDirType.EDITS)); </span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>如上，<code>fsNameDirs</code>为fsimage存储目录，<code>fsEditDirs</code>为编辑日志存储目录，如果一个目录既存储fsimage又存储编辑日志(既在fsNameDirs中又在fsEditsDir中)，则存储目录类型为IMAGE_AND_EDITS，否则fsNameDirs中的目录类型为IMAGE，fsEditsDirs中目录类型为EDITS。创建对应的StorageDirectory对象添加到成员storageDirs中。StorageDirectory和其他与存储目录相关的另见<a href="../DataNode本地存储管理">DataNode实现源码分析—本地存储管理</a>。  </p>
+<p>因此，回到FSImage的format方法，遍历storageDirs中的所有存储目录，对每个存储目录使用format方法进行格式化，如下<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">format</span><span class="params">(StorageDirectory sd)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">    sd.clearDirectory(); <span class="comment">//如果current目录存在，则删除。创建新的current目录</span></span><br><span class="line">    sd.lock();<span class="comment">//占有存储目录锁</span></span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">      saveCurrent(sd);</span><br><span class="line">    &#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">      sd.unlock();<span class="comment">//释放存储目录锁</span></span><br><span class="line">    &#125;</span><br><span class="line">    LOG.info(<span class="string">"Storage directory "</span> + sd.getRoot() + <span class="string">" has been successfully formatted."</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，格式化时，首先通过clearDirectory将可能存在的current目录删除，然后重新创建新的current目录。<br>然后通过saveCurrent将当前镜像和空的编辑日志写到current目录中，并写VERSION文件<br><figure class="highlight gradle"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">protected</span> <span class="keyword">void</span> saveCurrent(StorageDirectory sd) <span class="keyword">throws</span> IOException &#123;</span><br><span class="line">    <span class="keyword">File</span> curDir = sd.getCurrentDir();</span><br><span class="line">    NameNodeDirType dirType = (NameNodeDirType)sd.getStorageDirType();</span><br><span class="line">    <span class="keyword">if</span> (!curDir.exists() &amp;&amp; !curDir.mkdir())<span class="comment">//current目录不存在则创建，创建失败抛出异常</span></span><br><span class="line">      <span class="keyword">throw</span> <span class="keyword">new</span> IOException(<span class="string">"Cannot create directory "</span> + curDir);</span><br><span class="line">      </span><br><span class="line">    <span class="keyword">if</span> (dirType.isOfType(NameNodeDirType.IMAGE))</span><br><span class="line">      saveFSImage(getImageFile(sd, NameNodeFile.IMAGE));</span><br><span class="line">    <span class="keyword">if</span> (dirType.isOfType(NameNodeDirType.EDITS))</span><br><span class="line">      editLog.createEditLogFile(getImageFile(sd, NameNodeFile.EDITS));</span><br><span class="line">    sd.<span class="keyword">write</span>();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，如果存储目录是IMAGE类型，则通过saveFSImage将当前命名空间镜像保存到current目录的fsimage中，而如果是EDITS类型，则需要通过createEditLogFile创建新的日志文件(文件内容目前只包含文件头版本号)，createEditLogFile为标准的创建新的日志流程，创建EditLogFileOutputStream文件输出流，然后使用EditLogFileOutputStream的create方法写版本到流中并刷新到底层文件中。saveFSImage和EditLogFileOutputStream的create方法另见<a href="../NameNode命名空间镜像和编辑日志">NameNode实现源码分析—命名空间镜像和编辑日志</a>。<br>注意的是，对于IMAGE_AND_EDITS类型的存储目录，既存储fsimage，又存储编辑日志，上面isOfType判断是否为IMAGE和EDITS都返回true。</p>
+<p>最后通过StorageDirectory的write方法写版本VERSION文件到current目录中。  </p>
+<p>总结下，名字节点格式化时，会将所有存储目录下的current目录删除，然后创建新的current目录。对于IMAGE类型的存储目录，会将当前镜像写到fsimage中(还没启动当然为空)，而对于EDITS类型的存储目录，会写新的编辑日志文件(包含版本信息)，IMAGE_AND_EDITS类型的当然既有fsimage又有编辑日志文件，然后在每个存储目录中写新的VERSION文件(包含layoutVersion，storageType，namespaceID，cTime)。</p>
+<hr>
+<h2 id="3-_正常启动">3. 正常启动</h2><p>在NameNode的mian方法中，如果是正常启动，则会通过构造函数创建NameNode对象，然后等待NameNode的RPC服务完成<br>NameNode构造如下<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="title">NameNode</span><span class="params">(Configuration conf)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">      initialize(conf);</span><br><span class="line">    &#125; <span class="keyword">catch</span> (IOException e) &#123;</span><br><span class="line">      <span class="keyword">this</span>.stop();</span><br><span class="line">      <span class="keyword">throw</span> e;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，由initialize执行初始化<br><figure class="highlight axapta"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="keyword">void</span> initialize(Configuration conf) throws IOException &#123;</span><br><span class="line">    InetSocketAddress socAddr = NameNode.getAddress(conf);<span class="comment">//RPC地址</span></span><br><span class="line">    ...<span class="comment">//安全相关</span></span><br><span class="line">    <span class="keyword">int</span> handlerCount = conf.getInt(<span class="string">"dfs.namenode.handler.count"</span>, <span class="number">10</span>);<span class="comment">//RPC服务的处理器个数</span></span><br><span class="line">    </span><br><span class="line">    ...<span class="comment">//安全相关</span></span><br><span class="line">    </span><br><span class="line">    myMetrics = NameNodeInstrumentation.create(conf);<span class="comment">//创建度量对象NameNodeInstrumentation</span></span><br><span class="line">    <span class="keyword">this</span>.namesystem = <span class="keyword">new</span> FSNamesystem(<span class="keyword">this</span>, conf);<span class="comment">//创建FSNamesystem对象</span></span><br><span class="line">    </span><br><span class="line">    ...<span class="comment">//安全相关</span></span><br><span class="line">    </span><br><span class="line">    <span class="comment">//RPC服务</span></span><br><span class="line">    InetSocketAddress dnSocketAddr = getServiceRpcServerAddress(conf);</span><br><span class="line">    <span class="keyword">if</span> (dnSocketAddr != <span class="keyword">null</span>) &#123;</span><br><span class="line">      <span class="comment">//serviceRpcServer的处理器个数</span></span><br><span class="line">      <span class="keyword">int</span> serviceHandlerCount =</span><br><span class="line">        conf.getInt(DFSConfigKeys.DFS_NAMENODE_SERVICE_HANDLER_COUNT_KEY,</span><br><span class="line">                    DFSConfigKeys.DFS_NAMENODE_SERVICE_HANDLER_COUNT_DEFAULT);</span><br><span class="line">      <span class="comment">//创建serviceRpcServer服务对象</span></span><br><span class="line">      <span class="keyword">this</span>.serviceRpcServer = RPC.getServer(<span class="keyword">this</span>, dnSocketAddr.getHostName(), </span><br><span class="line">          dnSocketAddr.getPort(), serviceHandlerCount,</span><br><span class="line">          <span class="keyword">false</span>, conf, namesystem.getDelegationTokenSecretManager());</span><br><span class="line">      <span class="keyword">this</span>.serviceRPCAddress = <span class="keyword">this</span>.serviceRpcServer.getListenerAddress();</span><br><span class="line">      <span class="comment">//更新serviceRpcServer地址到配置中</span></span><br><span class="line">      setRpcServiceServerAddress(conf);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">//创建server对象</span></span><br><span class="line">    <span class="keyword">this</span>.<span class="keyword">server</span> = RPC.getServer(<span class="keyword">this</span>, socAddr.getHostName(),</span><br><span class="line">        socAddr.getPort(), handlerCount, <span class="keyword">false</span>, conf, namesystem</span><br><span class="line">        .getDelegationTokenSecretManager());</span><br><span class="line">    <span class="comment">// Set terse exception whose stack trace won't be logged</span></span><br><span class="line">    <span class="keyword">this</span>.<span class="keyword">server</span>.addTerseExceptions(SafeModeException.class);</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// The rpc-server port can be ephemeral... ensure we have the correct info</span></span><br><span class="line">    <span class="keyword">this</span>.serverAddress = <span class="keyword">this</span>.<span class="keyword">server</span>.getListenerAddress(); </span><br><span class="line">    FileSystem.setDefaultUri(conf, getUri(serverAddress));</span><br><span class="line">    LOG.info(<span class="string">"Namenode up at: "</span> + <span class="keyword">this</span>.serverAddress);</span><br><span class="line"></span><br><span class="line">    <span class="comment">//启动HTTP服务器</span></span><br><span class="line">    startHttpServer(conf);</span><br><span class="line">    </span><br><span class="line">    <span class="comment">//启动RPC服务</span></span><br><span class="line">    <span class="keyword">this</span>.<span class="keyword">server</span>.start();  <span class="comment">//start RPC server   </span></span><br><span class="line">    <span class="keyword">if</span> (serviceRpcServer != <span class="keyword">null</span>) &#123;</span><br><span class="line">      serviceRpcServer.start();      </span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">//启动垃圾清理器</span></span><br><span class="line">    startTrashEmptier(conf);</span><br><span class="line">    </span><br><span class="line">    <span class="comment">//启动可能的插件</span></span><br><span class="line">    plugins = conf.getInstances(<span class="string">"dfs.namenode.plugins"</span>, ServicePlugin.class);</span><br><span class="line">    <span class="keyword">for</span> (ServicePlugin p: plugins) &#123;</span><br><span class="line">      <span class="keyword">try</span> &#123;</span><br><span class="line">        p.start(<span class="keyword">this</span>);</span><br><span class="line">      &#125; <span class="keyword">catch</span> (Throwable t) &#123;</span><br><span class="line">        LOG.warn(<span class="string">"ServicePlugin "</span> + p + <span class="string">" could not be started"</span>, t);</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，初始化时，主要包括创建NameNode度量对象NameNodeInstrumentation，创建FSNamesystem对象(提供元数据相关操作服务)，启动RPC服务，启动HTTP服务，创建垃圾清理器Trash.Emptier线程，还有与DataNode类似的插件。<br>NameNodeInstrumentation不分析，创建为配置项<code>dfs.namenode.plugins</code>，需要实现ServicePlugin接口，包括启动start方法和停止stop方法，也不分析。接下来分析其他的初始化</p>
+<h2 id="3-1_RPC服务初始化">3.1 RPC服务初始化</h2><p>NameNode中有两个RPC服务器，分别为成员<code>server</code>和<code>serviceRpcServer</code>。<br>server的地址为配置项<code>dfs.namenode.rpc-address</code>，如果没有配置或者为空，则使用<code>fs.default.name</code>作为地址，端口为默认端口8020。server的处理器数量由配置项<code>dfs.namenode.handler.count</code>决定，默认10个。<br>serviceRpcServer的地址为配置项<code>dfs.namenode.servicerpc-address</code>，没有配置或为空时不开启该RPC服务，处理器数量为配置项<code>dfs.namenode.service.handler.count</code>，默认10个。  </p>
+<p>当serviceRpcServer服务存在时，接口DatanodeProtocol和NamenodeProtocol使用serviceRpcServer(可见<a href="../DataNode启动">DataNode启动</a>中DataNode的初始化建立NameNode代理过程)，而ClientProtocol使用server。这是因为Client的RPC调用执行时间短，但往往需要等待日志的持久化，而数据节点和第二名字节点的RPC调用，执行的逻辑比较复杂，执行的时间也比较长，在一个繁忙的系统中，对客户端和HDFS其他实体(包括数据节点和第二名字节点)的RPC请求，使用不同的服务器，可以保证客户端的请求得到及时的响应。(该解释来自技术内幕P451)。<br>而如果serviceRpcServer服务不存在(没有配置)，则NameNode只有一个RPC服务器，所有的RPC通信都由server负责。  </p>
+<p>RPC服务器的创建和启动另见RPC的相关源码分析。  </p>
+<h2 id="3-2_HTTP服务">3.2 HTTP服务</h2><p>HTTP服务主要用于和SecondaryNameNode之间的交互，即fsimage和编辑日志的传输，参见<a href="../NameNode和SecondaryNameNode">NameNode实现源码分析—和SecondaryNameNode的交互</a>。</p>
+<h2 id="3-3_垃圾清理器Trash-Emptier线程">3.3 垃圾清理器Trash.Emptier线程</h2><p>如前面initialize中，由startTrashEmptier方法创建并启动<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="function"><span class="keyword">void</span> <span class="title">startTrashEmptier</span><span class="params">(Configuration conf)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">    <span class="keyword">this</span>.emptier = <span class="keyword">new</span> Thread(<span class="keyword">new</span> Trash(conf).getEmptier(), <span class="string">"Trash Emptier"</span>);</span><br><span class="line">    <span class="keyword">this</span>.emptier.setDaemon(<span class="keyword">true</span>);</span><br><span class="line">    <span class="keyword">this</span>.emptier.start();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<h3 id="3-3-1_Trash">3.3.1 Trash</h3><p>Trash为文件系统提供了回收站的功能，Trash主要成员如下如下<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> Path CURRENT = <span class="keyword">new</span> Path(<span class="string">"Current"</span>);</span><br><span class="line"><span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> Path TRASH = <span class="keyword">new</span> Path(<span class="string">".Trash/"</span>);</span><br><span class="line"><span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> Path HOMES = <span class="keyword">new</span> Path(<span class="string">"/user/"</span>);</span><br><span class="line"></span><br><span class="line"><span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> FsPermission PERMISSION = <span class="keyword">new</span> FsPermission(FsAction.ALL, FsAction.NONE, FsAction.NONE);</span><br><span class="line"></span><br><span class="line"><span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> DateFormat CHECKPOINT = <span class="keyword">new</span> SimpleDateFormat(<span class="string">"yyMMddHHmm"</span>);</span><br><span class="line"><span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="keyword">int</span> MSECS_PER_MINUTE = <span class="number">60</span>*<span class="number">1000</span>;</span><br><span class="line"></span><br><span class="line"><span class="keyword">private</span> <span class="keyword">final</span> FileSystem fs;</span><br><span class="line"><span class="keyword">private</span> <span class="keyword">final</span> Path trash;</span><br><span class="line"><span class="keyword">private</span> <span class="keyword">final</span> Path current;</span><br><span class="line"><span class="keyword">private</span> <span class="keyword">final</span> <span class="keyword">long</span> interval;</span><br></pre></td></tr></table></figure></p>
+<p>如上，回收站位于用户主目录的.Trash目录下，即对于用户”xiaoyun”来说回收站路径为”/user/xiaoyun/.Trash”，成员<code>trash</code>即为该目录路径。文件删除时默认被移到回收站的Current子目录下，成员<code>current</code>即为Current目录路径，在current子目录下保留文件原来的路径，如用户xiaoyun删除文件”/tmp/a.txt”，在回收站的路径为”/user/xiaoyun/.Trash/Current/tmp/a.txt”。  </p>
+<p><code>PERMISSION</code>为权限，回收站中只有原来的用户有权访问。<br><code>CHECKPOINT</code>为垃圾检查点文件名格式。  </p>
+<p>Trash的构造<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="title">Trash</span><span class="params">(FileSystem fs, Configuration conf)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">    <span class="keyword">super</span>(conf);</span><br><span class="line">    <span class="keyword">this</span>.fs = fs;</span><br><span class="line">    <span class="keyword">this</span>.trash = <span class="keyword">new</span> Path(fs.getHomeDirectory(), TRASH);</span><br><span class="line">    <span class="keyword">this</span>.current = <span class="keyword">new</span> Path(trash, CURRENT);</span><br><span class="line">    <span class="keyword">this</span>.interval = conf.getLong(<span class="string">"fs.trash.interval"</span>, <span class="number">60</span>) * MSECS_PER_MINUTE;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，fs.getHomeDirectory即为<code>/user/${user.home}</code>，周期默认为1h。<br>还可以指定home目录进行构造<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> <span class="title">Trash</span><span class="params">(Path home, Configuration conf)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">    <span class="keyword">super</span>(conf);</span><br><span class="line">    <span class="keyword">this</span>.fs = home.getFileSystem(conf);</span><br><span class="line">    <span class="keyword">this</span>.trash = <span class="keyword">new</span> Path(home, TRASH);</span><br><span class="line">    <span class="keyword">this</span>.current = <span class="keyword">new</span> Path(trash, CURRENT);</span><br><span class="line">    <span class="keyword">this</span>.interval = conf.getLong(<span class="string">"fs.trash.interval"</span>, <span class="number">60</span>) * MSECS_PER_MINUTE;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<h3 id="3-3-2_Emptier">3.3.2 Emptier</h3><p>Emptier为Trash的内部类，可以访问Trash的成员，Emptier的成员如下<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> Configuration conf;</span><br><span class="line"><span class="keyword">private</span> FileSystem fs;</span><br><span class="line"><span class="keyword">private</span> <span class="keyword">long</span> interval;</span><br></pre></td></tr></table></figure></p>
+<p>interval为线程工作周期<br>构造如下<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="title">Emptier</span><span class="params">(Configuration conf)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">  <span class="keyword">this</span>.conf = conf;</span><br><span class="line">  <span class="keyword">this</span>.interval = conf.getLong(<span class="string">"fs.trash.interval"</span>, <span class="number">60</span>) * MSECS_PER_MINUTE;</span><br><span class="line">  <span class="keyword">this</span>.fs = FileSystem.get(conf);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>因此，周期为配置项<code>fs.trash.interval</code>，默认60min即1个小时。该周期既是检查周期，又是检查点删除周期。</p>
+<p>在startTrashEmptier中通过Trash的getEmptier即创建Emptier对象，然后启动Emptier线程，线程主程序如下<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">void</span> <span class="title">run</span><span class="params">()</span> </span>&#123;</span><br><span class="line">  <span class="keyword">if</span> (interval == <span class="number">0</span>) <span class="keyword">return</span>;<span class="comment">//Trash功能被关闭了，返回                                  </span></span><br><span class="line">  <span class="keyword">long</span> now = System.currentTimeMillis();</span><br><span class="line">  <span class="keyword">long</span> end;</span><br><span class="line">  <span class="keyword">while</span> (<span class="keyword">true</span>) &#123;</span><br><span class="line">    end = ceiling(now, interval);</span><br><span class="line">    <span class="keyword">try</span> &#123;                                    <span class="comment">//等待清理时间到达</span></span><br><span class="line">      Thread.sleep(end - now);</span><br><span class="line">    &#125; <span class="keyword">catch</span> (InterruptedException e) &#123;</span><br><span class="line">      <span class="keyword">return</span>;                                 <span class="comment">// exit on interrupt</span></span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">      now = System.currentTimeMillis();</span><br><span class="line">      <span class="keyword">if</span> (now &gt;= end) &#123;</span><br><span class="line">        FileStatus[] homes = <span class="keyword">null</span>;</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">          homes = fs.listStatus(HOMES);         <span class="comment">//列出所有的home目录，home目录位于/user下</span></span><br><span class="line">        &#125; <span class="keyword">catch</span> (IOException e) &#123;</span><br><span class="line">          LOG.warn(<span class="string">"Trash can't list homes: "</span>+e+<span class="string">" Sleeping."</span>);</span><br><span class="line">          <span class="keyword">continue</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">if</span> (homes == <span class="keyword">null</span>)<span class="comment">//没有home目录</span></span><br><span class="line">          <span class="keyword">continue</span>;</span><br><span class="line">        <span class="keyword">for</span> (FileStatus home : homes) &#123;         <span class="comment">// dump each trash</span></span><br><span class="line">          <span class="keyword">if</span> (!home.isDir())</span><br><span class="line">            <span class="keyword">continue</span>;</span><br><span class="line">          <span class="keyword">try</span> &#123;</span><br><span class="line">            Trash trash = <span class="keyword">new</span> Trash(home.getPath(), conf);<span class="comment">//每一个home目录创建Trash对象清理</span></span><br><span class="line">            trash.expunge();<span class="comment">//清理过期的垃圾检查点</span></span><br><span class="line">            trash.checkpoint();<span class="comment">//将current目录重命名为当前时间作为一个检查点</span></span><br><span class="line">          &#125; <span class="keyword">catch</span> (IOException e) &#123;</span><br><span class="line">            LOG.warn(<span class="string">"Trash caught: "</span>+e+<span class="string">". Skipping "</span>+home.getPath()+<span class="string">"."</span>);</span><br><span class="line">          &#125; </span><br><span class="line">        &#125;</span><br><span class="line">      &#125;</span><br><span class="line">    &#125; <span class="keyword">catch</span> (Exception e) &#123;</span><br><span class="line">      LOG.warn(<span class="string">"RuntimeException during Trash.Emptier.run() "</span> + StringUtils.stringifyException(e));</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，垃圾清理的周期为配置项<code>fs.trash.interval</code>，默认1个小时，没有到达清理时间则休眠等待。  </p>
+<p>清理时，/user目录下的每一个目录为一个用户的主目录，对所有的home目录进行清理。<br>每个home目录创建一个Trash对象，通过Trash对象的<code>expunge</code>方法进行清理。清理<code>.Trash</code>目录下过期的垃圾检查点，垃圾检查点为之前current目录重命名后的目录，目录名为重命名时间，格式为CHECKPOINT。垃圾检查点从创建到现在超过期限了就会被删除，期限同样为配置项<code>fs.trash.interval</code>，即默认垃圾检查点经过1个小时后便会被清理。<br>清理垃圾检查点后，将当前垃圾存放目录current创建检查点，即将current目录重命名为一个垃圾检查点，该垃圾检查点目录名为重命名日期，格式为CHECKPOINT，检查点创建由Trash的checkpoint方法产生，如上。<br>dopunge和checkpoint都比较简单，这里就不贴代码了。  </p>
+<p>总的来说，用户删除的文件会放到用户主目录的<code>.Trash/Current</code>目录下，垃圾清理器默认每隔1个小时检查所有用户主目录，将用户当前使用的垃圾目录(.Trash/Current)创建检查点，检查点即将Current目录重命名为当前操作时间。且会检查每个垃圾检查点，对从创建时间(检查点名字)到现在默认超过1个小时的检查点进行删除。<br>也就是说，删除文件存放到’/user/${user.home}/.Trash/Current`目录下，然后过了1个小时后被移到检查点中，Current继续保存接下来新删除的文件，检查点再过一个小时被删除，因此用户删除的文件默认经过两个小时候会从HDFS中移除。  </p>
+<h2 id="3-4_FSNamesystem">3.4 FSNamesystem</h2><p>如前面initialize中，由FSNamesystem的构造函数创建FSNamesystem对象<br><figure class="highlight stata"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">FSNamesystem(NameNode nn, Configuration <span class="keyword">conf</span>) throws IOException &#123;</span><br><span class="line">    try &#123;</span><br><span class="line">      initialize(nn, <span class="keyword">conf</span>);</span><br><span class="line">    &#125; catch (IOException <span class="keyword">e</span>) &#123;</span><br><span class="line">      <span class="keyword">LOG</span>.<span class="keyword">error</span>(getClass().getSimpleName() + <span class="string">" initialization failed."</span>, <span class="keyword">e</span>);</span><br><span class="line">      <span class="keyword">close</span>();</span><br><span class="line">      shutdown();</span><br><span class="line">      throw <span class="keyword">e</span>;</span><br><span class="line">    &#125; catch (RuntimeException <span class="keyword">e</span>) &#123;</span><br><span class="line">      <span class="keyword">LOG</span>.<span class="keyword">error</span>(getClass().getSimpleName() + <span class="string">" initialization failed."</span>, <span class="keyword">e</span>);</span><br><span class="line">      <span class="keyword">close</span>();</span><br><span class="line">      shutdown();</span><br><span class="line">      throw <span class="keyword">e</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，通过initialize对FSNamesystem进行初始化，异常时通过close关闭相关服务线程，通过shutdown关闭目录服务。<br><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">initialize</span><span class="params">(NameNode nn, Configuration conf)</span> throws IOException </span>&#123;</span><br><span class="line">    <span class="keyword">this</span>.systemStart = now();<span class="comment">//启动时间</span></span><br><span class="line">    setConfigurationParameters(conf);<span class="comment">//通过配置初始化成员</span></span><br><span class="line">    dtSecretManager = createDelegationTokenSecretManager(conf);<span class="comment">//口令安全管理器</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">this</span>.nameNodeAddress = nn.getNameNodeAddress();<span class="comment">//名字节点RPC服务地址</span></span><br><span class="line">    <span class="keyword">this</span>.registerMBean(conf); <span class="comment">// register the MBean for the FSNamesystemStutus</span></span><br><span class="line">    <span class="keyword">this</span>.dir = <span class="keyword">new</span> FSDirectory(<span class="keyword">this</span>, conf);<span class="comment">//创建FSDirectory对象</span></span><br><span class="line">    StartupOption startOpt = NameNode.getStartupOption(conf);</span><br><span class="line">    <span class="comment">//读取存储目录，如果处于中间状态则进行相应的恢复，加载命名空间镜像和编辑日志并进行合并,创建新的检查点</span></span><br><span class="line">    <span class="keyword">this</span>.dir.loadFSImage(getNamespaceDirs(conf), getNamespaceEditsDirs(conf), startOpt);</span><br><span class="line">    <span class="keyword">long</span> timeTakenToLoadFSImage = now() - systemStart;</span><br><span class="line">    LOG.info(<span class="string">"Finished loading FSImage in "</span> + timeTakenToLoadFSImage + <span class="string">" msecs"</span>);<span class="comment">//记录加载命名空间镜像时间</span></span><br><span class="line">    NameNode.getNameNodeMetrics().setFsImageLoadTime(timeTakenToLoadFSImage);</span><br><span class="line">    <span class="keyword">this</span>.safeMode = <span class="keyword">new</span> SafeModeInfo(conf);<span class="comment">//创建SafeModeInfo对象</span></span><br><span class="line">    setBlockTotal();<span class="comment">//更新总区块数</span></span><br><span class="line">    <span class="comment">//创建pendingReplications</span></span><br><span class="line">    pendingReplications = <span class="keyword">new</span> PendingReplicationBlocks(</span><br><span class="line">                            conf.getInt(<span class="string">"dfs.replication.pending.timeout.sec"</span>, -<span class="number">1</span>) * <span class="number">1000L</span>);</span><br><span class="line">    <span class="keyword">if</span> (isAccessTokenEnabled) &#123;</span><br><span class="line">      <span class="comment">//创建访问令牌处理器</span></span><br><span class="line">      accessTokenHandler = <span class="keyword">new</span> BlockTokenSecretManager(<span class="literal">true</span>, accessKeyUpdateInterval, accessTokenLifetime);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">//心跳处理线程</span></span><br><span class="line">    <span class="keyword">this</span>.hbthread = <span class="keyword">new</span> Daemon(<span class="keyword">new</span> HeartbeatMonitor());</span><br><span class="line">    <span class="comment">//租约管理器线程</span></span><br><span class="line">    <span class="keyword">this</span>.lmthread = <span class="keyword">new</span> Daemon(leaseManager.new Monitor());</span><br><span class="line">    <span class="comment">//复制删除操作线程</span></span><br><span class="line">    <span class="keyword">this</span>.replmon = <span class="keyword">new</span> ReplicationMonitor();</span><br><span class="line">    <span class="keyword">this</span>.replthread = <span class="keyword">new</span> Daemon(replmon);</span><br><span class="line">    hbthread.start();</span><br><span class="line">    lmthread.start();</span><br><span class="line">    replthread.start();</span><br><span class="line"></span><br><span class="line">    <span class="comment">//include和exclude文件的HostsFileReader对象</span></span><br><span class="line">    <span class="keyword">this</span>.hostsReader = <span class="keyword">new</span> HostsFileReader(conf.get(<span class="string">"dfs.hosts"</span>,<span class="string">""</span>), conf.get(<span class="string">"dfs.hosts.exclude"</span>,<span class="string">""</span>));</span><br><span class="line">    <span class="comment">//撤销状态管理线程DecommissionManager</span></span><br><span class="line">    <span class="keyword">this</span>.dnthread = <span class="keyword">new</span> Daemon(<span class="keyword">new</span> DecommissionManager(<span class="keyword">this</span>).new Monitor(</span><br><span class="line">        conf.getInt(<span class="string">"dfs.namenode.decommission.interval"</span>, <span class="number">30</span>),</span><br><span class="line">        conf.getInt(<span class="string">"dfs.namenode.decommission.nodes.per.interval"</span>, <span class="number">5</span>)));</span><br><span class="line">    dnthread.start();</span><br><span class="line">    <span class="comment">//DNSToSwitchMapping对象</span></span><br><span class="line">    <span class="keyword">this</span>.dnsToSwitchMapping = ReflectionUtils.newInstance(</span><br><span class="line">        conf.getClass(<span class="string">"topology.node.switch.mapping.impl"</span>, ScriptBasedMapping.<span class="keyword">class</span>,</span><br><span class="line">            DNSToSwitchMapping.<span class="keyword">class</span>), conf);</span><br><span class="line">    </span><br><span class="line">    <span class="comment">//dns到switch映射支持缓冲的话，从include列表中解析网络位置，存储解析结果在缓冲中，这样之后的解析请求就会快一点</span></span><br><span class="line">    <span class="keyword">if</span> (dnsToSwitchMapping instanceof CachedDNSToSwitchMapping) &#123;</span><br><span class="line">      dnsToSwitchMapping.resolve(<span class="keyword">new</span> ArrayList&lt;String&gt;(hostsReader.getHosts()));</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    InetSocketAddress socAddr = NameNode.getAddress(conf);</span><br><span class="line">    <span class="keyword">this</span>.nameNodeHostName = socAddr.getHostName();</span><br><span class="line">    registerWith(DefaultMetricsSystem.INSTANCE);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，会依次完成如下工作</p>
+<ul>
+<li>通过<code>setConfigurationParameters</code>读取配置初始化FSNamesystem中与配置相关的成员，比较重要的成员如下  </li>
+</ul>
+<table>
+<thead>
+<tr>
+<th style="text-align:center">FSNamesystem中成员</th>
+<th style="text-align:center">含义</th>
+<th style="text-align:center">配置项</th>
+<th style="text-align:center">缺省值</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">supergroup</td>
+<td style="text-align:center">拥有超级权限用户所在组</td>
+<td style="text-align:center">dfs.permissions.supergroup</td>
+<td style="text-align:center">supergroup</td>
+</tr>
+<tr>
+<td style="text-align:center">isPermissionEnabled</td>
+<td style="text-align:center">是否使能权限访问</td>
+<td style="text-align:center">dfs.permissions</td>
+<td style="text-align:center">true</td>
+</tr>
+<tr>
+<td style="text-align:center">defaultPermission</td>
+<td style="text-align:center">缺省权限</td>
+<td style="text-align:center">N/A</td>
+<td style="text-align:center">当前用户，超级组，777访问权限</td>
+</tr>
+<tr>
+<td style="text-align:center">blocksInvalidateWorkPct</td>
+<td style="text-align:center">ReplicationMonitor线程每次删除操作的数据节点占总数据节点比重</td>
+<td style="text-align:center">dfs.namenode.invalidate.work.pct.per.iteration</td>
+<td style="text-align:center">0.32</td>
+</tr>
+<tr>
+<td style="text-align:center">blocksReplWorkMultiplier</td>
+<td style="text-align:center">ReplicationMonitor线程每次复制操作，每个需要复制的数据节点执行区块数</td>
+<td style="text-align:center">dfs.namenode.replication.work.multiplier.per.iteration</td>
+<td style="text-align:center">2</td>
+</tr>
+<tr>
+<td style="text-align:center">clusterMap</td>
+<td style="text-align:center">网络拓扑实现类</td>
+<td style="text-align:center">net.topology.impl</td>
+<td style="text-align:center">NetworkTopology</td>
+</tr>
+<tr>
+<td style="text-align:center">replicator</td>
+<td style="text-align:center">区块放置策略实现类，决定区块在集群中放置位置</td>
+<td style="text-align:center">dfs.block.replicator.classname</td>
+<td style="text-align:center">BlockPlacementPolicyDefault</td>
+</tr>
+<tr>
+<td style="text-align:center">defaultReplication</td>
+<td style="text-align:center">缺省期望副本数</td>
+<td style="text-align:center">dfs.replication</td>
+<td style="text-align:center">3</td>
+</tr>
+<tr>
+<td style="text-align:center">maxReplication</td>
+<td style="text-align:center">最大副本数</td>
+<td style="text-align:center">dfs.replication.max</td>
+<td style="text-align:center">512</td>
+</tr>
+<tr>
+<td style="text-align:center">minReplication</td>
+<td style="text-align:center">最小副本数，达到此值才是安全的区块，可以进行复制操作</td>
+<td style="text-align:center">dfs.replication.min</td>
+<td style="text-align:center">1</td>
+</tr>
+<tr>
+<td style="text-align:center">maxReplicationStreams</td>
+<td style="text-align:center">数据节点同时执行复制操作的数目</td>
+<td style="text-align:center">dfs.max-repl-streams</td>
+<td style="text-align:center">2</td>
+</tr>
+<tr>
+<td style="text-align:center">heartbeatRecheckInterval</td>
+<td style="text-align:center">HeartbeatMonitor线程检查周期</td>
+<td style="text-align:center">heartbeat.recheck.interval</td>
+<td style="text-align:center">5*60*1000(5min)</td>
+</tr>
+<tr>
+<td style="text-align:center">heartbeatExpireInterval</td>
+<td style="text-align:center">判断数据节点死亡的未发送心跳间隔</td>
+<td style="text-align:center">N/A</td>
+<td style="text-align:center">2*heartbeatRecheckInterval+10*heartbeatInterval(5min30s)</td>
+</tr>
+<tr>
+<td style="text-align:center">replicationRecheckInterval</td>
+<td style="text-align:center">ReplicationMonitor线程检查周期</td>
+<td style="text-align:center">dfs.replication.interval</td>
+<td style="text-align:center">3(s)</td>
+</tr>
+<tr>
+<td style="text-align:center">defaultBlockSize</td>
+<td style="text-align:center">缺省区块大小</td>
+<td style="text-align:center">dfs.block.size</td>
+<td style="text-align:center">64*1024*1024(64MB)</td>
+</tr>
+<tr>
+<td style="text-align:center">maxFsObjects</td>
+<td style="text-align:center">最大INodeFile对象数目</td>
+<td style="text-align:center">dfs.max.objects</td>
+<td style="text-align:center">0(无限制)</td>
+</tr>
+<tr>
+<td style="text-align:center">blockInvalidateLimit</td>
+<td style="text-align:center">ReplicationMonitor线程的一次处理中，每个数据节点删除区块限制</td>
+<td style="text-align:center">dfs.block.invalidate.limit</td>
+<td style="text-align:center">20*(heartbeatInterval/1000)即60</td>
+</tr>
+<tr>
+<td style="text-align:center">durableSync</td>
+<td style="text-align:center">N/A</td>
+<td style="text-align:center">dfs.durable.sync</td>
+<td style="text-align:center">true</td>
+</tr>
+<tr>
+<td style="text-align:center">staleInterval</td>
+<td style="text-align:center">数据节点成旧周期，即该时间内没有心跳到来则判断数据节点成旧</td>
+<td style="text-align:center">dfs.namenode.stale.datanode.interval</td>
+<td style="text-align:center">30*1000(30s)</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li>创建FSDirectory对象，与目录树，命名空间镜像，编辑日志等相关的操作由该对象负责，FSDirectory包含FSImage成员，而FSImage对象又包含FSEditLog成员，这些在其他文章已经分析过了</li>
+<li>FSDirectory的loadFSImage方法。可能会根据启动选项进行格式化，然后分析本地存储目录，如果处于中间状态(类似DataNode，更新提交等中间状态)进行恢复，然后读取最新的命名空间镜像和编辑日志，进行合并，这些就是从本地文件中恢复(由FSImage的recoverTransitionRead方法完成)。恢复到上次工作状态后，需要将合并后新的命名空间镜像保存到本地，首先将之前的工作目录current目录重命名为lastcheckpoint.tmp，然后将新的镜像保存到current中，打开新的编辑日志文件，最后将lastcheckpoint.tmp重命名为previous.checkpoint，即一次更新操作(由FSImage的saveNamespace方法完成)。<br>recoverTransitionRead和saveNamespace方法不再分析。  </li>
+<li>创建安全模式管理对象SafeModeInfo，因为前面已经加载了镜像并合并了编辑日志，现在内存中信息就是上次关闭前的工作状态，通过setBlockTotal更新SafeModeInfo的成员blockTotal，关于安全模式另见<a href="../NameNode安全模式">NameNode安全模式</a></li>
+<li>创建PendingReplicationsBlocks对象，即初始化pendingReplications成员，会启动相关PendingReplicationMonitor线程，复制超时时间为配置项<code>dfs.replication.pending.timeout.sec</code>，默认-1表示使用缺省值5min。pendingReplications以及PendingReplicationMonitor线程另见<a href="../NameNode维护的数据结构">NameNode维护的数据结构</a>。  </li>
+<li>创建并启动心跳检查线程(HeartbeatMonitor)，租约检查线程(LeaseManager.Monitor)，区块复制/删除线程(ReplicationMonitor)，HeartbeatMonitor线程另见<a href="../NameNode心跳检测">NameNode心跳检测</a>，LeaseManager.Monitor另见<a href="../NameNode租约管理">NameNode租约管理</a>，ReplicationMonitor线程另见<a href="../NameNode区块复制和删除线程">NameNode区块复制和删除线程</a>。  </li>
+<li>创建解析include文件和exclude文件的HostsFileReader对象，另见<a href="../NameNode数据节点生存期管理">NameNode数据节点生存期管理</a>。  </li>
+<li>创建并启动用于检测并改变撤销数据节点状态的DecommissionManager线程，DecommissionManager另见<a href="../NameNode数据节点生存期管理">NameNode数据节点生存期管理</a>，如上，检查周期为30s，每次检查5个数据节点。  </li>
+<li>创建网络拓扑相关的DNSToSwitchMapping对象，DNSToSwitchMapping另见<a href="../NameNode区块复制和删除线程">NameNode区块复制和删除线程</a>，如上，默认为<code>ScriptBasedMapping</code>，实现了CachedDNSToSwitchMapping，因此创建后会进行解析，如果配置了脚本，则会使用脚本进行解析，脚本处理的输入为IP地址形式，每次默认处理100个输入。解析结果缓存在ScriptBasedMapping成员cache中。而如果没有配置脚本，则所有的主机会被解析成<code>/default-rack</code>。  </li>
+</ul>
+<hr>
+<h2 id="4-_停止">4. 停止</h2><p>NameNode停止由stop方法完成<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">void</span> <span class="title">stop</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (stopRequested)<span class="comment">//用于测试</span></span><br><span class="line">      <span class="keyword">return</span>;</span><br><span class="line">    stopRequested = <span class="keyword">true</span>;</span><br><span class="line">    <span class="keyword">if</span> (plugins != <span class="keyword">null</span>) &#123;<span class="comment">//停止所有插件</span></span><br><span class="line">      <span class="keyword">for</span> (ServicePlugin p : plugins) &#123;</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">          p.stop();</span><br><span class="line">        &#125; <span class="keyword">catch</span> (Throwable t) &#123;</span><br><span class="line">          LOG.warn(<span class="string">"ServicePlugin "</span> + p + <span class="string">" could not be stopped"</span>, t);</span><br><span class="line">        &#125;</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">      <span class="keyword">if</span> (httpServer != <span class="keyword">null</span>) httpServer.stop();<span class="comment">//停止HTTP服务</span></span><br><span class="line">    &#125; <span class="keyword">catch</span> (Exception e) &#123;</span><br><span class="line">      LOG.<span class="keyword">error</span>(StringUtils.stringifyException(e));</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span>(namesystem != <span class="keyword">null</span>) namesystem.close();<span class="comment">//关闭FSNamesystem相关线程</span></span><br><span class="line">    <span class="keyword">if</span>(emptier != <span class="keyword">null</span>) emptier.interrupt();<span class="comment">//中断垃圾清理器</span></span><br><span class="line">    <span class="keyword">if</span>(server != <span class="keyword">null</span>) server.stop();<span class="comment">//停止RPC服务</span></span><br><span class="line">    <span class="keyword">if</span>(serviceRpcServer != <span class="keyword">null</span>) serviceRpcServer.stop();<span class="comment">//如果serviceRpcServer存在，停止</span></span><br><span class="line">    <span class="keyword">if</span> (myMetrics != <span class="keyword">null</span>) &#123;<span class="comment">//关闭度量对象</span></span><br><span class="line">      myMetrics.shutdown();</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> (namesystem != <span class="keyword">null</span>) &#123;<span class="comment">//关闭FSNamesystem</span></span><br><span class="line">      namesystem.shutdown();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，与启动对应，停止所有插件(插件就两个方法，start启动，stop停止)，停止HTTPServer，停止FSNamesystem中相关服务，中断垃圾清理器，停止RPC服务。<br>其中RPC服务可能由两个因此对应的进行停止，RPC服务器的stop另见RPC相关分析。  </p>
+<h3 id="4-1_垃圾清理器中断">4.1 垃圾清理器中断</h3><p>如前面垃圾清理器线程的主程序中，通过interrupt会中断可能处于休眠等待状态的垃圾清理器，因为垃圾清理器默认1小时执行一次，因此很有可能处于休眠状态从而唤醒返回。而如果处于工作状态，如在expunge清理或checkpoint生成检查点过程中，则要等到这次工作完成。  </p>
+<h3 id="4-2_FSNamesystem的关闭">4.2 FSNamesystem的关闭</h3><p>如上，首先调用FSNamesystem的close方法，然后调用shutdown方法，在初始化FSNamesystem对象失败时也是这个顺序</p>
+<h4 id="4-2-1_FSNamesystem-close">4.2.1 FSNamesystem.close</h4><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">void</span> <span class="title">close</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    fsRunning = <span class="keyword">false</span>;</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">      <span class="keyword">if</span> (pendingReplications != <span class="keyword">null</span>) pendingReplications.stop();<span class="comment">//中断PendingReplicationMonitor线程</span></span><br><span class="line">      <span class="keyword">if</span> (hbthread != <span class="keyword">null</span>) hbthread.interrupt();<span class="comment">//中断心跳检测线程</span></span><br><span class="line">      <span class="keyword">if</span> (replthread != <span class="keyword">null</span>) replthread.interrupt();<span class="comment">//中断复制/删除操作线程</span></span><br><span class="line">      <span class="keyword">if</span> (dnthread != <span class="keyword">null</span>) dnthread.interrupt();<span class="comment">//中断撤销状态管理线程</span></span><br><span class="line">      <span class="keyword">if</span> (smmthread != <span class="keyword">null</span>) smmthread.interrupt();<span class="comment">//中断安全模式管理线程</span></span><br><span class="line">      <span class="keyword">if</span> (dtSecretManager != <span class="keyword">null</span>) dtSecretManager.stopThreads();<span class="comment">//中断口令安全管理线程</span></span><br><span class="line">    &#125; <span class="keyword">catch</span> (Exception e) &#123;</span><br><span class="line">      LOG.warn(<span class="string">"Exception shutting down FSNamesystem"</span>, e);</span><br><span class="line">    &#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">      <span class="keyword">try</span> &#123;</span><br><span class="line">        <span class="keyword">if</span> (lmthread != <span class="keyword">null</span>) &#123;<span class="comment">//中断租约管理线程</span></span><br><span class="line">          lmthread.interrupt();</span><br><span class="line">          lmthread.join(<span class="number">3000</span>);</span><br><span class="line">        &#125;</span><br><span class="line">        dir.close();<span class="comment">//关闭FSDirectory</span></span><br><span class="line">        blocksMap.close();<span class="comment">//清除blocksMap</span></span><br><span class="line">      &#125; <span class="keyword">catch</span> (InterruptedException ie) &#123;</span><br><span class="line">      &#125; <span class="keyword">catch</span> (IOException ie) &#123;</span><br><span class="line">        LOG.<span class="keyword">error</span>(<span class="string">"Error closing FSDirectory"</span>, ie);</span><br><span class="line">        IOUtils.cleanup(LOG, dir);</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>如上，修改fsRunning为false，线程都会循环判断该标识。  </p>
+<h5 id="4-2-1-1_线程中断">4.2.1.1 线程中断</h5><p>通过pendingReplications.stop()中断对应的PendingReplicationMonitor线程，PendingReplicationMonitor默认5min检查一次(操作一次后休眠5min)，因此可能将其从休眠等待中唤醒从而返回，如果处于检查状态则要等待检查完成。  </p>
+<p>HeartbeatMonitor线程每5min检查一次(当前时间距离上次检查时间超过了5min)，ReplicationMonitor线程默认每3s检查一次(每次操作后休眠3s)，DecommissionManager线程默认每30s检查一次(每次操作后休眠30s)，SafeModeMonitor线程默认1s检查一次(每次操作后休眠1s)，LeaseManager.Monitor线程默认2s检查一次(每次操作后休眠2s)，如果这些线程处于相关操作中，则要等待本次操作完成才会返回，如果处于休眠等待则会被唤醒并返回。<br>如上，最后会等待线程完成，最多等待3s中。  </p>
+<h5 id="4-2-1-2_关闭FSDirectory">4.2.1.2 关闭FSDirectory</h5><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">void</span> <span class="title">close</span><span class="params">()</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">    fsImage.close();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>关闭FSImage<br><figure class="highlight sml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">void close<span class="literal">()</span> throws <span class="type">IOException</span> &#123;</span><br><span class="line">    getEditLog<span class="literal">()</span>.close<span class="literal">()</span>;</span><br><span class="line">    unlockAll<span class="literal">()</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，关闭FSEditLog，然后释放所有的存储目录锁，FSEditLog的close方法如下<br><figure class="highlight processing"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">synchronized</span> <span class="keyword">void</span> close() <span class="keyword">throws</span> IOException &#123;</span><br><span class="line">    <span class="keyword">while</span> (isSyncRunning) &#123;<span class="comment">//正在同步，等待</span></span><br><span class="line">      <span class="keyword">try</span> &#123;</span><br><span class="line">        wait(<span class="number">1000</span>);</span><br><span class="line">      &#125; <span class="keyword">catch</span> (InterruptedException ie) &#123; </span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> (editStreams == <span class="keyword">null</span>) &#123;</span><br><span class="line">      <span class="keyword">return</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    printStatistics(<span class="keyword">true</span>);</span><br><span class="line">    numTransactions = totalTimeTransactions = numTransactionsBatchedInSync = <span class="number">0</span>;<span class="comment">//清零统计量</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">for</span> (<span class="built_in">int</span> idx = <span class="number">0</span>; idx &lt; editStreams.<span class="built_in">size</span>(); idx++) &#123;</span><br><span class="line">      EditLogOutputStream eStream = editStreams.<span class="built_in">get</span>(idx);</span><br><span class="line">      <span class="keyword">try</span> &#123;</span><br><span class="line">        eStream.setReadyToFlush();</span><br><span class="line">        eStream.flush();</span><br><span class="line">        eStream.close();<span class="comment">//刷新所有的输出流EditLogFileOutputStream到底层文件，然后关闭输出流</span></span><br><span class="line">      &#125; <span class="keyword">catch</span> (IOException ioe) &#123;</span><br><span class="line">        removeEditsAndStorageDir(idx);</span><br><span class="line">        idx--;</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    editStreams.<span class="built_in">clear</span>();<span class="comment">//清除editStreams成员</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>如上，如果当前正在同步，则等待，然后清零相关统计量，刷新素有的EditLogFileOutputStream输出流当前缓存日志到底层文件，然后关闭输出流关闭文件，最后清除editStreams成员。同步和EditLogFileOutputStream相关另见<a href="../NameNode命名空间镜像和编辑日志">NameNode命名空间镜像和编辑日志</a>  </p>
+<h5 id="4-2-1-3_关闭BlocksMap">4.2.1.3 关闭BlocksMap</h5><p>由close方法完成<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">close</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    blocks.clear();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>即清除所有的区块记录</p>
+<h4 id="4-2-2_FSnamesystem-shutdown">4.2.2 FSnamesystem.shutdown</h4><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">void</span> <span class="title">shutdown</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (mbeanName != <span class="keyword">null</span>) &#123;</span><br><span class="line">      MBeans.unregister(mbeanName);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> (mxBean != <span class="keyword">null</span>) &#123;</span><br><span class="line">      MBeans.unregister(mxBean);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> (dir != <span class="keyword">null</span>) &#123;</span><br><span class="line">      dir.shutdown();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>如上主要是FSDirectory的shutdown方法，如下<br><figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">shutdown</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    nameCache.reset();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>即清除NameCache相关对象，NameCache缓存最频繁使用的文件，不具体分析。  </p>
+</span>
+      
+    </div>
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/HDFS/" rel="tag">#HDFS</a>
+          
+            <a href="/tags/Hadoop-1-2-1/" rel="tag">#Hadoop-1.2.1</a>
+          
+            <a href="/tags/Java/" rel="tag">#Java</a>
+          
+            <a href="/tags/NameNode/" rel="tag">#NameNode</a>
+          
+            <a href="/tags/NameNode源码阅读/" rel="tag">#NameNode源码阅读</a>
+          
+            <a href="/tags/源码阅读/" rel="tag">#源码阅读</a>
+          
+        </div>
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/NameNode安全模式/" rel="next" title="NameNode实现源码分析---安全模式">
+                <i class="fa fa-chevron-left"></i> NameNode实现源码分析---安全模式
+              </a>
+            
+          </div>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/NameNode区块复制和删除线程/" rel="prev" title="NameNode实现源码分析---区块复制和删除线程">
+                NameNode实现源码分析---区块复制和删除线程 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </article>
+
+
+
+    <div class="post-spread">
+      
+        <!-- JiaThis Button BEGIN -->
+<div class="jiathis_style">
+  <a class="jiathis_button_tsina"></a>
+  <a class="jiathis_button_tqq"></a>
+  <a class="jiathis_button_weixin"></a>
+  <a class="jiathis_button_cqq"></a>
+  <a class="jiathis_button_douban"></a>
+  <a class="jiathis_button_renren"></a>
+  <a class="jiathis_button_qzone"></a>
+  <a class="jiathis_button_kaixin001"></a>
+  <a class="jiathis_button_copy"></a>
+  <a href="http://www.jiathis.com/share" class="jiathis jiathis_txt jiathis_separator jtico jtico_jiathis" target="_blank"></a>
+  <a class="jiathis_counter_style"></a>
+</div>
+<script type="text/javascript" >
+  var jiathis_config={
+    hideMore:false
+  }
+</script>
+<script type="text/javascript" src="http://v3.jiathis.com/code/jia.js" charset="utf-8"></script>
+<!-- JiaThis Button END -->
+
+      
+    </div>
+  </div>
+
+
+        </div>
+
+        
+
+
+        
+  <div class="comments" id="comments">
+    
+      <div class="ds-thread" data-thread-key="NameNode启动和停止/"
+           data-title="NameNode实现源码分析---启动和停止" data-url="http://xiao-yun.github.io/NameNode启动和停止/">
+      </div>
+    
+  </div>
+
+
+      </div>
+
+      
+        
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap" >
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel ">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+          <img class="site-author-image" src="/images/hero.jpg" alt="xiaoyun" itemprop="image"/>
+          <p class="site-author-name" itemprop="name">xiaoyun</p>
+        </div>
+        <p class="site-description motion-element" itemprop="description">学习笔记，网上资源摘要等</p>
+        <nav class="site-state motion-element">
+          <div class="site-state-item site-state-posts">
+            <a href="/archives">
+              <span class="site-state-item-count">44</span>
+              <span class="site-state-item-name">日志</span>
+            </a>
+          </div>
+
+          <div class="site-state-item site-state-categories">
+            <a href="/categories">
+              <span class="site-state-item-count">40</span>
+              <span class="site-state-item-name">分类</span>
+              </a>
+          </div>
+
+          <div class="site-state-item site-state-tags">
+            <a href="/tags">
+              <span class="site-state-item-count">21</span>
+              <span class="site-state-item-name">标签</span>
+              </a>
+          </div>
+
+        </nav>
+
+        
+
+        <div class="links-of-author motion-element">
+          
+            
+              <span class="links-of-author-item">
+                <a href="https://github.com/xiao-yun" target="_blank">
+                  
+                    <i class="fa fa-globe"></i> github
+                  
+                </a>
+              </span>
+            
+          
+        </div>
+
+        
+        
+
+        <div class="links-of-author motion-element">
+          
+        </div>
+
+      </section>
+
+      
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc-indicator-top post-toc-indicator">
+            <i class="fa fa-angle-double-up"></i>
+          </div>
+          <div class="post-toc">
+            
+              
+            
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-_启动参数"><span class="nav-number">1.</span> <span class="nav-text">1. 启动参数</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-_格式化启动"><span class="nav-number">2.</span> <span class="nav-text">2. 格式化启动</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1_FSImage-format"><span class="nav-number">2.1.</span> <span class="nav-text">2.1 FSImage.format</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1-1_setStorageDirectories"><span class="nav-number">2.2.</span> <span class="nav-text">2.1.1 setStorageDirectories</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-_正常启动"><span class="nav-number">3.</span> <span class="nav-text">3. 正常启动</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-1_RPC服务初始化"><span class="nav-number">4.</span> <span class="nav-text">3.1 RPC服务初始化</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-2_HTTP服务"><span class="nav-number">5.</span> <span class="nav-text">3.2 HTTP服务</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-3_垃圾清理器Trash-Emptier线程"><span class="nav-number">6.</span> <span class="nav-text">3.3 垃圾清理器Trash.Emptier线程</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#3-3-1_Trash"><span class="nav-number">6.1.</span> <span class="nav-text">3.3.1 Trash</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-3-2_Emptier"><span class="nav-number">6.2.</span> <span class="nav-text">3.3.2 Emptier</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-4_FSNamesystem"><span class="nav-number">7.</span> <span class="nav-text">3.4 FSNamesystem</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-_停止"><span class="nav-number">8.</span> <span class="nav-text">4. 停止</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#4-1_垃圾清理器中断"><span class="nav-number">8.1.</span> <span class="nav-text">4.1 垃圾清理器中断</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-2_FSNamesystem的关闭"><span class="nav-number">8.2.</span> <span class="nav-text">4.2 FSNamesystem的关闭</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#4-2-1_FSNamesystem-close"><span class="nav-number">8.2.1.</span> <span class="nav-text">4.2.1 FSNamesystem.close</span></a><ol class="nav-child"><li class="nav-item nav-level-5"><a class="nav-link" href="#4-2-1-1_线程中断"><span class="nav-number">8.2.1.1.</span> <span class="nav-text">4.2.1.1 线程中断</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#4-2-1-2_关闭FSDirectory"><span class="nav-number">8.2.1.2.</span> <span class="nav-text">4.2.1.2 关闭FSDirectory</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#4-2-1-3_关闭BlocksMap"><span class="nav-number">8.2.1.3.</span> <span class="nav-text">4.2.1.3 关闭BlocksMap</span></a></li></ol></li><li class="nav-item nav-level-4"><a class="nav-link" href="#4-2-2_FSnamesystem-shutdown"><span class="nav-number">8.2.2.</span> <span class="nav-text">4.2.2 FSnamesystem.shutdown</span></a></li></ol></li></ol></li></ol></div>
+            
+          </div>
+          <div class="post-toc-indicator-bottom post-toc-indicator">
+            <i class="fa fa-angle-double-down"></i>
+          </div>
+        </section>
+      
+
+    </div>
+  </aside>
+
+
+      
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright" >
+  
+  &copy; 
+  <span itemprop="copyrightYear">2016</span>
+  <span class="with-love">
+    <i class="icon-next-heart fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">xiaoyun</span>
+</div>
+
+<div class="powered-by">
+  由 <a class="theme-link" href="http://hexo.io">Hexo</a> 强力驱动
+</div>
+
+<div class="theme-info">
+  主题 -
+  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
+    NexT.Mist
+  </a>
+</div>
+
+
+
+      </div>
+    </footer>
+
+    <div class="back-to-top"></div>
+  </div>
+
+  <script type="text/javascript" src="/vendors/jquery/index.js?v=2.1.3"></script>
+
+  
+  
+
+  
+    
+
+  
+    
+  
+
+  <script type="text/javascript">
+    var duoshuoQuery = {short_name:"xiaoyuncom"};
+    (function() {
+      var ds = document.createElement('script');
+      ds.type = 'text/javascript';ds.async = true;
+      ds.id = 'duoshuo-script';
+      ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+      ds.charset = 'UTF-8';
+      (document.getElementsByTagName('head')[0]
+      || document.getElementsByTagName('body')[0]).appendChild(ds);
+    })();
+  </script>
+    
+     
+
+
+    
+  
+
+  
+  <script type="text/javascript" src="/vendors/fancybox/source/jquery.fancybox.pack.js"></script>
+  <script type="text/javascript" src="/js/fancy-box.js?v=0.4.5.2"></script>
+
+
+  <script type="text/javascript" src="/js/helpers.js?v=0.4.5.2"></script>
+  <script type="text/javascript" src="/vendors/velocity/velocity.min.js"></script>
+<script type="text/javascript" src="/vendors/velocity/velocity.ui.min.js"></script>
+
+<script type="text/javascript" src="/js/motion.js?v=0.4.5.2" id="motion.global"></script>
+
+
+  <script type="text/javascript" src="/vendors/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  <script type="text/javascript" src="/vendors/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  
+<script type="text/javascript" src="/js/bootstrap.scrollspy.js?v=0.4.5.2" id="bootstrap.scrollspy.custom"></script>
+
+
+<script type="text/javascript" id="sidebar.toc.highlight">
+  $(document).ready(function () {
+    var tocSelector = '.post-toc';
+    var $tocSelector = $(tocSelector);
+    var activeCurrentSelector = '.active-current';
+
+    $tocSelector
+      .on('activate.bs.scrollspy', function () {
+        var $currentActiveElement = $(tocSelector + ' .active').last();
+
+        removeCurrentActiveClass();
+        $currentActiveElement.addClass('active-current');
+
+        $tocSelector[0].scrollTop = $currentActiveElement.position().top;
+      })
+      .on('clear.bs.scrollspy', function () {
+        removeCurrentActiveClass();
+      });
+
+    function removeCurrentActiveClass () {
+      $(tocSelector + ' ' + activeCurrentSelector)
+        .removeClass(activeCurrentSelector.substring(1));
+    }
+
+    function processTOC () {
+      getTOCMaxHeight();
+      toggleTOCOverflowIndicators();
+    }
+
+    function getTOCMaxHeight () {
+      var height = $('.sidebar').height() -
+                   $tocSelector.position().top -
+                   $('.post-toc-indicator-bottom').height();
+
+      $tocSelector.css('height', height);
+
+      return height;
+    }
+
+    function toggleTOCOverflowIndicators () {
+      tocOverflowIndicator(
+        '.post-toc-indicator-top',
+        $tocSelector.scrollTop() > 0 ? 'show' : 'hide'
+      );
+
+      tocOverflowIndicator(
+        '.post-toc-indicator-bottom',
+        $tocSelector.scrollTop() >= $tocSelector.find('ol').height() - $tocSelector.height() ? 'hide' : 'show'
+      )
+    }
+
+    $(document).on('sidebar.motion.complete', function () {
+      processTOC();
+    });
+
+    $('body').scrollspy({ target: tocSelector });
+    $(window).on('resize', function () {
+      if ( $('.sidebar').hasClass('sidebar-active') ) {
+        processTOC();
+      }
+    });
+
+    onScroll($tocSelector);
+
+    function onScroll (element) {
+      element.on('mousewheel DOMMouseScroll', function (event) {
+          var oe = event.originalEvent;
+          var delta = oe.wheelDelta || -oe.detail;
+
+          this.scrollTop += ( delta < 0 ? 1 : -1 ) * 30;
+          event.preventDefault();
+
+          toggleTOCOverflowIndicators();
+      });
+    }
+
+    function tocOverflowIndicator (indicator, action) {
+      var $indicator = $(indicator);
+      var opacity = action === 'show' ? 1 : 0;
+      $indicator.velocity ?
+        $indicator.velocity('stop').velocity({
+          opacity: opacity
+        }, { duration: 100 }) :
+        $indicator.stop().animate({
+          opacity: opacity
+        }, 100);
+    }
+
+  });
+</script>
+
+<script type="text/javascript" id="sidebar.nav">
+  $(document).ready(function () {
+    var html = $('html');
+    var TAB_ANIMATE_DURATION = 200;
+    var hasVelocity = $.isFunction(html.velocity);
+
+    $('.sidebar-nav li').on('click', function () {
+      var item = $(this);
+      var activeTabClassName = 'sidebar-nav-active';
+      var activePanelClassName = 'sidebar-panel-active';
+      if (item.hasClass(activeTabClassName)) {
+        return;
+      }
+
+      var currentTarget = $('.' + activePanelClassName);
+      var target = $('.' + item.data('target'));
+
+      hasVelocity ?
+        currentTarget.velocity('transition.slideUpOut', TAB_ANIMATE_DURATION, function () {
+          target
+            .velocity('stop')
+            .velocity('transition.slideDownIn', TAB_ANIMATE_DURATION)
+            .addClass(activePanelClassName);
+        }) :
+        currentTarget.animate({ opacity: 0 }, TAB_ANIMATE_DURATION, function () {
+          currentTarget.hide();
+          target
+            .stop()
+            .css({'opacity': 0, 'display': 'block'})
+            .animate({ opacity: 1 }, TAB_ANIMATE_DURATION, function () {
+              currentTarget.removeClass(activePanelClassName);
+              target.addClass(activePanelClassName);
+            });
+        });
+
+      item.siblings().removeClass(activeTabClassName);
+      item.addClass(activeTabClassName);
+    });
+
+    $('.post-toc a').on('click', function (e) {
+      e.preventDefault();
+      var targetSelector = escapeSelector(this.getAttribute('href'));
+      var offset = $(targetSelector).offset().top;
+      hasVelocity ?
+        html.velocity('stop').velocity('scroll', {
+          offset: offset  + 'px',
+          mobileHA: false
+        }) :
+        $('html, body').stop().animate({
+          scrollTop: offset
+        }, 500);
+    });
+
+    // Expand sidebar on post detail page by default, when post has a toc.
+    motionMiddleWares.sidebar = function () {
+      var $tocContent = $('.post-toc-content');
+      if (CONFIG.sidebar === 'post') {
+        if ($tocContent.length > 0 && $tocContent.html().trim().length > 0) {
+          displaySidebar();
+        }
+      }
+    };
+  });
+</script>
+
+
+
+  <script type="text/javascript" src="/js/bootstrap.js"></script>
+
+  
+  
+
+  
+  
+
+</body>
+</html>
